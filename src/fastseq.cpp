@@ -82,8 +82,6 @@ vguard<FastSeq> readFastSeqs (const char* filename) {
 
     FastSeq seq;
     initFastSeq (seq, ks);
-    seq.filename = filename;
-    seq.filepos = filepos;
 
     seqs.push_back (seq);
   }

@@ -14,6 +14,7 @@ using namespace std;
 typedef unsigned int SeqIdx;
 typedef unsigned int AlphTok;
 typedef int UnvalidatedAlphTok;
+typedef unsigned int QualScore;
 
 UnvalidatedAlphTok tokenize (char c, const string& alphabet);
 
@@ -24,7 +25,6 @@ struct FastSeq {
   static const char minQualityChar, maxQualityChar;
   static const QualScore qualScoreRange;
   // methods
-  FastSeq() : filepos(-1) { }
   SeqIdx length() const { return (SeqIdx) seq.size(); }
   bool hasQual() const { return qual.size() == length(); }
   static inline QualScore qualScoreForChar (char c) {
