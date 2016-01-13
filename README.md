@@ -1,2 +1,2 @@
-# propaelor
+# propalor
 Protein Paleogenetic Reconstruction
