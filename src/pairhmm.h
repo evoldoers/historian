@@ -10,7 +10,7 @@ struct PairHMM {
 
   // helper methods
   inline double emit() const { return root.extend; }
-  inline double end() const { return 1 - root.extend; }
+  inline double end() const { return root.end; }
 
   inline double lIns() const { return l.ins; }
   inline double lDel() const { return l.del; }
