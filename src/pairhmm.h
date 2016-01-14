@@ -36,8 +36,8 @@ struct PairHMM {
   // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}
   // State imm is dropped.
   double imm_imi, imm_iiw, imm_imm, imm_imd, imm_idm, imm_eee;
-  double imd_iix, imd_imm, imd_imd, imd_idm, imd_eee, idm_idi;
-  double idm_imm, idm_imd, idm_idm, idm_eee;
+  double imd_iix, imd_imm, imd_imd, imd_idm, imd_eee;
+  double idm_idi, idm_imm, idm_imd, idm_idm, idm_eee;
   double imi_imi, imi_iiw, imi_imm, imi_imd, imi_idm, imi_eee;
   double iiw_iiw, iiw_imm, iiw_imd, iiw_idm, iiw_eee;
   double idi_idi, idi_imm, idi_imd, idi_idm, idi_eee;
