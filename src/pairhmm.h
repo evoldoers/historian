@@ -32,7 +32,7 @@ struct PairHMM {
   inline double rNoInsExt() const { return 1 - r.insExt; }
   inline double rNoDelExt() const { return 1 - r.delExt; }
 
-  // transition probabilities
+  // Transition log-probabilities.
   // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}
   // State imm is dropped.
   double imm_imi, imm_iiw, imm_imm, imm_imd, imm_idm, imm_eee;
