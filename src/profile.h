@@ -4,26 +4,25 @@
 #include "fastseq.h"
 
 typedef size_t ProfileStateIndex;
-typedef size_t ProfileTransitionIndex;
 typedef double LogProb;
 
 struct ProfileTransition {
   ProfileStateIndex src, dest;
-  vector<LogProb> absorb;
-  ProfileTransition (AlphTok alphSize);
+  LogProb lpTrans;
+  ProfileTransition();
 };
 
 struct ProfileState {
-  vector<ProfileTransitionIndex> in, out;
+  vector<ProfileTransition> in, out;
+  vector<LogProb> lpAbsorb;
+  ProfileState (AlphTok alphSize = 0);
+  inline bool isNull() const { return lpAbsorb.empty(); }
 };
 
 struct Profile {
   AlphTok alphSize;
   vector<ProfileState> state;
-  vector<ProfileTransition> trans;
-
   Profile (AlphTok alphSize, const vguard<AlphTok>& seq);
 };
-
 
 #endif /* PROFILE_INCLUDED */
