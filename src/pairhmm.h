@@ -3,10 +3,12 @@
 
 #include "model.h"
 
-struct PairHMM {
+struct PairHMM : AlphabetOwner {
   const RootModel& root;
   const ProbModel& l;
   const ProbModel& r;
+
+  typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6, TotalStates = 7 } State;
 
   // helper methods
   inline double emit() const { return root.extend; }
@@ -34,7 +36,7 @@ struct PairHMM {
 
   // Transition log-probabilities.
   // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}
-  // State imm is dropped.
+  // State idd is dropped.
   double imm_imi, imm_iiw, imm_imm, imm_imd, imm_idm, imm_eee;
   double imd_iix, imd_imm, imd_imd, imd_idm, imd_eee;
   double idm_idi, idm_imm, idm_imd, idm_idm, idm_eee;

@@ -7,12 +7,17 @@
 
 using namespace std;
 
-struct RootModel {
+struct AlphabetOwner {
+  string alphabet;
+  size_t alphabetSize() const { return alphabet.size(); }
+};
+
+struct RootModel : AlphabetOwner {
   gsl_vector init;
   double extend, end;  // Strict (geometric) normalization: end = 1 - extend. Weak (flat): end = extend = 1
 };
 
-struct RateModel {
+struct RateModel : AlphabetOwner {
   double insRate, delRate, insExtProb, delExtProb;
   gsl_matrix subRate;
 
@@ -29,7 +34,7 @@ struct RateModelBasis {
   gsl_matrix exp (double t) const;
 };
 
-struct ProbModel {
+struct ProbModel : AlphabetOwner {
   double ins, del, insExt, delExt;
   gsl_matrix sub;
   ProbModel (const RateModelBasis& basis, double t);
