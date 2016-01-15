@@ -34,5 +34,4 @@ public:
   Profile makeProfile (const set<CellCoords>& states) const;
 };
 
-
 #endif /* FORWARD_INCLUDED */
