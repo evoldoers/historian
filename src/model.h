@@ -12,11 +12,6 @@ struct AlphabetOwner {
   size_t alphabetSize() const { return alphabet.size(); }
 };
 
-struct RootModel : AlphabetOwner {
-  gsl_vector init;
-  double extend, end;  // Strict (geometric) normalization: end = 1 - extend. Weak (flat): end = extend = 1
-};
-
 struct RateModel : AlphabetOwner {
   double insRate, delRate, insExtProb, delExtProb;
   gsl_matrix subRate;
@@ -30,7 +25,6 @@ struct RateModelBasis {
   gsl_vector eval;
   gsl_matrix evec;
   RateModelBasis (const RateModel& model);
-  RootModel defaultRootModel() const;
   gsl_matrix exp (double t) const;
 };
 

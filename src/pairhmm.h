@@ -5,16 +5,12 @@
 #include "logsumexp.h"
 
 struct PairHMM : AlphabetOwner {
-  const RootModel& root;
   const ProbModel& l;
   const ProbModel& r;
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6, TotalStates = 7 } State;
 
   // helper methods
-  inline double emit() const { return root.extend; }
-  inline double end() const { return root.end; }
-
   inline double lIns() const { return l.ins; }
   inline double lDel() const { return l.del; }
   inline double lInsExt() const { return l.insExt; }
@@ -47,7 +43,7 @@ struct PairHMM : AlphabetOwner {
   LogProb iix_iix, iix_imm, iix_imd, iix_idm, iix_eee;
 
   // constructor
-  PairHMM (const RootModel& root, const ProbModel& l, const ProbModel& r);
+  PairHMM (const ProbModel& l, const ProbModel& r);
 };
 
 #endif /* PAIRHMM_INCLUDED */
