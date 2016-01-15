@@ -5,12 +5,10 @@ ProfileTransition::ProfileTransition()
 { }
 
 ProfileState::ProfileState (AlphTok alphSize)
-  : lpAbsorb(alphSize,-numeric_limits<double>::infinity()),
-    leftAbsorb(false),
-    rightAbsorb(false)
+  : lpAbsorb(alphSize,-numeric_limits<double>::infinity())
 { }
 
-Profile::Profile (AlphTok alphSize, const vguard<AlphTok>& seq)
+Profile::Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex rowIndex)
   : alphSize (alphSize),
     state (seq.size() + 2, ProfileState (alphSize)),
     trans (seq.size() + 1)
@@ -23,5 +21,9 @@ Profile::Profile (AlphTok alphSize, const vguard<AlphTok>& seq)
     trans.lpTrans = 0;
     state[pos].out.push_back (pos);
     state[pos+1].in.push_back (pos);
+    if (pos < seq.size()) {
+      state[pos+1].lpAbsorb[seq[pos]] = 0;
+      state[pos+1].alignPath[rowIndex].push_back (true);
+    }
   }
 }

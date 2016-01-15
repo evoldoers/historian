@@ -11,6 +11,8 @@
 #define NAN_DEBUG
 */
 
+typedef double LogProb;
+
 double log_sum_exp (double a, double b);  /* returns log(exp(a) + exp(b)) */
 double log_sum_exp (double a, double b, double c);
 double log_sum_exp (double a, double b, double c, double d);
