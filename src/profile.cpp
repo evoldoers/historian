@@ -15,10 +15,10 @@ Profile::Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex ro
 {
   state.front() = state.back() = ProfileState();  // start and end are null states
   for (size_t pos = 0; pos <= seq.size(); ++pos) {
-    ProfileTransition& t (trans[pos]);
-    trans.src = pos;
-    trans.dest = pos + 1;
-    trans.lpTrans = 0;
+    ProfileTransition& t = trans[pos];
+    t.src = pos;
+    t.dest = pos + 1;
+    t.lpTrans = 0;
     state[pos].out.push_back (pos);
     state[pos+1].in.push_back (pos);
     if (pos < seq.size()) {

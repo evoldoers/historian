@@ -1,6 +1,7 @@
 #ifndef PROFILE_INCLUDED
 #define PROFILE_INCLUDED
 
+#include <gsl/gsl_matrix.h>
 #include "fastseq.h"
 #include "alignpath.h"
 #include "logsumexp.h"
@@ -24,11 +25,12 @@ struct ProfileState {
 };
 
 struct Profile {
+  AlphTok alphSize;
   vector<ProfileState> state;
   vector<ProfileTransition> trans;
   Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex rowIndex);
   ProfileStateIndex size() const { return state.size(); }
-  Profile leftMultiply (gsl_matrix sub) const;
+  Profile leftMultiply (gsl_matrix* sub) const;
 };
 
 #endif /* PROFILE_INCLUDED */

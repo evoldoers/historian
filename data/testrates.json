@@ -1,0 +1,12 @@
+{
+    "alphabet": "ACGT",
+    "subrate" : {
+	"A" : { "T" : 1 },
+	"C" : { "T" : 2 },
+	"G" : { "T" : 3 }
+    },
+    "insrate" : 0.1,
+    "delrate" : 0.2,
+    "insextprob" : 0.3,
+    "delextprob" : 0.4
+}

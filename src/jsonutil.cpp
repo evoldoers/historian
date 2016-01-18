@@ -38,6 +38,34 @@ JsonValue& JsonMap::operator[] (const string& key) const {
   return *i->second;
 }
 
+JsonValue& JsonMap::getType (const char* key, JsonTag type) const {
+  Require (containsType (key, type), "Couldn't find %s of correct type in JSON", key);
+  return (*this)[key];
+}
+
+JsonValue& JsonMap::getType (const string& key, JsonTag type) const {
+  Require (containsType (key, type), "Couldn't find %s of correct type in JSON", key.c_str());
+  return (*this)[key];
+}
+
+JsonMap JsonMap::getObject (const char* key) const {
+  const JsonValue json = getType (key, JSON_OBJECT);
+  return JsonMap (json);
+}
+
+JsonMap JsonMap::getObject (const string& key) const {
+  const JsonValue json = getType (key, JSON_OBJECT);
+  return JsonMap (json);
+}
+
+double JsonMap::getNumber (const char* key) const {
+  return getType (key, JSON_NUMBER).toNumber();
+}
+
+double JsonMap::getNumber (const string& key) const {
+  return getType (key, JSON_NUMBER).toNumber();
+}
+
 ParsedJson::ParsedJson (const string& s, bool parseOrDie) {
   parse (s, parseOrDie);
 }

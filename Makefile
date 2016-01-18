@@ -85,11 +85,17 @@ bin/%: $(CPPFILES) t/%.cpp
 
 # Tests
 
-test: testlogsumexp
+test: testlogsumexp testrateio
 
 testlogsumexp: bin/testlogsumexp
 	bin/testlogsumexp -slow >data/logsumexp.txt
 	perl/testexpect.pl bin/testlogsumexp -fast data/logsumexp.txt
+
+testmatexp: bin/testmatexp
+	perl/testexpect.pl bin/testmatexp data/testrates.json 1 data/testprobs.json
+
+testrateio: bin/testrateio
+	perl/testexpect.pl bin/testrateio data/testrates.json data/testrates.out.json
 
 # Rules for building files in the repository
 # For updating README.md

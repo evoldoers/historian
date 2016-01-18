@@ -23,6 +23,12 @@ struct JsonMap {
   bool containsType (const string& key, JsonTag type) const;
   JsonValue& operator[] (const char* key) const;
   JsonValue& operator[] (const string& key) const;
+  JsonValue& getType (const char* key, JsonTag type) const;
+  JsonValue& getType (const string& key, JsonTag type) const;
+  JsonMap getObject (const char* key) const;
+  JsonMap getObject (const string& key) const;
+  double getNumber (const char* key) const;
+  double getNumber (const string& key) const;
 };
 
 // wrapper for JsonValue with parent string

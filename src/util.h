@@ -31,6 +31,8 @@ void Require(int assertion, const char* error, ...);
 bool Test(int assertion, const char* error, ...);
 #define Desire(...) do { if (!Test(__VA_ARGS__)) return false; } while (0)
 
+void CheckGsl (int gslErrorCode);
+
 /* singular or plural? */
 std::string plural (long n, const char* singular);
 std::string plural (long n, const char* singular, const char* plural);

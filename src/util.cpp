@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <ftw.h>
+#include <gsl/gsl_errno.h>
 
 #include "util.h"
 #include "stacktrace.h"
@@ -104,6 +105,10 @@ bool Test(int assertion, const char* error, ...) {
     va_end (argptr);
   }
   return assertion;
+}
+
+void CheckGsl (int gslErrorCode) {
+  Assert (gslErrorCode == 0, "GSL error: %s", gsl_strerror (gslErrorCode));
 }
 
 std::string plural (long n, const char* singular) {
