@@ -85,14 +85,14 @@ bin/%: $(CPPFILES) t/%.cpp
 
 # Tests
 
-test: testlogsumexp testrateio
+test: testlogsumexp testrateio testmatexp
 
 testlogsumexp: bin/testlogsumexp
 	bin/testlogsumexp -slow >data/logsumexp.txt
 	perl/testexpect.pl bin/testlogsumexp -fast data/logsumexp.txt
 
 testmatexp: bin/testmatexp
-	perl/testexpect.pl bin/testmatexp data/testrates.json 1 data/testprobs.json
+	perl/testexpect.pl bin/testmatexp data/testrates.json 1 data/testrates.probs.json
 
 testrateio: bin/testrateio
 	perl/testexpect.pl bin/testrateio data/testrates.json data/testrates.out.json

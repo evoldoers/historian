@@ -90,36 +90,38 @@ void RateModel::write (ostream& out) const {
 
 gsl_vector* RateModel::getEqmProb() const {
   // find eqm via QR decomposition
-  gsl_matrix* QR = newAlphabetMatrix();
+  gsl_matrix* QR = gsl_matrix_alloc (alphabetSize() + 1, alphabetSize());
+  for (AlphTok j = 0; j < alphabetSize(); ++j) {
+    for (AlphTok i = 0; i < alphabetSize(); ++i)
+      gsl_matrix_set (QR, i, j, gsl_matrix_get (subRate, j, i));
+    gsl_matrix_set (QR, alphabetSize(), j, 1);
+  }
+
   gsl_vector* tau = newAlphabetVector();
-  gsl_vector* zero = newAlphabetVector();
-  gsl_vector* eqm = newAlphabetVector();
 
-  gsl_vector_set_zero (zero);
-  gsl_vector_set_zero (eqm);
-
-  CheckGsl (gsl_matrix_memcpy (QR, subRate));
   CheckGsl (gsl_linalg_QR_decomp (QR, tau));
 
-  fprintf (stderr, "QR:\n");
-  gsl_matrix_fprintf (stderr, QR, "%g");
-  fprintf (stderr, "tau:\n");
-  gsl_vector_fprintf (stderr, tau, "%g");
+  gsl_vector* b = gsl_vector_alloc (alphabetSize() + 1);
+  gsl_vector_set_zero (b);
+  gsl_vector_set (b, alphabetSize(), 1);
+
+  gsl_vector* residual = gsl_vector_alloc (alphabetSize() + 1);
+  gsl_vector* eqm = newAlphabetVector();
   
-  CheckGsl (gsl_linalg_QR_solve (QR, tau, zero, eqm));
+  CheckGsl (gsl_linalg_QR_lssolve (QR, tau, b, eqm, residual));
 
-  fprintf (stderr, "eqm:\n");
-  gsl_vector_fprintf (stderr, eqm, "%g");
-
+  // make sure no "probabilities" have become negative & (re-)normalize
   double eqmNorm = 0;
-  for (AlphTok i = 0; i < alphabetSize(); ++i)
-    eqmNorm += gsl_vector_get (eqm, i);
-  Assert (eqmNorm != 0, "Equilibrium vector is zero");
-
+  for (AlphTok i = 0; i < alphabetSize(); ++i) {
+    const double eqm_i = max (0., gsl_vector_get (eqm, i));
+    gsl_vector_set (eqm, i, eqm_i);
+    eqmNorm += eqm_i;
+  }
   CheckGsl (gsl_vector_scale (eqm, 1 / eqmNorm));
 
   gsl_vector_free (tau);
-  gsl_vector_free (zero);
+  gsl_vector_free (b);
+  gsl_vector_free (residual);
   gsl_matrix_free (QR);
   
   return eqm;

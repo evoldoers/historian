@@ -7,6 +7,8 @@ die "Usage: $0 <prog> <args...> <expected>" unless @ARGV >= 3;
 my $expected = pop @ARGV;
 my ($prog, @args) = @ARGV;
 
+die "Can't find file $expected" unless -e $expected;
+
 my $fh = File::Temp->new();
 my $fname = $fh->filename;
 
