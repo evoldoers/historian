@@ -1,6 +1,8 @@
 #ifndef FORWARD_INCLUDED
 #define FORWARD_INCLUDED
 
+#include <random>
+#include <list>
 #include "pairhmm.h"
 #include "profile.h"
 
@@ -14,8 +16,15 @@ public:
   struct CellCoords {
     ProfileStateIndex xpos, ypos;
     PairHMM::State state;
+    CellCoords (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
+      : xpos(xpos), ypos(ypos), state(state)
+    { }
+    bool operator< (const CellCoords& c) const
+    { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
   };
-  typedef vector<CellCoords> Path;
+  typedef list<CellCoords> Path;
+  typedef default_random_engine random_engine;
+
   const Profile& x, y;
   const Profile subx, suby;
   const PairHMM& hmm;
@@ -25,8 +34,7 @@ public:
   ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm);
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
-  Path sampleTrace();
-  Path bestTrace();  // always chooses max direction during traceback
+  Path sampleTrace (random_engine& generator);
   Profile makeProfile (const set<CellCoords>& states);
 
   // helpers
@@ -56,6 +64,8 @@ private:
     initAbsorbScratch (xpos, ypos);
     return logInnerProduct (hmm.root, absorbScratch);
   }
+
+  static CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator);
 };
 
 #endif /* FORWARD_INCLUDED */

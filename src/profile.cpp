@@ -42,3 +42,9 @@ Profile Profile::leftMultiply (gsl_matrix* sub) const {
   return prof;
 }
 
+LogProb Profile::lpTrans (ProfileStateIndex src, ProfileStateIndex dest) const {
+  for (auto t : state[dest].in)
+    if (trans[t].src == src)
+      return trans[t].lpTrans;
+  return -numeric_limits<double>::infinity();
+}

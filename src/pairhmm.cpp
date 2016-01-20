@@ -51,3 +51,102 @@ PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root)
   iix_idm = log (lNoInsExt() * lDel() * rNoDelExt());
   iix_eee = log (lNoInsExt());
 }
+
+LogProb PairHMM::lpTrans (State src, State dest) const {
+  switch (src) {
+  case IMM:
+    switch (dest) {
+    case IMM: return imm_imm;
+    case IMD: return imm_imd;
+    case IDM: return imm_idm;
+    case IMI: return imm_imi;
+    case IIW: return imm_iiw;
+    case EEE: return imm_eee;
+    default:
+      break;
+    }
+    break;
+
+  case IMD:
+    switch (dest) {
+    case IMM: return imd_imm;
+    case IMD: return imd_imd;
+    case IDM: return imd_idm;
+    case IIX: return imd_iix;
+    case EEE: return imd_eee;
+    default:
+      break;
+    }
+    break;
+
+  case IDM:
+    switch (dest) {
+    case IMM: return idm_imm;
+    case IMD: return idm_imd;
+    case IDM: return idm_idm;
+    case IDI: return idm_idi;
+    case EEE: return idm_eee;
+    default:
+      break;
+    }
+    break;
+
+  case IMI:
+    switch (dest) {
+    case IMM: return imi_imm;
+    case IMD: return imi_imd;
+    case IDM: return imi_idm;
+    case IMI: return imi_imi;
+    case IIW: return imi_iiw;
+    case EEE: return imi_eee;
+    default:
+      break;
+    }
+    break;
+
+  case IDI:
+    switch (dest) {
+    case IMM: return idi_imm;
+    case IMD: return idi_imd;
+    case IDM: return idi_idm;
+    case IDI: return idi_idi;
+    case EEE: return idi_eee;
+    default:
+      break;
+    }
+    break;
+
+  case IIW:
+    switch (dest) {
+    case IMM: return iiw_imm;
+    case IMD: return iiw_imd;
+    case IDM: return iiw_idm;
+    case IIW: return iiw_iiw;
+    case EEE: return iiw_eee;
+    default:
+      break;
+    }
+    break;
+
+  case IIX:
+    switch (dest) {
+    case IMM: return iix_imm;
+    case IMD: return iix_imd;
+    case IDM: return iix_idm;
+    case IIX: return iix_iix;
+    case EEE: return iix_eee;
+    default:
+      break;
+    }
+    break;
+
+  default:
+    break;
+  }
+  return -numeric_limits<double>::infinity();
+}
+
+vector<PairHMM::State> PairHMM::states() {
+  vector<PairHMM::State> s = { IMM, IMD, IDM, IMI, IDI, IIW, IIX };
+  return s;
+}

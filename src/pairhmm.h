@@ -9,7 +9,10 @@ struct PairHMM : AlphabetOwner {
   const ProbModel& r;
   gsl_vector* root;
 
-  typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6, TotalStates = 7 } State;
+  typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6,
+		 TotalStates = 7,
+		 EEE = -1 }
+    State;
 
   // helper methods
   inline double lIns() const { return l.ins; }
@@ -45,6 +48,10 @@ struct PairHMM : AlphabetOwner {
 
   // constructor
   PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root);
+
+  // helpers
+  static vector<State> states();
+  LogProb lpTrans (State src, State dest) const;
 };
 
 #endif /* PAIRHMM_INCLUDED */

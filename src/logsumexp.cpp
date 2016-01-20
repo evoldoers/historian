@@ -58,6 +58,18 @@ double log_sum_exp (double a, double b, double c, double d) {
   return log_sum_exp (log_sum_exp (log_sum_exp (a, b), c), d);
 }
 
+double log_sum_exp (double a, double b, double c, double d, double e) {
+  return log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (a, b), c), d), e);
+}
+
+double log_sum_exp (double a, double b, double c, double d, double e, double f) {
+  return log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (a, b), c), d), e), f);
+}
+
+double log_sum_exp (double a, double b, double c, double d, double e, double f, double g) {
+  return log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (a, b), c), d), e), f), g);
+}
+
 double log_sum_exp_slow (double a, double b) {
   double min, max, diff, ret;
   if (a < b) { min = a; max = b; }
@@ -104,4 +116,8 @@ double log_sum_exp_unary (double x) {
 
 double log_sum_exp_unary_slow (double x) {
   return log (1. + exp(-x));
+}
+
+void log_accum_exp (double& a, double b) {
+  a = log_sum_exp (a, b);
 }

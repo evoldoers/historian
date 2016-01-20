@@ -31,6 +31,9 @@ struct Profile {
   Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex rowIndex);
   ProfileStateIndex size() const { return state.size(); }
   Profile leftMultiply (gsl_matrix* sub) const;
+  const ProfileState& start() const { return state.front(); }
+  const ProfileState& end() const { return state.back(); }
+  LogProb lpTrans (ProfileStateIndex src, ProfileStateIndex dest) const;
 };
 
 #endif /* PROFILE_INCLUDED */
