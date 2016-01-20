@@ -1,2 +1,3 @@
-# propalor
-Protein Paleogenetic Reconstruction
+# Indel Historian
+Reconstruction of phylogenetic insertion-deletion histories
+
