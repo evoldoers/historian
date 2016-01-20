@@ -62,7 +62,7 @@ SH = /bin/sh
 
 # Targets
 
-MAIN = propalor
+MAIN = idhist
 
 all: $(MAIN)
 

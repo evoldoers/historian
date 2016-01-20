@@ -9,26 +9,26 @@
 #include "../src/optparser.h"
 
 // GNU --version
-#define PROPALOR_PROGNAME "propalor"
-#define PROPALOR_VERSION  "0.1"
+#define IDHIST_PROGNAME "idhist"
+#define IDHIST_VERSION  "0.1"
 
-struct PropalorUsage : OptParser {
-  PropalorUsage (int argc, char** argv);
+struct ProgUsage : OptParser {
+  ProgUsage (int argc, char** argv);
 };
 
-PropalorUsage::PropalorUsage (int argc, char** argv)
-  : OptParser (argc, argv, PROPALOR_PROGNAME, "{help,version} [options]")
+ProgUsage::ProgUsage (int argc, char** argv)
+  : OptParser (argc, argv, IDHIST_PROGNAME, "{help,version} [options]")
 {
 }
 
 int main (int argc, char** argv) {
 
   try {
-    PropalorUsage usage (argc, argv);
+    ProgUsage usage (argc, argv);
   
     const string command = usage.getCommand();
 
-    return usage.parseUnknownCommand (command, PROPALOR_VERSION);
+    return usage.parseUnknownCommand (command, IDHIST_VERSION);
 
   } catch (...) {
     return EXIT_FAILURE;
