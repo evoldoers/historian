@@ -19,10 +19,12 @@ public:
   const Profile& x, y;
   const Profile subx, suby;
   const PairHMM& hmm;
-  const size_t alphSize;
+  const AlphTok alphSize;
+  const ProfileStateIndex xSize, ySize;
+  LogProb lpEnd;
   ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm);
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
-  { return cellStorage[(ypos * x.size() + xpos) * PairHMM::TotalStates + state]; }
+  { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace();
   Path bestTrace();  // always chooses max direction during traceback
   Profile makeProfile (const set<CellCoords>& states);
