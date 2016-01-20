@@ -27,3 +27,18 @@ Profile::Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex ro
     }
   }
 }
+
+Profile Profile::leftMultiply (gsl_matrix* sub) const {
+  Profile prof (*this);
+  for (ProfileStateIndex i = 0; i < size(); ++i)
+    if (!state[i].isNull()) {
+      for (AlphTok c = 0; c < alphSize; ++c) {
+	LogProb lp = -numeric_limits<double>::infinity();
+	for (AlphTok d = 0; d < alphSize; ++d)
+	  lp = log_sum_exp (lp, gsl_matrix_get(sub,c,d) + state[i].lpAbsorb[d]);
+	prof.state[i].lpAbsorb[c] = lp;
+      }
+    }
+  return prof;
+}
+

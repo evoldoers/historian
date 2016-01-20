@@ -1,9 +1,11 @@
 #include <cmath>
 #include "pairhmm.h"
 
-PairHMM::PairHMM (const ProbModel& l, const ProbModel& r)
-  : l (l),
-    r (r)
+PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root)
+  : AlphabetOwner (l),
+    l (l),
+    r (r),
+    root (root)
 {
   imm_imi = log (rIns());
   imm_iiw = log (lIns() * rNoIns());

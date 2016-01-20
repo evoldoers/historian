@@ -7,6 +7,7 @@
 struct PairHMM : AlphabetOwner {
   const ProbModel& l;
   const ProbModel& r;
+  gsl_vector* root;
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6, TotalStates = 7 } State;
 
@@ -43,7 +44,7 @@ struct PairHMM : AlphabetOwner {
   LogProb iix_iix, iix_imm, iix_imd, iix_idm, iix_eee;
 
   // constructor
-  PairHMM (const ProbModel& l, const ProbModel& r);
+  PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root);
 };
 
 #endif /* PAIRHMM_INCLUDED */
