@@ -13,13 +13,19 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     cellStorage (x.size() * y.size() * PairHMM::TotalStates, -numeric_limits<double>::infinity()),
     absorbScratch (hmm.alphabetSize()),
     insx (x.size(), -numeric_limits<double>::infinity()),
-    insy (y.size(), -numeric_limits<double>::infinity())
+    insy (y.size(), -numeric_limits<double>::infinity()),
+    delx (x.size(), -numeric_limits<double>::infinity()),
+    dely (y.size(), -numeric_limits<double>::infinity())
 {
-  for (ProfileStateIndex i = 1; i < xSize - 1; ++i)
+  for (ProfileStateIndex i = 1; i < xSize - 1; ++i) {
     insx[i] = logInnerProduct (hmm.l.insVec, x.state[i].lpAbsorb);
+    delx[i] = logInnerProduct (hmm.root, subx.state[i].lpAbsorb);
+  }
 
-  for (ProfileStateIndex j = 1; j < ySize - 1; ++j)
+  for (ProfileStateIndex j = 1; j < ySize - 1; ++j) {
     insy[j] = logInnerProduct (hmm.r.insVec, y.state[j].lpAbsorb);
+    dely[j] = logInnerProduct (hmm.root, suby.state[j].lpAbsorb);
+  }
 
   cell(0,0,PairHMM::IMM) = 0;
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
@@ -56,7 +62,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 + xTrans.lpTrans);
 	}
 
-	cell(i,j,PairHMM::IMD) = imd + insx[i];
+	cell(i,j,PairHMM::IMD) = imd + delx[i];
 	cell(i,j,PairHMM::IIW) = iiw + insx[i];
 	cell(i,j,PairHMM::IIX) = iix + insx[i];
       }
@@ -90,7 +96,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 + yTrans.lpTrans);
 	}
 
-	cell(i,j,PairHMM::IDM) = idm + insy[j];
+	cell(i,j,PairHMM::IDM) = idm + dely[j];
 	cell(i,j,PairHMM::IMI) = imi + insy[j];
 	cell(i,j,PairHMM::IDI) = idi + insy[j];
       }

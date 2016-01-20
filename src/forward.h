@@ -10,6 +10,7 @@ class ForwardMatrix {
 private:
   vector<LogProb> cellStorage;  // partial Forward sums by cell
   vector<LogProb> insx, insy;  // insert probabilities by x & y indices
+  vector<LogProb> delx, dely;  // delete probabilities by x & y indices
   vector<LogProb> absorbScratch;  // scratch space for computing absorb profiles
 
 public:
