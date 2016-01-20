@@ -16,6 +16,7 @@ public:
   struct CellCoords {
     ProfileStateIndex xpos, ypos;
     PairHMM::State state;
+    CellCoords() { }
     CellCoords (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
       : xpos(xpos), ypos(ypos), state(state)
     { }

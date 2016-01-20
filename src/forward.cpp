@@ -155,24 +155,58 @@ ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogPro
 ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
   Path path;
   path.push_back (CellCoords (xSize - 1, ySize - 1, PairHMM::EEE));
-  
+
+  const auto states = hmm.states();
   map<CellCoords,LogProb> clp;
   for (auto xt : x.end().in) {
     const ProfileTransition& xTrans = x.trans[xt];
     for (auto yt : y.end().in) {
       const ProfileTransition& yTrans = y.trans[yt];
-      for (auto s : hmm.states())
+      for (auto s : states)
 	clp[CellCoords(xTrans.src,yTrans.src,s)] = cell(xTrans.src,yTrans.src,s) + hmm.lpTrans (s, PairHMM::EEE) + xTrans.lpTrans + yTrans.lpTrans;
     }
   }
 
-  CellCoords current = sampleCell (clp, generator);
+  CellCoords current;
   while (true) {
+    current = sampleCell (clp, generator);
     path.push_front (current);
     if (current.xpos == 0 && current.ypos == 0)
       break;
-    // WRITE ME
+
+    clp.clear();
+    switch (current.state) {
+      // x-absorbing transitions into IMD, IIW, IIX
+    case PairHMM::IMD:
+    case PairHMM::IIW:
+    case PairHMM::IIX:
+      for (auto xt : x.state[current.xpos].in)
+	for (auto s : states)
+	  clp[CellCoords(x.trans[xt].src,current.ypos,s)] = cell(x.trans[xt].src,current.ypos,s) + hmm.lpTrans(s,current.state) + x.trans[xt].lpTrans;
+      break;
+
+      // y-absorbing transitions into IDM, IMI, IDI
+    case PairHMM::IDM:
+    case PairHMM::IMI:
+    case PairHMM::IDI:
+      for (auto yt : y.state[current.ypos].in)
+	for (auto s : states)
+	  clp[CellCoords(current.xpos,y.trans[yt].src,s)] = cell(current.xpos,y.trans[yt].src,s) + hmm.lpTrans(s,current.state) + y.trans[yt].lpTrans;
+      break;
+
+      // xy-absorbing transitions into IMM
+    case PairHMM::IMM:
+      for (auto xt : x.state[current.xpos].in)
+	for (auto yt : y.state[current.ypos].in)
+	  for (auto s : states)
+	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans(s,current.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
+      break;
+
+    default:
+      Abort ("%s fail",__func__);
+      break;
+    }
   }
   
-  return p;
+  return path;
 }
