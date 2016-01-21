@@ -16,3 +16,10 @@ AlignPath concatAlignments (const AlignPath& a1, const AlignPath& a2) {
   }
   return a;
 }
+
+
+// sketch of syncAlignments algorithm:
+// build bidirectional map from (align#,column#) <==> (row#,residue#)
+// define function linkedColumns: maps single (align#,column#) to set of { (align#,column#) }
+// create cursor: a vector of nextColumn#'s indexed by align#
+// define readyToAdvance(align#,cursor): linkedColumns are all cursor-ready
