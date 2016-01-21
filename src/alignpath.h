@@ -2,11 +2,12 @@
 #define ALIGNPATH_INCLUDED
 
 #include <map>
+#include <set>
 #include <vector>
-
-using namespace std;
+#include "fastseq.h"
 
 typedef size_t AlignRowIndex;
+typedef size_t AlignColIndex;
 typedef vector<bool> AlignRowPath;
 typedef map<AlignRowIndex,AlignRowPath> AlignPath;
 
