@@ -179,40 +179,179 @@ ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
     path.push_front (current);
     if (current.xpos == 0 && current.ypos == 0)
       break;
-
-    clp.clear();
-    switch (current.state) {
-      // x-absorbing transitions into IMD, IIW, IIX
-    case PairHMM::IMD:
-    case PairHMM::IIW:
-    case PairHMM::IIX:
-      for (auto xt : x.state[current.xpos].in)
-	for (auto s : states)
-	  clp[CellCoords(x.trans[xt].src,current.ypos,s)] = cell(x.trans[xt].src,current.ypos,s) + hmm.lpTrans(s,current.state) + x.trans[xt].lpTrans;
-      break;
-
-      // y-absorbing transitions into IDM, IMI, IDI
-    case PairHMM::IDM:
-    case PairHMM::IMI:
-    case PairHMM::IDI:
-      for (auto yt : y.state[current.ypos].in)
-	for (auto s : states)
-	  clp[CellCoords(current.xpos,y.trans[yt].src,s)] = cell(current.xpos,y.trans[yt].src,s) + hmm.lpTrans(s,current.state) + y.trans[yt].lpTrans;
-      break;
-
-      // xy-absorbing transitions into IMM
-    case PairHMM::IMM:
-      for (auto xt : x.state[current.xpos].in)
-	for (auto yt : y.state[current.ypos].in)
-	  for (auto s : states)
-	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans(s,current.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
-      break;
-
-    default:
-      Abort ("%s fail",__func__);
-      break;
-    }
+    clp = sourceCells (current);
   }
   
   return path;
 }
+
+map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
+  map<CellCoords,LogProb> clp;
+  switch (destCell.state) {
+    // x-absorbing transitions into IMD, IIW, IIX
+  case PairHMM::IMD:
+  case PairHMM::IIW:
+  case PairHMM::IIX:
+    for (auto xt : x.state[destCell.xpos].in)
+      for (auto s : hmm.states())
+	clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = cell(x.trans[xt].src,destCell.ypos,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans;
+    break;
+
+    // y-absorbing transitions into IDM, IMI, IDI
+  case PairHMM::IDM:
+  case PairHMM::IMI:
+  case PairHMM::IDI:
+    for (auto yt : y.state[destCell.ypos].in)
+      for (auto s : hmm.states())
+	clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = cell(destCell.xpos,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans;
+    break;
+
+    // xy-absorbing transitions into IMM
+  case PairHMM::IMM:
+    for (auto xt : x.state[destCell.xpos].in)
+      for (auto yt : y.state[destCell.ypos].in)
+	for (auto s : hmm.states())
+	  clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
+    break;
+
+  default:
+    Abort ("%s fail",__func__);
+    break;
+  }
+  
+  return clp;
+}
+
+bool ForwardMatrix::CellCoords::isAbsorbing() const {
+  return state == PairHMM::IMM || state == PairHMM::IMD || state == PairHMM::IDM;
+}
+
+LogProb ForwardMatrix::eliminatedLogProbAbsorb (const CellCoords& cell) const {
+  switch (cell.state) {
+  case PairHMM::IIW:
+  case PairHMM::IIX:
+    return insx[cell.xpos];
+    break;
+
+  case PairHMM::IMI:
+  case PairHMM::IDI:
+    return insy[cell.ypos];
+    break;
+
+  case PairHMM::IMM:
+  case PairHMM::IMD:
+  case PairHMM::IDM:
+  default:
+    Abort ("%s fail",__func__);
+    break;
+  }
+
+  return 0;
+}
+
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex) {
+  Profile prof;
+
+  const CellCoords startCell (0, 0, PairHMM::SSS), endCell (CellCoords (xSize - 1, ySize - 1, PairHMM::EEE));
+  Assert (cells.find (startCell) != cells.end(), "Missing SSS");
+  Assert (cells.find (endCell) != cells.end(), "Missing EEE");
+
+  // build states
+  // retain only start, end, and absorbing states
+  map<CellCoords,ProfileStateIndex> profStateIndex;
+  map<CellCoords,AlignPath> elimAlignPath;
+  profStateIndex[startCell] = 0;
+  prof.state.push_back (ProfileState());
+
+  for (const auto& c : cells)
+    if (c.isAbsorbing()) {
+      // cell is to be retained
+      profStateIndex[c] = prof.state.size();
+      prof.state.push_back (ProfileState());
+      switch (c.state) {
+      case PairHMM::IMM:
+	initAbsorbScratch (c.xpos, c.ypos);
+	prof.state.back().lpAbsorb = absorbScratch;
+	prof.state.back().alignPath = mergeAlignments (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+	break;
+      case PairHMM::IMD:
+	prof.state.back().lpAbsorb = subx.state[c.xpos].lpAbsorb;
+	prof.state.back().alignPath = x.state[c.xpos].alignPath;
+	break;
+      case PairHMM::IDM:
+	prof.state.back().lpAbsorb = suby.state[c.ypos].lpAbsorb;
+	prof.state.back().alignPath = y.state[c.ypos].alignPath;
+	break;
+      default:
+	Abort ("%s fail",__func__);
+	break;
+      }
+      prof.state.back().alignPath[rowIndex].push_back (true);
+    } else {
+      // cell is to be eliminated
+      switch (c.state) {
+      case PairHMM::IIW:
+      case PairHMM::IIX:
+	elimAlignPath[c] = x.state[c.xpos].alignPath;
+	break;
+      case PairHMM::IMI:
+      case PairHMM::IDI:
+	elimAlignPath[c] = y.state[c.ypos].alignPath;
+	break;
+      default:
+	break;
+      }
+    }
+
+  profStateIndex[endCell] = prof.state.size();
+  prof.state.push_back (ProfileState());
+
+  // build transitions
+  map<CellCoords,map<ProfileStateIndex,ProfileTransition> > effTrans;  // includes both direct transitions to retained states, and transitions representing sum-over-eliminated state paths to retained states
+  for (auto iter = cells.crbegin(); iter != cells.crend(); ++iter) {
+    const CellCoords& cell = *iter;
+    const map<CellCoords,LogProb>& slp = sourceCells (cell);
+    if (profStateIndex.find(cell) != profStateIndex.end()) {
+      // cell is to be retained
+      const ProfileStateIndex idx = profStateIndex[cell];
+      vector<ProfileTransitionIndex>& out = prof.state[profStateIndex[cell]].out;
+      for (const auto& effTransIter : effTrans[cell]) {
+	out.push_back (prof.trans.size());
+	prof.trans.push_back (effTransIter.second);
+	prof.trans.back().src = idx;
+      }
+      for (auto slpIter : slp) {
+	ProfileTransition trans;
+	trans.dest = idx;
+	trans.lpTrans = slpIter.second;
+	effTrans[slpIter.first][idx] = trans;
+      }
+    } else {
+      // cell is to be eliminated
+      const auto& cellEffTrans = effTrans[cell];
+      const AlignPath& cellAlignPath = elimAlignPath[cell];
+      const LogProb cellLogProbAbsorb = eliminatedLogProbAbsorb (cell);
+      for (auto slpIter : slp) {
+	const CellCoords& srcCell = slpIter.first;
+	const LogProb srcCellLogProbTrans = slpIter.second;
+	auto& srcEffTrans = effTrans[srcCell];
+	for (auto cellEffTransIter : cellEffTrans) {
+	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
+	  const ProfileTransition& cellDestTrans = cellEffTransIter.second;
+	  if (srcEffTrans.find(destIdx) == srcEffTrans.end()) {
+	    ProfileTransition trans;
+	    trans.dest = destIdx;
+	    trans.lpTrans = -numeric_limits<double>::infinity();
+	    trans.alignPath = concatenateAlignments (cellAlignPath, cellDestTrans.alignPath);
+	    srcEffTrans[destIdx] = trans;
+	  }
+	  log_accum_exp (srcEffTrans[destIdx].lpTrans, srcCellLogProbTrans + cellLogProbAbsorb + cellDestTrans.lpTrans);
+	}
+      }
+    }
+  }
+  
+  // WRITE ME
+  return prof;
+}
+

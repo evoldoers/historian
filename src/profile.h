@@ -28,6 +28,7 @@ struct Profile {
   AlphTok alphSize;
   vector<ProfileState> state;
   vector<ProfileTransition> trans;
+  Profile() { }
   Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex rowIndex);
   ProfileStateIndex size() const { return state.size(); }
   Profile leftMultiply (gsl_matrix* sub) const;

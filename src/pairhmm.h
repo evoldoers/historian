@@ -11,8 +11,8 @@ struct PairHMM : AlphabetOwner {
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6,
 		 TotalStates = 7,
-		 EEE = -1 }
-    State;
+		 SSS = 0, EEE = 7  /* EEE should come after all absorbing states, for sorting */
+  } State;
 
   // helper methods
   inline double lIns() const { return l.ins; }

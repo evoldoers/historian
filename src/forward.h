@@ -23,6 +23,7 @@ public:
     { }
     bool operator< (const CellCoords& c) const
     { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
+    bool isAbsorbing() const;
   };
   typedef list<CellCoords> Path;
   typedef default_random_engine random_engine;
@@ -37,7 +38,7 @@ public:
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace (random_engine& generator);
-  Profile makeProfile (const set<CellCoords>& states);
+  Profile makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex);
 
   // helpers
 private:
@@ -67,6 +68,8 @@ private:
     return logInnerProduct (hmm.root, absorbScratch);
   }
 
+  map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
+  LogProb eliminatedLogProbAbsorb (const CellCoords& cell) const;
   static CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator);
 };
 
