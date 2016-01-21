@@ -1,7 +1,7 @@
 #include "alignpath.h"
 #include "util.h"
 
-// map used by syncAlignments
+// map used by alignPathMerge
 struct AlignSeqMap {
   typedef size_t AlignNum;
   const vector<AlignPath>& alignments;
@@ -13,15 +13,18 @@ struct AlignSeqMap {
   map<AlignNum,AlignColIndex> linkedColumns (AlignNum nAlign, AlignColIndex col) const;
 };
 
-AlignPath unionAlignments (const AlignPath& a1, const AlignPath& a2) {
+AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2) {
   AlignPath a = a1;
   a.insert (a2.begin(), a2.end());
   return a;
 }
 
-AlignPath concatAlignments (const AlignPath& a1, const AlignPath& a2) {
+AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2) {
   AlignPath a = a1;
+  for (auto& iter : a1)
+    Assert (a2.find(iter.first) != a2.end(), "Alignment row set mismatch");
   for (auto& iter : a2) {
+    Assert (a1.find(iter.first) != a1.end(), "Alignment row set mismatch");
     const AlignRowIndex row = iter.first;
     const AlignRowPath& rPath = iter.second;
     AlignRowPath& lPath = a[row];
@@ -88,15 +91,52 @@ map<AlignSeqMap::AlignNum,AlignColIndex> AlignSeqMap::linkedColumns (AlignNum nA
   return ac;
 }
 
-AlignPath syncAlignments (const vector<AlignPath>& alignments) {
-  AlignPath a;
+AlignPath alignPathMerge (const vector<AlignPath>& alignments) {
   const AlignSeqMap alignSeqMap (alignments);
-  vector<AlignColIndex> alignCursor (alignments.size(), 0);
-  map<AlignRowIndex,SeqIdx> seqCursor;
+  AlignPath a;
   for (auto& row_seqlen : alignSeqMap.seqLen)
-    seqCursor[row_seqlen.first] = 0;
-  // WRITE ME
-  // define alignCursorReady(alignCursor,align#): linkedColumns are all cursor-ready
-  // define alignCursorDone(alignCursor,align#): cursor is past end of alignment
+    a[row_seqlen.first].clear();
+  vector<AlignColIndex> nextCol (alignments.size(), 0);
+  bool allDone, noneReady;
+  do {
+    allDone = noneReady = true;
+    map<AlignSeqMap::AlignNum,AlignColIndex> linkedCols;
+    for (AlignSeqMap::AlignNum n = 0; n < alignments.size(); ++n)
+      if (nextCol[n] < alignSeqMap.alignCols[n]) {
+	allDone = false;
+	bool ready = true;
+	linkedCols = alignSeqMap.linkedColumns (n, nextCol[n]);
+	for (const auto& nAlign_col : linkedCols)
+	  if (nextCol[nAlign_col.first] != nAlign_col.second) {
+	    ready = false;
+	    break;
+	  }
+	if (ready) {
+	  noneReady = false;
+	  if (linkedCols.size()) {
+	    for (auto& idx_path : a)
+	      idx_path.second.push_back (false);
+	    for (const auto& nAlign_col : linkedCols)
+	      for (const auto& row_path : alignments.at(nAlign_col.first))
+		if (alignments.at(nAlign_col.first).at(row_path.first).at(nAlign_col.second))
+		  a[row_path.first].back() = true;
+	  } else
+	    ++nextCol[n];  // empty column
+	  break;
+	}
+      }
+    Assert (!noneReady, "%s fail", __func__);
+  } while (!allDone);
   return a;
+}
+
+AlignPath gappedFastaToAlignPath (const vector<FastSeq>& fs) {
+  AlignPath align;
+  for (AlignRowIndex row = 0; row < fs.size(); ++row) {
+    AlignRowPath rowPath (fs[row].length());
+    for (AlignColIndex col = 0; col < rowPath.size(); ++col)
+      rowPath[col] = fs[row].seq[col] != '-' && fs[row].seq[col] != '.';
+    align[row] = rowPath;
+  }
+  return align;
 }

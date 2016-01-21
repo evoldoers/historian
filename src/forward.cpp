@@ -277,7 +277,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
       case PairHMM::IMM:
 	initAbsorbScratch (c.xpos, c.ypos);
 	prof.state.back().lpAbsorb = absorbScratch;
-	prof.state.back().alignPath = unionAlignments (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+	prof.state.back().alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
 	break;
       case PairHMM::IMD:
 	prof.state.back().lpAbsorb = subx.state[c.xpos].lpAbsorb;
@@ -347,7 +347,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
 	    srcDestEffTrans.lpBestAlignPath = srcDestLogProbBestAlignPath;
-	    srcDestEffTrans.bestAlignPath = concatAlignments (cellAlignPath, cellDestEffTrans.bestAlignPath);
+	    srcDestEffTrans.bestAlignPath = alignPathConcat (cellAlignPath, cellDestEffTrans.bestAlignPath);
 	  }
 	}
       }
