@@ -249,6 +249,11 @@ LogProb ForwardMatrix::eliminatedLogProbAbsorb (const CellCoords& cell) const {
   return 0;
 }
 
+ForwardMatrix::EffectiveTransition::EffectiveTransition()
+  : lpPath (-numeric_limits<double>::infinity()),
+    lpBestAlignPath (-numeric_limits<double>::infinity())
+{ }
+
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex) {
   Profile prof;
 
@@ -257,7 +262,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
   Assert (cells.find (endCell) != cells.end(), "Missing EEE");
 
   // build states
-  // retain only start, end, and absorbing states
+  // retain only start, end, and absorbing cells
   map<CellCoords,ProfileStateIndex> profStateIndex;
   map<CellCoords,AlignPath> elimAlignPath;
   profStateIndex[startCell] = 0;
@@ -272,7 +277,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
       case PairHMM::IMM:
 	initAbsorbScratch (c.xpos, c.ypos);
 	prof.state.back().lpAbsorb = absorbScratch;
-	prof.state.back().alignPath = mergeAlignments (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+	prof.state.back().alignPath = unionAlignments (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
 	break;
       case PairHMM::IMD:
 	prof.state.back().lpAbsorb = subx.state[c.xpos].lpAbsorb;
@@ -306,53 +311,69 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
   profStateIndex[endCell] = prof.state.size();
   prof.state.push_back (ProfileState());
 
-  // build transitions
-  map<CellCoords,map<ProfileStateIndex,ProfileTransition> > effTrans;  // includes both direct transitions to retained states, and transitions representing sum-over-eliminated state paths to retained states
+  // Calculate log-probabilities of "effective transitions" from cells to retained-cells.
+  // Each effective transition represents a sum over paths.
+  // A path is either a single direct transition (from source cell to destination retained-cell),
+  // or a series of transitions starting from the source cell,
+  // passing through one or more eliminated-cells, and stopping at the destination retained-cell.
+  map<CellCoords,map<ProfileStateIndex,EffectiveTransition> > effTrans;  // effTrans[srcCell][destStateIdx]
   for (auto iter = cells.crbegin(); iter != cells.crend(); ++iter) {
     const CellCoords& cell = *iter;
     const map<CellCoords,LogProb>& slp = sourceCells (cell);
     if (profStateIndex.find(cell) != profStateIndex.end()) {
-      // cell is to be retained
-      const ProfileStateIndex idx = profStateIndex[cell];
-      vector<ProfileTransitionIndex>& out = prof.state[profStateIndex[cell]].out;
-      for (const auto& effTransIter : effTrans[cell]) {
-	out.push_back (prof.trans.size());
-	prof.trans.push_back (effTransIter.second);
-	prof.trans.back().src = idx;
-      }
-      for (auto slpIter : slp) {
-	ProfileTransition trans;
-	trans.dest = idx;
-	trans.lpTrans = slpIter.second;
-	effTrans[slpIter.first][idx] = trans;
+      // cell is to be retained. Incoming & outgoing paths can be kept separate
+      const ProfileStateIndex cellIdx = profStateIndex[cell];
+      for (const auto slpIter : slp) {
+	const CellCoords& src = slpIter.first;
+	const LogProb srcCellLogProbTrans = slpIter.second;
+	EffectiveTransition& eff = effTrans[src][cellIdx];
+	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans;
       }
     } else {
-      // cell is to be eliminated
+      // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
       const auto& cellEffTrans = effTrans[cell];
       const AlignPath& cellAlignPath = elimAlignPath[cell];
       const LogProb cellLogProbAbsorb = eliminatedLogProbAbsorb (cell);
       for (auto slpIter : slp) {
-	const CellCoords& srcCell = slpIter.first;
+	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
-	auto& srcEffTrans = effTrans[srcCell];
-	for (auto cellEffTransIter : cellEffTrans) {
+	auto& srcEffTrans = effTrans[src];
+	for (const auto cellEffTransIter : cellEffTrans) {
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
-	  const ProfileTransition& cellDestTrans = cellEffTransIter.second;
-	  if (srcEffTrans.find(destIdx) == srcEffTrans.end()) {
-	    // TODO: track best alignPath, instead of just using first one encountered
-	    ProfileTransition trans;
-	    trans.dest = destIdx;
-	    trans.lpTrans = -numeric_limits<double>::infinity();
-	    trans.alignPath = concatenateAlignments (cellAlignPath, cellDestTrans.alignPath);
-	    srcEffTrans[destIdx] = trans;
+	  const EffectiveTransition& cellDestEffTrans = cellEffTransIter.second;
+	  EffectiveTransition& srcDestEffTrans = srcEffTrans[destIdx];
+	  log_accum_exp (srcDestEffTrans.lpPath, srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpPath);
+	  // we also want to keep the best single alignment consistent w/this set of paths
+	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpBestAlignPath;
+	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
+	    srcDestEffTrans.lpBestAlignPath = srcDestLogProbBestAlignPath;
+	    srcDestEffTrans.bestAlignPath = concatAlignments (cellAlignPath, cellDestEffTrans.bestAlignPath);
 	  }
-	  log_accum_exp (srcEffTrans[destIdx].lpTrans, srcCellLogProbTrans + cellLogProbAbsorb + cellDestTrans.lpTrans);
 	}
       }
     }
   }
+
+  // populate outgoing & incoming transitions for each state
+  for (const auto profStateIter : profStateIndex) {
+    const CellCoords& cell = profStateIter.first;
+    const ProfileStateIndex srcIdx = profStateIter.second;
+    vector<ProfileTransitionIndex>& srcOut = prof.state[srcIdx].out;
+    for (const auto effTransIter : effTrans[cell]) {
+      const ProfileStateIndex destIdx = effTransIter.first;
+      const EffectiveTransition& srcDestEffTrans = effTransIter.second;
+      vector<ProfileTransitionIndex>& destIn = prof.state[destIdx].in;
+      const ProfileTransitionIndex transIdx = prof.trans.size();
+      ProfileTransition trans;
+      trans.src = srcIdx;
+      trans.dest = destIdx;
+      trans.lpTrans = srcDestEffTrans.lpPath;
+      trans.alignPath = srcDestEffTrans.bestAlignPath;
+      prof.trans.push_back (trans);
+      srcOut.push_back (transIdx);
+      destIn.push_back (transIdx);
+    }
+  }
   
-  // WRITE ME
   return prof;
 }
-

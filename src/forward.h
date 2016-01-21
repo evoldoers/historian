@@ -25,6 +25,12 @@ public:
     { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
     bool isAbsorbing() const;
   };
+  struct EffectiveTransition {
+    LogProb lpPath, lpBestAlignPath;
+    AlignPath bestAlignPath;
+    EffectiveTransition();
+  };
+
   typedef list<CellCoords> Path;
   typedef default_random_engine random_engine;
 

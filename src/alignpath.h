@@ -11,8 +11,8 @@ typedef size_t AlignRowIndex;
 typedef vector<bool> AlignRowPath;
 typedef map<AlignRowIndex,AlignRowPath> AlignPath;
 
-AlignPath mergeAlignments (const AlignPath& a1, const AlignPath& a2);  // simple union (no AlignRowIndex shared between a1 & a2)
-AlignPath combineAlignments (const set<AlignPath>& alignments);  // synchronized mesh
-AlignPath concatenateAlignments (const AlignPath& a1, const AlignPath& a2);  // lengthwise concatenation
+AlignPath unionAlignments (const AlignPath& a1, const AlignPath& a2);  // simple union (no AlignRowIndex shared between a1 & a2)
+AlignPath syncAlignments (const set<AlignPath>& alignments);  // synchronized merge
+AlignPath concatAlignments (const AlignPath& a1, const AlignPath& a2);  // lengthwise concatenation
 
 #endif /* ALIGNPATH_INCLUDED */
