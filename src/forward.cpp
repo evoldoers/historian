@@ -339,6 +339,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
 	  const ProfileTransition& cellDestTrans = cellEffTransIter.second;
 	  if (srcEffTrans.find(destIdx) == srcEffTrans.end()) {
+	    // TODO: track best alignPath, instead of just using first one encountered
 	    ProfileTransition trans;
 	    trans.dest = destIdx;
 	    trans.lpTrans = -numeric_limits<double>::infinity();
