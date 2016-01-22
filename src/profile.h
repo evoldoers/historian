@@ -34,7 +34,7 @@ struct Profile {
   Profile leftMultiply (gsl_matrix* sub) const;
   const ProfileState& start() const { return state.front(); }
   const ProfileState& end() const { return state.back(); }
-  LogProb lpTrans (ProfileStateIndex src, ProfileStateIndex dest) const;
+  const ProfileTransition* getTrans (ProfileStateIndex src, ProfileStateIndex dest) const;
 };
 
 #endif /* PROFILE_INCLUDED */

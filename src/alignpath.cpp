@@ -33,6 +33,10 @@ AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2) {
   return a;
 }
 
+AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const AlignPath& a3) {
+  return alignPathConcat (alignPathConcat (a1, a2), a3);
+}
+
 AlignSeqMap::AlignSeqMap (const vector<AlignPath>& alignments)
   : alignments (alignments)
 {

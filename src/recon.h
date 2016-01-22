@@ -1,15 +1,15 @@
-#ifndef PROGALIGN_INCLUDED
-#define PROGALIGN_INCLUDED
+#ifndef RECON_INCLUDED
+#define RECON_INCLUDED
 
 #include "knhx.h"
 #include "alignpath.h"
 #include "model.h"
 
-struct ProgAlignParams {
+struct Reconstructor {
   size_t profileSamples, profileNodeLimit;
 
-  ProgAlignParams();
-  AlignPath reconstructAlignment (ktree_t* tree, const vguard<FastSeq>& seqs, const RateModel& model);
+  Reconstructor();
+  AlignPath reconstruct (ktree_t* tree, const vguard<FastSeq>& seqs, const RateModel& model);
 };
 
 

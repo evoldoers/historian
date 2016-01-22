@@ -80,6 +80,10 @@ private:
 
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   LogProb eliminatedLogProbAbsorb (const CellCoords& cell) const;
+
+  AlignPath cellAlignPath (const CellCoords& cell, AlignRowIndex rowIndex) const;
+  AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
+
   static CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator);
   static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
 };

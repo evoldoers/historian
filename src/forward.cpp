@@ -255,6 +255,36 @@ ForwardMatrix::EffectiveTransition::EffectiveTransition()
     lpBestAlignPath (-numeric_limits<double>::infinity())
 { }
 
+AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c, AlignRowIndex rowIndex) const {
+  AlignPath alignPath;
+  if (c.isAbsorbing()) {
+    switch (c.state) {
+      alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+      break;
+    case PairHMM::IMD:
+      alignPath = x.state[c.xpos].alignPath;
+      break;
+    case PairHMM::IDM:
+      alignPath = y.state[c.ypos].alignPath;
+      break;
+    default:
+      Abort ("%s fail",__func__);
+      break;
+    }
+    alignPath[rowIndex].push_back (true);
+  }
+  return alignPath;
+}
+
+AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellCoords& dest) const {
+  AlignPath path;
+  if (src.xpos != dest.xpos)
+    path = x.getTrans(src.xpos,dest.xpos)->alignPath;
+  if (src.ypos != dest.ypos)
+    path = alignPathConcat (path, y.getTrans(src.ypos,dest.ypos)->alignPath);
+  return path;
+}
+
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex) {
   Profile prof;
 
@@ -277,21 +307,18 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
       case PairHMM::IMM:
 	initAbsorbScratch (c.xpos, c.ypos);
 	prof.state.back().lpAbsorb = absorbScratch;
-	prof.state.back().alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
 	break;
       case PairHMM::IMD:
 	prof.state.back().lpAbsorb = subx.state[c.xpos].lpAbsorb;
-	prof.state.back().alignPath = x.state[c.xpos].alignPath;
 	break;
       case PairHMM::IDM:
 	prof.state.back().lpAbsorb = suby.state[c.ypos].lpAbsorb;
-	prof.state.back().alignPath = y.state[c.ypos].alignPath;
 	break;
       default:
 	Abort ("%s fail",__func__);
 	break;
       }
-      prof.state.back().alignPath[rowIndex].push_back (true);
+      prof.state.back().alignPath = cellAlignPath (c, rowIndex);
     } else {
       // cell is to be eliminated
       switch (c.state) {
@@ -345,7 +372,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
 	    srcDestEffTrans.lpBestAlignPath = srcDestLogProbBestAlignPath;
-	    srcDestEffTrans.bestAlignPath = alignPathConcat (cellAlignPath, cellDestEffTrans.bestAlignPath);
+	    srcDestEffTrans.bestAlignPath = alignPathConcat (transitionAlignPath(src,cell), cellAlignPath, cellDestEffTrans.bestAlignPath);
 	  }
 	}
       }
