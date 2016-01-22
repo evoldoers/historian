@@ -375,3 +375,27 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
   
   return prof;
 }
+
+Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator, AlignRowIndex rowIndex) {
+  map<CellCoords,size_t> cellCount;
+  const Path best = bestTrace();
+  for (auto& c : best)
+    cellCount[c] = 2;  // avoid dropping these cells
+  for (size_t n = 0; n < profileSamples && cellCount.size() < maxCells; ++n) {
+    const Path sampled = sampleTrace (generator);
+    for (auto& c : sampled)
+      ++cellCount[c];
+  }
+  set<CellCoords> profCells;
+  for (const auto& cc : cellCount)
+    if (cc.second > 1)
+      profCells.insert (cc.first);
+  return makeProfile (profCells, rowIndex);
+}
+
+Profile ForwardMatrix::bestProfile (AlignRowIndex rowIndex) {
+  const Path best = bestTrace();
+  const set<CellCoords> profCells (best.begin(), best.end());
+  return makeProfile (profCells, rowIndex);
+}
+

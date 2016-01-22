@@ -47,6 +47,8 @@ public:
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
   Profile makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex);
+  Profile sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator, AlignRowIndex rowIndex);
+  Profile bestProfile (AlignRowIndex rowIndex);
 
   // helpers
 private:
