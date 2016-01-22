@@ -9,28 +9,26 @@ int main (int argc, char **argv) {
   }
 
   map<string,AlignRowIndex> nameToRowIndex;
-  AlignRowIndex nextRowIndex = 0;
+  vector<FastSeq> ungapped;
   vector<AlignPath> paths;
 
-  for (int n = 2; n < argc; ++n) {
-    vguard<FastSeq> fs = readFastSeqs (argv[n]);
-    AlignPath tmpPath = gappedFastaToAlignPath (fs);
+  for (int n = 1; n < argc; ++n) {
+    vguard<FastSeq> gapped = readFastSeqs (argv[n]);
+    Alignment align (gapped);
     AlignPath path;
-    for (size_t n = 0; n < fs.size(); ++n) {
-      if (nameToRowIndex.find(fs[n].name) == nameToRowIndex.end())
-	nameToRowIndex[fs[n].name] = nextRowIndex++;
-      path[nameToRowIndex[fs[n].name]] = tmpPath[n];
+    for (size_t n = 0; n < gapped.size(); ++n) {
+      if (nameToRowIndex.find(gapped[n].name) == nameToRowIndex.end()) {
+	nameToRowIndex[gapped[n].name] = ungapped.size();
+	ungapped.push_back (align.ungapped[n]);
+      }
+      path[nameToRowIndex[gapped[n].name]] = align.path[n];
     }
     paths.push_back (path);
   }
 
-  AlignPath merge = alignPathMerge (paths);
-  for (AlignRowIndex r = 0; r < nextRowIndex; ++r) {
-    cout << std::setw(4) << r << ' ';
-    for (AlignColIndex c = 0; c < merge[r].size(); ++c)
-      cout << (merge[r][c] ? 'x' : '-');
-    cout << endl;
-  }
+  const AlignPath path = alignPathMerge (paths);
+  const Alignment align (ungapped, path);
+  writeFastaSeqs (cout, align.gapped());
 
   exit (EXIT_SUCCESS);
 }

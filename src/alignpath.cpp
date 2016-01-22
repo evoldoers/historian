@@ -69,25 +69,32 @@ AlignSeqMap::AlignSeqMap (const vector<AlignPath>& alignments)
     for (auto& row_path : align)
       rowPos[row_path.first] = 0;
     for (AlignColIndex col = 0; col < alignCols[nAlign]; ++col) {
-      rowPos.clear();
       for (auto& row_path : align)
 	if (row_path.second[col]) {
 	  const SeqIdx pos = rowPos[row_path.first]++;
 	  alignColRowToPos[nAlign][col][row_path.first] = pos;
 	  rowPosAlignToCol[row_path.first][pos][nAlign] = col;
+	  //	  cerr << "Alignment " << nAlign << " column " << col << " <===> sequence " << row_path.first << " position " << pos << endl;
 	}
     }
   }
 }
 
 map<AlignSeqMap::AlignNum,AlignColIndex> AlignSeqMap::linkedColumns (AlignNum nAlign, AlignColIndex col) const {
-  map<AlignNum,AlignColIndex> ac;
-  for (auto& row_pos : alignColRowToPos.at(nAlign).at(col))
-    for (auto& nAlign_col : rowPosAlignToCol.at(row_pos.first).at(row_pos.second)) {
-      if (ac.find (nAlign_col.first) != ac.end())
-	Assert (ac[nAlign_col.first] == nAlign_col.second, "Inconsistent alignments");
-      ac.insert (nAlign_col);
-    }
+  map<AlignNum,AlignColIndex> ac, acQueue;
+  acQueue[nAlign] = col;
+  while (acQueue.size() > ac.size()) {
+    for (auto& nAlign_col : acQueue)
+      if (ac.find(nAlign_col.first) == ac.end()) {
+	ac.insert (nAlign_col);
+	for (auto& row_pos : alignColRowToPos.at(nAlign_col.first).at(nAlign_col.second))
+	  for (auto& linked_nAlign_col : rowPosAlignToCol.at(row_pos.first).at(row_pos.second)) {
+	    if (ac.find (linked_nAlign_col.first) != ac.end())
+	      Assert (ac[linked_nAlign_col.first] == linked_nAlign_col.second, "Inconsistent alignments\nColumn %u of alignment %u points to position %u of sequence %u, which points back to column %u of alignment %u", col, nAlign, row_pos.second, row_pos.first, linked_nAlign_col.second, linked_nAlign_col.first);
+	    acQueue.insert (linked_nAlign_col);
+	  }
+      }
+  }
   return ac;
 }
 
@@ -104,39 +111,83 @@ AlignPath alignPathMerge (const vector<AlignPath>& alignments) {
     for (AlignSeqMap::AlignNum n = 0; n < alignments.size(); ++n)
       if (nextCol[n] < alignSeqMap.alignCols[n]) {
 	allDone = false;
+	//	cerr << "Alignment " << n << ": next column is " << nextCol[n] << endl;
 	bool ready = true;
 	linkedCols = alignSeqMap.linkedColumns (n, nextCol[n]);
-	for (const auto& nAlign_col : linkedCols)
+	for (const auto& nAlign_col : linkedCols) {
+	  //	  cerr << "...waiting for alignment " << nAlign_col.first << " column " << nAlign_col.second << " (currently at column " << nextCol[nAlign_col.first] << ")" << endl;
 	  if (nextCol[nAlign_col.first] != nAlign_col.second) {
 	    ready = false;
 	    break;
 	  }
+	}
 	if (ready) {
 	  noneReady = false;
 	  if (linkedCols.size()) {
 	    for (auto& idx_path : a)
 	      idx_path.second.push_back (false);
-	    for (const auto& nAlign_col : linkedCols)
+	    for (const auto& nAlign_col : linkedCols) {
 	      for (const auto& row_path : alignments.at(nAlign_col.first))
 		if (alignments.at(nAlign_col.first).at(row_path.first).at(nAlign_col.second))
 		  a[row_path.first].back() = true;
+	      ++nextCol[nAlign_col.first];
+	    }
 	  } else
 	    ++nextCol[n];  // empty column
 	  break;
 	}
       }
-    Assert (!noneReady, "%s fail", __func__);
+    if (noneReady && !allDone) {
+      for (AlignSeqMap::AlignNum n = 0; n < alignments.size(); ++n)
+	cerr << "Alignment #" << n << ": next column " << nextCol[n] << endl;
+      Abort ("%s fail, no alignments ready", __func__);
+    }
   } while (!allDone);
   return a;
 }
 
-AlignPath gappedFastaToAlignPath (const vector<FastSeq>& fs) {
-  AlignPath align;
-  for (AlignRowIndex row = 0; row < fs.size(); ++row) {
-    AlignRowPath rowPath (fs[row].length());
+Alignment::Alignment (const vector<FastSeq>& gapped)
+  : ungapped (gapped.size())
+ {
+  for (AlignRowIndex row = 0; row < gapped.size(); ++row) {
+    ungapped[row].name = gapped[row].name;
+    ungapped[row].comment = gapped[row].comment;
+    AlignRowPath rowPath (gapped[row].length(), false);
     for (AlignColIndex col = 0; col < rowPath.size(); ++col)
-      rowPath[col] = fs[row].seq[col] != '-' && fs[row].seq[col] != '.';
-    align[row] = rowPath;
+      if (!isGap (gapped[row].seq[col])) {
+	rowPath[col] = true;
+	ungapped[row].seq.push_back (gapped[row].seq[col]);
+	ungapped[row].qual.push_back (gapped[row].qual[col]);
+      }
+    path[row] = rowPath;
   }
-  return align;
 }
+
+Alignment::Alignment (const vector<FastSeq>& ungapped, const AlignPath& path)
+  : ungapped(ungapped), path(path)
+{ }
+
+vector<FastSeq> Alignment::gapped() const {
+  vector<FastSeq> gs (ungapped.size());
+  for (auto& row_path : path) {
+    FastSeq& g = gs[row_path.first];
+    const FastSeq& ug = ungapped[row_path.first];
+    const AlignColIndex cols = row_path.second.size();
+    g.name = ug.name;
+    g.comment = ug.comment;
+    g.seq.reserve (cols);
+    g.qual.reserve (cols);
+    SeqIdx pos = 0;
+    for (AlignColIndex col = 0; col < cols; ++col)
+      if (row_path.second[col]) {
+	g.seq.push_back (ug.seq[pos]);
+	g.qual.push_back (ug.qual[pos]);
+	++pos;
+      } else {
+	g.seq.push_back ('-');
+	g.qual.push_back ('!');
+      }
+  }
+  return gs;
+}
+

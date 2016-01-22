@@ -15,6 +15,13 @@ AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2);  // simple 
 AlignPath alignPathMerge (const vector<AlignPath>& alignments);  // synchronized merge
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2);  // lengthwise concatenation
 
-AlignPath gappedFastaToAlignPath (const vector<FastSeq>& seq);
+struct Alignment {
+  vector<FastSeq> ungapped;
+  AlignPath path;
+  Alignment (const vector<FastSeq>& gapped);
+  Alignment (const vector<FastSeq>& ungapped, const AlignPath& path);
+  vector<FastSeq> gapped() const;
+  static bool isGap (char c) { return c == '-' || c == '.'; }
+};
 
 #endif /* ALIGNPATH_INCLUDED */

@@ -97,6 +97,14 @@ testmatexp: bin/testmatexp
 testrateio: bin/testrateio
 	perl/testexpect.pl bin/testrateio data/testrates.json data/testrates.out.json
 
+testmerge: bin/testmerge
+	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa
+	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.ayz.fa data/testmerge1.xyaz.fa
+	perl/testexpect.pl bin/testmerge data/testmerge1.xz.fa data/testmerge1.ayz.fa data/testmerge1.xzay.fa
+	perl/testexpect.pl bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
+	echo "\nThe next testmerge is expected to throw an exception - do not be alarmed:\n"
+	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty
+
 # Rules for building files in the repository
 # For updating README.md
 README.md: bin/$(MAIN)
