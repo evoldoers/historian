@@ -6,7 +6,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     y(y),
     hmm(hmm),
     parentRowIndex(parentRowIndex),
-    alphSize (hmm.alphabetSize()),
+    alphSize ((AlphTok) hmm.alphabetSize()),
     xSize (x.size()),
     ySize (y.size()),
     subx (x.leftMultiply (hmm.l.subMat)),
@@ -189,7 +189,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
   case PairHMM::IMD:
   case PairHMM::IIW:
     for (auto xt : x.state[destCell.xpos].in)
-      for (auto s : hmm.states())
+      for (auto s : hmm.sources (destCell.state))
 	clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = cell(x.trans[xt].src,destCell.ypos,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans;
     break;
 
@@ -197,7 +197,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
   case PairHMM::IDM:
   case PairHMM::IMI:
     for (auto yt : y.state[destCell.ypos].in)
-      for (auto s : hmm.states())
+      for (auto s : hmm.sources (destCell.state))
 	clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = cell(destCell.xpos,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans;
     break;
 
@@ -205,7 +205,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
   case PairHMM::IMM:
     for (auto xt : x.state[destCell.xpos].in)
       for (auto yt : y.state[destCell.ypos].in)
-	for (auto s : hmm.states())
+	for (auto s : hmm.sources (destCell.state))
 	  clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
     break;
 
@@ -214,7 +214,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
     if (destCell.xpos == xSize - 1 && destCell.ypos == ySize - 1)
       for (auto xt : x.end().in)
 	for (auto yt : y.end().in)
-	  for (auto s : hmm.states())
+	  for (auto s : hmm.sources (destCell.state))
 	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans (s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
     break;
 
@@ -227,7 +227,9 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
 }
 
 bool ForwardMatrix::CellCoords::isAbsorbing() const {
-  return state == PairHMM::IMM || state == PairHMM::IMD || state == PairHMM::IDM;
+  return (state == PairHMM::IMM && xpos > 0 && ypos > 0)
+    || (state == PairHMM::IMD && xpos > 0)
+    || (state == PairHMM::IDM && ypos > 0);
 }
 
 LogProb ForwardMatrix::eliminatedLogProbAbsorb (const CellCoords& cell) const {
@@ -258,22 +260,26 @@ ForwardMatrix::EffectiveTransition::EffectiveTransition()
 
 AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   AlignPath alignPath;
-  if (c.isAbsorbing()) {
-    switch (c.state) {
-      alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
-      break;
-    case PairHMM::IMD:
-      alignPath = x.state[c.xpos].alignPath;
-      break;
-    case PairHMM::IDM:
-      alignPath = y.state[c.ypos].alignPath;
-      break;
-    default:
-      Abort ("%s fail",__func__);
-      break;
-    }
-    alignPath[parentRowIndex].push_back (true);
+  switch (c.state) {
+  case PairHMM::IMM:
+    alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+    break;
+  case PairHMM::IMD:
+  case PairHMM::IIW:
+    alignPath = x.state[c.xpos].alignPath;
+    break;
+  case PairHMM::IDM:
+  case PairHMM::IMI:
+    alignPath = y.state[c.ypos].alignPath;
+    break;
+  case PairHMM::EEE:
+    break;
+  default:
+    Abort ("%s fail",__func__);
+    break;
   }
+  if (c.isAbsorbing())
+    alignPath[parentRowIndex].push_back (true);
   return alignPath;
 }
 
@@ -286,8 +292,9 @@ AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellC
   return path;
 }
 
-Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells) {
-  Profile prof;
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAbsorbingCells) {
+  Profile prof (alphSize);
+  prof.name = string("(") + x.name + ":" + to_string(hmm.l.t) + "," + y.name + ":" + to_string(hmm.r.t) + ")";
 
   Assert (cells.find (startCell) != cells.end(), "Missing SSS");
   Assert (cells.find (endCell) != cells.end(), "Missing EEE");
@@ -296,46 +303,33 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells) {
   // retain only start, end, and absorbing cells
   map<CellCoords,ProfileStateIndex> profStateIndex;
   map<CellCoords,AlignPath> elimAlignPath;
-  profStateIndex[startCell] = 0;
-  prof.state.push_back (ProfileState());
 
   for (const auto& c : cells)
-    if (c.isAbsorbing()) {
+    if (c.isAbsorbing() || keepNonAbsorbingCells) {
       // cell is to be retained
       profStateIndex[c] = prof.state.size();
       prof.state.push_back (ProfileState());
-      switch (c.state) {
-      case PairHMM::IMM:
-	initAbsorbScratch (c.xpos, c.ypos);
-	prof.state.back().lpAbsorb = absorbScratch;
-	break;
-      case PairHMM::IMD:
-	prof.state.back().lpAbsorb = subx.state[c.xpos].lpAbsorb;
-	break;
-      case PairHMM::IDM:
-	prof.state.back().lpAbsorb = suby.state[c.ypos].lpAbsorb;
-	break;
-      default:
-	Abort ("%s fail",__func__);
-	break;
-      }
+      if (c.isAbsorbing())
+	switch (c.state) {
+	case PairHMM::IMM:
+	  initAbsorbScratch (c.xpos, c.ypos);
+	  prof.state.back().lpAbsorb = absorbScratch;
+	  break;
+	case PairHMM::IMD:
+	  prof.state.back().lpAbsorb = subx.state[c.xpos].lpAbsorb;
+	  break;
+	case PairHMM::IDM:
+	  prof.state.back().lpAbsorb = suby.state[c.ypos].lpAbsorb;
+	  break;
+	default:
+	  break;
+	}
       prof.state.back().alignPath = cellAlignPath(c);
+      prof.state.back().name = string("(") + hmm.stateName(c.state,c.xpos==0,c.ypos==0) + "," + x.state[c.xpos].name + "," + y.state[c.ypos].name + ")";
     } else {
       // cell is to be eliminated
-      switch (c.state) {
-      case PairHMM::IIW:
-	elimAlignPath[c] = x.state[c.xpos].alignPath;
-	break;
-      case PairHMM::IMI:
-	elimAlignPath[c] = y.state[c.ypos].alignPath;
-	break;
-      default:
-	break;
-      }
+      elimAlignPath[c] = cellAlignPath (c);
     }
-
-  profStateIndex[endCell] = prof.state.size();
-  prof.state.push_back (ProfileState());
 
   // Calculate log-probabilities of "effective transitions" from cells to retained-cells.
   // Each effective transition represents a sum over paths.
@@ -358,7 +352,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells) {
     } else {
       // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
       const auto& cellEffTrans = effTrans[cell];
-      const AlignPath& cellAlignPath = elimAlignPath[cell];
+      const AlignPath& cap = elimAlignPath[cell];
       const LogProb cellLogProbAbsorb = eliminatedLogProbAbsorb (cell);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
@@ -373,7 +367,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells) {
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
 	    srcDestEffTrans.lpBestAlignPath = srcDestLogProbBestAlignPath;
-	    srcDestEffTrans.bestAlignPath = alignPathConcat (transitionAlignPath(src,cell), cellAlignPath, cellDestEffTrans.bestAlignPath);
+	    srcDestEffTrans.bestAlignPath = alignPathConcat (transitionAlignPath(src,cell), cap, cellDestEffTrans.bestAlignPath);
 	  }
 	}
       }
@@ -418,12 +412,12 @@ Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, ra
   for (const auto& cc : cellCount)
     if (cc.second > 1)
       profCells.insert (cc.first);
-  return makeProfile (profCells);
+  return makeProfile (profCells, false);
 }
 
 Profile ForwardMatrix::bestProfile() {
   const Path best = bestTrace();
   const set<CellCoords> profCells (best.begin(), best.end());
-  return makeProfile (profCells);
+  return makeProfile (profCells, false);
 }
 

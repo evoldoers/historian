@@ -47,7 +47,7 @@ public:
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
-  Profile makeProfile (const set<CellCoords>& cells);
+  Profile makeProfile (const set<CellCoords>& cells, bool keepNonAbsorbingCells = false);
   Profile sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator);
   Profile bestProfile();
 

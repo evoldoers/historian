@@ -1,3 +1,4 @@
+#include <float.h>
 #include "jsonutil.h"
 #include "util.h"
 #include "logger.h"
@@ -143,4 +144,12 @@ string JsonUtil::readStringFromStream (istream& in) {
     s += line;
   }
   return s;
+}
+
+string JsonUtil::toString (double d) {
+  if (d < -DBL_MAX)
+    return string ("\"-inf\"");
+  else if (d > DBL_MAX)
+    return string ("\"inf\"");
+  return to_string (d);
 }

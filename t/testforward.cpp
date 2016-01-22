@@ -24,19 +24,22 @@ int main (int argc, char **argv) {
   gsl_vector* eqm = rates.getEqmProb();
   PairHMM hmm (xprobs, yprobs, eqm);
 
-  Profile xprof (rates.alphabet.size(), seqs[0].tokens (rates.alphabet), 1);
-  Profile yprof (rates.alphabet.size(), seqs[1].tokens (rates.alphabet), 2);
+  Profile xprof (rates.alphabet, seqs[0], 1);
+  Profile yprof (rates.alphabet, seqs[1], 2);
   ForwardMatrix forward (xprof, yprof, hmm, 0);
 
   set<ForwardMatrix::CellCoords> allCells;
-  allCells.insert (forward.startCell);
-  for (ProfileStateIndex xpos = 1; xpos < xprof.size() - 1; ++xpos)
-    for (ProfileStateIndex ypos = 1; ypos < yprof.size() - 1; ++ypos)
+  for (ProfileStateIndex xpos = 0; xpos < xprof.size() - 1; ++xpos)
+    for (ProfileStateIndex ypos = 0; ypos < yprof.size() - 1; ++ypos)
       for (PairHMM::State s : hmm.states())
-	allCells.insert (ForwardMatrix::CellCoords (xpos, ypos, s));
+	if ((xpos > 0 && ypos > 0)
+	    || (xpos == 0 && ypos == 0 && s == PairHMM::SSS)
+	    || (xpos == 0 && ypos > 0 && s == PairHMM::SSI)
+	    || (xpos > 0 && ypos == 0 && s == PairHMM::SIW))
+	  allCells.insert (ForwardMatrix::CellCoords (xpos, ypos, s));
   allCells.insert (forward.endCell);
 
-  Profile prof = forward.makeProfile (allCells);
+  Profile prof = forward.makeProfile (allCells, true);
   prof.writeJson (cout);
 
   exit (EXIT_SUCCESS);

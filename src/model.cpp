@@ -139,6 +139,7 @@ gsl_matrix* RateModel::getSubProb (double t) const {
 
 ProbModel::ProbModel (const RateModel& model, double t)
   : AlphabetOwner (model),
+    t (t),
     ins (1 - exp (-model.insRate * t)),
     del (1 - exp (-model.delRate * t)),
     insExt (model.insExtProb),

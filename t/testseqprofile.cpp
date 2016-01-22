@@ -9,13 +9,11 @@ int main (int argc, char **argv) {
     exit (EXIT_FAILURE);
   }
 
-  FastSeq fs;
-  
   const string alphabet (argv[1]);
+  FastSeq fs;
   fs.seq = (argv[2]);
-  const vguard<AlphTok> dsq = fs.tokens (alphabet);
 
-  Profile prof (alphabet.size(), dsq, 0);
+  Profile prof (alphabet, fs, 0);
   prof.writeJson (cout);
   
   exit (EXIT_SUCCESS);

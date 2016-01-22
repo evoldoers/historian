@@ -3,6 +3,7 @@
 
 #include "model.h"
 #include "logsumexp.h"
+#include "profile.h"
 
 struct PairHMM : AlphabetOwner {
   const ProbModel& l;
@@ -11,7 +12,8 @@ struct PairHMM : AlphabetOwner {
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IIW = 4,
 		 TotalStates = 5,
-		 SSS = 0, EEE = 5  /* EEE should come after all absorbing states, for sorting */
+		 SSS = 0, SSI = 3, SIW = 4,
+		 EEE = 5  /* EEE should come after all absorbing states, for correct sorting */
   } State;
 
   // helper methods
@@ -35,6 +37,8 @@ struct PairHMM : AlphabetOwner {
   inline double rNoInsExt() const { return 1 - r.insExt; }
   inline double rNoDelExt() const { return 1 - r.delExt; }
 
+  static const char* stateName (State s, bool xAtStart, bool yAtStart);
+
   // Transition log-probabilities.
   // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}
   // States involving overlapping events (idd,idi,iix) are dropped.
@@ -50,6 +54,7 @@ struct PairHMM : AlphabetOwner {
 
   // helpers
   static vguard<State> states();  // excludes EEE
+  static vguard<State> sources (State dest);
   LogProb lpTrans (State src, State dest) const;
 };
 

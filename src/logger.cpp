@@ -112,7 +112,6 @@ void Logger::lock (int color, const char* file, int line, bool banner) {
 }
 
 void Logger::unlock (bool banner) {
-  thread::id myId = this_thread::get_id();
   if (banner && useAnsiColor)
     clog << ansiColorOff;
   mx.unlock();

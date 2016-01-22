@@ -34,7 +34,7 @@ struct RateModel : AlphabetOwner {
 };
 
 struct ProbModel : AlphabetOwner {
-  double ins, del, insExt, delExt;
+  double t, ins, del, insExt, delExt;
   gsl_vector* insVec;
   gsl_matrix* subMat;
   ProbModel (const RateModel& model, double t);

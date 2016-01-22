@@ -13,6 +13,22 @@ struct AlignSeqMap {
   map<AlignNum,AlignColIndex> linkedColumns (AlignNum nAlign, AlignColIndex col) const;
 };
 
+AlignColIndex alignPathColumns (const AlignPath& a) {
+  AlignColIndex cols = 0;
+  bool first = true;
+  AlignRowIndex firstRow = 0;
+  for (auto& row_path : a) {
+    if (first) {
+      firstRow = row_path.first;
+      cols = row_path.second.size();
+      first = false;
+    } else
+      Assert (cols == row_path.second.size(), "Alignment path is not flush: row %u has %u columns, but row %u has %u columns", firstRow, cols, row_path.first, row_path.second.size());
+  }
+
+  return cols;
+}
+
 AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2) {
   AlignPath a = a1;
   a.insert (a2.begin(), a2.end());
@@ -21,13 +37,16 @@ AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2) {
 
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2) {
   AlignPath a = a1;
-  for (auto& iter : a1)
-    Assert (a2.find(iter.first) != a2.end(), "Alignment row set mismatch");
-  for (auto& iter : a2) {
-    Assert (a1.find(iter.first) != a1.end(), "Alignment row set mismatch");
-    const AlignRowIndex row = iter.first;
-    const AlignRowPath& rPath = iter.second;
+  const AlignColIndex c1 = alignPathColumns(a1), c2 = alignPathColumns(a2);
+  for (auto& iter : a)
+    if (a2.find(iter.first) == a2.end())
+      iter.second.insert (iter.second.end(), c2, false);
+  for (auto& iter2 : a2) {
+    const AlignRowIndex row = iter2.first;
+    const AlignRowPath& rPath = iter2.second;
     AlignRowPath& lPath = a[row];
+    if (lPath.empty())
+      lPath.insert (lPath.end(), c1, false);
     lPath.insert (lPath.end(), rPath.begin(), rPath.end());
   }
   return a;

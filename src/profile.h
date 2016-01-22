@@ -17,6 +17,7 @@ struct ProfileTransition {
 };
 
 struct ProfileState {
+  string name;  // for debugging only
   vguard<ProfileTransitionIndex> in, out;
   vguard<LogProb> lpAbsorb;
   AlignPath alignPath;
@@ -26,10 +27,11 @@ struct ProfileState {
 
 struct Profile {
   AlphTok alphSize;
+  string name;  // for debugging only
   vguard<ProfileState> state;
   vguard<ProfileTransition> trans;
-  Profile() { }
-  Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex rowIndex);
+  Profile (AlphTok alphSize) : alphSize(alphSize) { }
+  Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowIndex);
   ProfileStateIndex size() const { return state.size(); }
   Profile leftMultiply (gsl_matrix* sub) const;
   const ProfileState& start() const { return state.front(); }

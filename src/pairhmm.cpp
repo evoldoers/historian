@@ -1,5 +1,6 @@
 #include <cmath>
 #include "pairhmm.h"
+#include "util.h"
 
 PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root)
   : AlphabetOwner (l),
@@ -89,6 +90,7 @@ LogProb PairHMM::lpTrans (State src, State dest) const {
     switch (dest) {
     case IMM: return iiw_imm;
     case IIW: return iiw_iiw;
+    case IDM: return iiw_idm;
     case EEE: return iiw_eee;
     default:
       break;
@@ -102,6 +104,45 @@ LogProb PairHMM::lpTrans (State src, State dest) const {
 }
 
 vguard<PairHMM::State> PairHMM::states() {
-  vguard<PairHMM::State> s = { IMM, IMD, IDM, IMI, IIW };
+  vguard<State> s = { IMM, IMD, IDM, IMI, IIW };
   return s;
+}
+
+vguard<PairHMM::State> PairHMM::sources (State dest) {
+  vguard<State> s;
+  switch (dest) {
+  case IMM:
+  case EEE:
+    s = { IMM, IMD, IDM, IMI, IIW };
+    break;
+  case IMD:
+    s = { IMM, IMD, IDM, IMI };
+    break;
+  case IDM:
+    s = { IMM, IMD, IDM, IIW };
+    break;
+  case IMI:
+    s = { IMM, IMI };
+    break;
+  case IIW:
+    s = { IMM, IIW, IMI };
+    break;
+  default:
+    break;
+  }
+  return s;
+}
+
+const char* PairHMM::stateName (State s, bool xAtStart, bool yAtStart) {
+  switch (s) {
+  case IMM: return xAtStart && yAtStart ? "SSS" : "IMM"; break;
+  case IMD: return "IMD"; break;
+  case IDM: return "IDM"; break;
+  case IMI: return xAtStart ? "SSI" : "IMI"; break;
+  case IIW: return yAtStart ? "SIW" : "IIW"; break;
+  case EEE: return "EEE"; break;
+  default: break;
+  }
+  Abort ("Don't know name of state %u", s);
+  return "?";
 }

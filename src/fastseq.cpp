@@ -76,7 +76,6 @@ vguard<FastSeq> readFastSeqs (const char* filename) {
 
   kseq_t *ks = kseq_init(fp);
   while (true) {
-    const z_off_t filepos = gztell (fp);
     if (kseq_read(ks) == -1)
       break;
 

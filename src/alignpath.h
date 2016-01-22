@@ -11,6 +11,8 @@ typedef size_t AlignColIndex;
 typedef vguard<bool> AlignRowPath;
 typedef map<AlignRowIndex,AlignRowPath> AlignPath;
 
+AlignColIndex alignPathColumns (const AlignPath& a);
+
 AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2);  // simple union (no AlignRowIndex shared between a1 & a2)
 AlignPath alignPathMerge (const vguard<AlignPath>& alignments);  // synchronized merge
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2);  // lengthwise concatenation

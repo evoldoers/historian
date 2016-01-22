@@ -3,40 +3,47 @@
  "state": [
   {
    "n": 0,
-   "trans": [ { "to": 1, "lpTrans": 0 } ]
+   "name": "START",
+   "trans": [ { "to": 1, "lpTrans": 0.000000 } ]
   },
   {
    "n": 1,
+   "name": "A1",
    "path": [ [ 0, "*" ] ],
-   "lpAbsorb": [ 0, "-inf", "-inf", "-inf" ],
-   "trans": [ { "to": 2, "lpTrans": 0 } ]
+   "lpAbsorb": [ 0.000000, "-inf", "-inf", "-inf" ],
+   "trans": [ { "to": 2, "lpTrans": 0.000000 } ]
   },
   {
    "n": 2,
+   "name": "A2",
    "path": [ [ 0, "*" ] ],
-   "lpAbsorb": [ 0, "-inf", "-inf", "-inf" ],
-   "trans": [ { "to": 3, "lpTrans": 0 } ]
+   "lpAbsorb": [ 0.000000, "-inf", "-inf", "-inf" ],
+   "trans": [ { "to": 3, "lpTrans": 0.000000 } ]
   },
   {
    "n": 3,
+   "name": "G3",
    "path": [ [ 0, "*" ] ],
-   "lpAbsorb": [ "-inf", "-inf", 0, "-inf" ],
-   "trans": [ { "to": 4, "lpTrans": 0 } ]
+   "lpAbsorb": [ "-inf", "-inf", 0.000000, "-inf" ],
+   "trans": [ { "to": 4, "lpTrans": 0.000000 } ]
   },
   {
    "n": 4,
+   "name": "C4",
    "path": [ [ 0, "*" ] ],
-   "lpAbsorb": [ "-inf", 0, "-inf", "-inf" ],
-   "trans": [ { "to": 5, "lpTrans": 0 } ]
+   "lpAbsorb": [ "-inf", 0.000000, "-inf", "-inf" ],
+   "trans": [ { "to": 5, "lpTrans": 0.000000 } ]
   },
   {
    "n": 5,
+   "name": "T5",
    "path": [ [ 0, "*" ] ],
-   "lpAbsorb": [ "-inf", "-inf", "-inf", 0 ],
-   "trans": [ { "to": 6, "lpTrans": 0 } ]
+   "lpAbsorb": [ "-inf", "-inf", "-inf", 0.000000 ],
+   "trans": [ { "to": 6, "lpTrans": 0.000000 } ]
   },
   {
    "n": 6,
+   "name": "END",
    "trans": [ ]
   }
  ]
