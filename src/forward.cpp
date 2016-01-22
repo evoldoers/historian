@@ -1,10 +1,11 @@
 #include "forward.h"
 #include "util.h"
 
-ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm)
+ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex)
   : x(x),
     y(y),
     hmm(hmm),
+    parentRowIndex(parentRowIndex),
     alphSize (hmm.alphabetSize()),
     xSize (x.size()),
     ySize (y.size()),
@@ -255,7 +256,7 @@ ForwardMatrix::EffectiveTransition::EffectiveTransition()
     lpBestAlignPath (-numeric_limits<double>::infinity())
 { }
 
-AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c, AlignRowIndex rowIndex) const {
+AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   AlignPath alignPath;
   if (c.isAbsorbing()) {
     switch (c.state) {
@@ -271,7 +272,7 @@ AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c, AlignRowIndex rowIn
       Abort ("%s fail",__func__);
       break;
     }
-    alignPath[rowIndex].push_back (true);
+    alignPath[parentRowIndex].push_back (true);
   }
   return alignPath;
 }
@@ -285,7 +286,7 @@ AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellC
   return path;
 }
 
-Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex) {
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells) {
   Profile prof;
 
   Assert (cells.find (startCell) != cells.end(), "Missing SSS");
@@ -318,7 +319,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
 	Abort ("%s fail",__func__);
 	break;
       }
-      prof.state.back().alignPath = cellAlignPath (c, rowIndex);
+      prof.state.back().alignPath = cellAlignPath(c);
     } else {
       // cell is to be eliminated
       switch (c.state) {
@@ -403,7 +404,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
   return prof;
 }
 
-Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator, AlignRowIndex rowIndex) {
+Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator) {
   map<CellCoords,size_t> cellCount;
   const Path best = bestTrace();
   for (auto& c : best)
@@ -417,12 +418,12 @@ Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, ra
   for (const auto& cc : cellCount)
     if (cc.second > 1)
       profCells.insert (cc.first);
-  return makeProfile (profCells, rowIndex);
+  return makeProfile (profCells);
 }
 
-Profile ForwardMatrix::bestProfile (AlignRowIndex rowIndex) {
+Profile ForwardMatrix::bestProfile() {
   const Path best = bestTrace();
   const set<CellCoords> profCells (best.begin(), best.end());
-  return makeProfile (profCells, rowIndex);
+  return makeProfile (profCells);
 }
 

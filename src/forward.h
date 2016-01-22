@@ -37,18 +37,19 @@ public:
   const Profile& x, y;
   const Profile subx, suby;
   const PairHMM& hmm;
+  const AlignRowIndex parentRowIndex;
   const AlphTok alphSize;
   const ProfileStateIndex xSize, ySize;
   const CellCoords startCell, endCell;
   LogProb lpEnd;
-  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm);
+  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex);
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
-  Profile makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex);
-  Profile sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator, AlignRowIndex rowIndex);
-  Profile bestProfile (AlignRowIndex rowIndex);
+  Profile makeProfile (const set<CellCoords>& cells);
+  Profile sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator);
+  Profile bestProfile();
 
   // helpers
 private:
@@ -81,7 +82,7 @@ private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   LogProb eliminatedLogProbAbsorb (const CellCoords& cell) const;
 
-  AlignPath cellAlignPath (const CellCoords& cell, AlignRowIndex rowIndex) const;
+  AlignPath cellAlignPath (const CellCoords& cell) const;
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
 
   static CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator);
