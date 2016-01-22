@@ -17,7 +17,7 @@ public:
   struct CellCoords {
     ProfileStateIndex xpos, ypos;
     PairHMM::State state;
-    CellCoords() { }
+    CellCoords() : state(PairHMM::EEE) { }
     CellCoords (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
       : xpos(xpos), ypos(ypos), state(state)
     { }
@@ -39,11 +39,13 @@ public:
   const PairHMM& hmm;
   const AlphTok alphSize;
   const ProfileStateIndex xSize, ySize;
+  const CellCoords startCell, endCell;
   LogProb lpEnd;
   ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm);
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace (random_engine& generator);
+  Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
   Profile makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex);
 
   // helpers
@@ -77,6 +79,7 @@ private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   LogProb eliminatedLogProbAbsorb (const CellCoords& cell) const;
   static CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator);
+  static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
 };
 
 #endif /* FORWARD_INCLUDED */

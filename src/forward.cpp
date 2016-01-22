@@ -15,7 +15,9 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     insx (x.size(), -numeric_limits<double>::infinity()),
     insy (y.size(), -numeric_limits<double>::infinity()),
     delx (x.size(), -numeric_limits<double>::infinity()),
-    dely (y.size(), -numeric_limits<double>::infinity())
+    dely (y.size(), -numeric_limits<double>::infinity()),
+    startCell (0, 0, PairHMM::SSS),
+    endCell (xSize - 1, ySize - 1, PairHMM::EEE)
 {
   for (ProfileStateIndex i = 1; i < xSize - 1; ++i) {
     insx[i] = logInnerProduct (hmm.l.insVec, x.state[i].lpAbsorb);
@@ -155,24 +157,25 @@ ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogPro
     if ((p -= iter.second) <= 0)
       return iter.first;
   Abort ("%s fail",__func__);
-  return CellCoords (0, 0, PairHMM::EEE);
+  return CellCoords();
+}
+
+ForwardMatrix::CellCoords ForwardMatrix::bestCell (const map<CellCoords,LogProb>& cellLogProb) {
+  CellCoords best;
+  double pBest = -numeric_limits<double>::infinity();
+  for (auto& iter : cellLogProb)
+    if (iter.second > pBest) {
+      pBest = iter.second;
+      best = iter.first;
+    }
+  return best;
 }
 
 ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
   Path path;
-  path.push_back (CellCoords (xSize - 1, ySize - 1, PairHMM::EEE));
+  path.push_back (endCell);
 
-  const auto states = hmm.states();
-  map<CellCoords,LogProb> clp;
-  for (auto xt : x.end().in) {
-    const ProfileTransition& xTrans = x.trans[xt];
-    for (auto yt : y.end().in) {
-      const ProfileTransition& yTrans = y.trans[yt];
-      for (auto s : states)
-	clp[CellCoords(xTrans.src,yTrans.src,s)] = cell(xTrans.src,yTrans.src,s) + hmm.lpTrans (s, PairHMM::EEE) + xTrans.lpTrans + yTrans.lpTrans;
-    }
-  }
-
+  map<CellCoords,LogProb> clp = sourceCells (endCell);
   CellCoords current;
   while (true) {
     current = sampleCell (clp, generator);
@@ -181,7 +184,24 @@ ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
       break;
     clp = sourceCells (current);
   }
-  
+
+  return path;
+}
+
+ForwardMatrix::Path ForwardMatrix::bestTrace() {
+  Path path;
+  path.push_back (endCell);
+
+  map<CellCoords,LogProb> clp = sourceCells (endCell);
+  CellCoords current;
+  while (true) {
+    current = bestCell (clp);
+    path.push_front (current);
+    if (current.xpos == 0 && current.ypos == 0)
+      break;
+    clp = sourceCells (current);
+  }
+
   return path;
 }
 
@@ -212,6 +232,15 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
       for (auto yt : y.state[destCell.ypos].in)
 	for (auto s : hmm.states())
 	  clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
+    break;
+
+    // null transitions into EEE
+  case PairHMM::EEE:
+    if (destCell.xpos == xSize - 1 && destCell.ypos == ySize - 1)
+      for (auto xt : x.end().in)
+	for (auto yt : y.end().in)
+	  for (auto s : hmm.states())
+	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans (s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
     break;
 
   default:
@@ -257,7 +286,6 @@ ForwardMatrix::EffectiveTransition::EffectiveTransition()
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex rowIndex) {
   Profile prof;
 
-  const CellCoords startCell (0, 0, PairHMM::SSS), endCell (CellCoords (xSize - 1, ySize - 1, PairHMM::EEE));
   Assert (cells.find (startCell) != cells.end(), "Missing SSS");
   Assert (cells.find (endCell) != cells.end(), "Missing EEE");
 
