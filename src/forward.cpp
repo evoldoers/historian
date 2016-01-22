@@ -35,10 +35,9 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
       if (i > 0) {
-	// x-absorbing transitions into IMD, IIW, IIX
+	// x-absorbing transitions into IMD, IIW
 	double imd = -numeric_limits<double>::infinity();
 	double iiw = -numeric_limits<double>::infinity();
-	double iix = -numeric_limits<double>::infinity();
 	for (auto xt : xState.in) {
 	  const ProfileTransition& xTrans = x.trans[xt];
 
@@ -46,10 +45,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 log_sum_exp (cell(xTrans.src,j,PairHMM::IMM) + hmm.imm_imd,
 				      cell(xTrans.src,j,PairHMM::IMD) + hmm.imd_imd,
 				      cell(xTrans.src,j,PairHMM::IDM) + hmm.idm_imd,
-				      cell(xTrans.src,j,PairHMM::IMI) + hmm.imi_imd,
-				      cell(xTrans.src,j,PairHMM::IIW) + hmm.iiw_imd,
-				      cell(xTrans.src,j,PairHMM::IDI) + hmm.idi_imd,
-				      cell(xTrans.src,j,PairHMM::IIX) + hmm.iix_imd)
+				      cell(xTrans.src,j,PairHMM::IMI) + hmm.imi_imd)
 			 + xTrans.lpTrans);
 
 	  log_accum_exp (iiw,
@@ -57,23 +53,16 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 				      cell(xTrans.src,j,PairHMM::IMI) + hmm.imi_iiw,
 				      cell(xTrans.src,j,PairHMM::IIW) + hmm.iiw_iiw)
 			 + xTrans.lpTrans);
-
-	  log_accum_exp (iix,
-			 log_sum_exp (cell(xTrans.src,j,PairHMM::IMD) + hmm.imd_iix,
-				      cell(xTrans.src,j,PairHMM::IIX) + hmm.iix_iix)
-			 + xTrans.lpTrans);
 	}
 
 	cell(i,j,PairHMM::IMD) = imd + delx[i];
 	cell(i,j,PairHMM::IIW) = iiw + insx[i];
-	cell(i,j,PairHMM::IIX) = iix + insx[i];
       }
 
       if (j > 0) {
-	// y-absorbing transitions into IDM, IMI, IDI
+	// y-absorbing transitions into IDM, IMI
 	double idm = -numeric_limits<double>::infinity();
 	double imi = -numeric_limits<double>::infinity();
-	double idi = -numeric_limits<double>::infinity();
 	for (auto yt : yState.in) {
 	  const ProfileTransition& yTrans = y.trans[yt];
 
@@ -81,26 +70,17 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 log_sum_exp (cell(i,yTrans.src,PairHMM::IMM) + hmm.imm_idm,
 				      cell(i,yTrans.src,PairHMM::IMD) + hmm.imd_idm,
 				      cell(i,yTrans.src,PairHMM::IDM) + hmm.idm_idm,
-				      cell(i,yTrans.src,PairHMM::IMI) + hmm.imi_idm,
-				      cell(i,yTrans.src,PairHMM::IIW) + hmm.iiw_idm,
-				      cell(i,yTrans.src,PairHMM::IDI) + hmm.idi_idm,
-				      cell(i,yTrans.src,PairHMM::IIX) + hmm.iix_idm)
+				      cell(i,yTrans.src,PairHMM::IIW) + hmm.iiw_idm)
 			 + yTrans.lpTrans);
 
 	  log_accum_exp (imi,
 			 log_sum_exp (cell(i,yTrans.src,PairHMM::IMM) + hmm.imm_imi,
 				      cell(i,yTrans.src,PairHMM::IMI) + hmm.imi_imi)
 			 + yTrans.lpTrans);
-
-	  log_accum_exp (idi,
-			 log_sum_exp (cell(i,yTrans.src,PairHMM::IDM) + hmm.idm_idi,
-				      cell(i,yTrans.src,PairHMM::IDI) + hmm.idi_idi)
-			 + yTrans.lpTrans);
 	}
 
 	cell(i,j,PairHMM::IDM) = idm + dely[j];
 	cell(i,j,PairHMM::IMI) = imi + insy[j];
-	cell(i,j,PairHMM::IDI) = idi + insy[j];
       }
 
       if (i > 0 && j > 0) {
@@ -116,9 +96,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 					cell(xTrans.src,yTrans.src,PairHMM::IMD) + hmm.imd_imm,
 					cell(xTrans.src,yTrans.src,PairHMM::IDM) + hmm.idm_imm,
 					cell(xTrans.src,yTrans.src,PairHMM::IMI) + hmm.imi_imm,
-					cell(xTrans.src,yTrans.src,PairHMM::IIW) + hmm.iiw_imm,
-					cell(xTrans.src,yTrans.src,PairHMM::IDI) + hmm.idi_imm,
-					cell(xTrans.src,yTrans.src,PairHMM::IIX) + hmm.iix_imm)
+					cell(xTrans.src,yTrans.src,PairHMM::IIW) + hmm.iiw_imm)
 			   + xTrans.lpTrans
 			   + yTrans.lpTrans);
 	  }
@@ -138,9 +116,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			   cell(xTrans.src,yTrans.src,PairHMM::IMD) + hmm.imd_eee,
 			   cell(xTrans.src,yTrans.src,PairHMM::IDM) + hmm.idm_eee,
 			   cell(xTrans.src,yTrans.src,PairHMM::IMI) + hmm.imi_eee,
-			   cell(xTrans.src,yTrans.src,PairHMM::IIW) + hmm.iiw_eee,
-			   cell(xTrans.src,yTrans.src,PairHMM::IDI) + hmm.idi_eee,
-			   cell(xTrans.src,yTrans.src,PairHMM::IIX) + hmm.iix_eee)
+			   cell(xTrans.src,yTrans.src,PairHMM::IIW) + hmm.iiw_eee)
 	+ xTrans.lpTrans
 	+ yTrans.lpTrans;
     }
@@ -208,19 +184,17 @@ ForwardMatrix::Path ForwardMatrix::bestTrace() {
 map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
   map<CellCoords,LogProb> clp;
   switch (destCell.state) {
-    // x-absorbing transitions into IMD, IIW, IIX
+    // x-absorbing transitions into IMD, IIW
   case PairHMM::IMD:
   case PairHMM::IIW:
-  case PairHMM::IIX:
     for (auto xt : x.state[destCell.xpos].in)
       for (auto s : hmm.states())
 	clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = cell(x.trans[xt].src,destCell.ypos,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans;
     break;
 
-    // y-absorbing transitions into IDM, IMI, IDI
+    // y-absorbing transitions into IDM, IMI
   case PairHMM::IDM:
   case PairHMM::IMI:
-  case PairHMM::IDI:
     for (auto yt : y.state[destCell.ypos].in)
       for (auto s : hmm.states())
 	clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = cell(destCell.xpos,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans;
@@ -258,12 +232,10 @@ bool ForwardMatrix::CellCoords::isAbsorbing() const {
 LogProb ForwardMatrix::eliminatedLogProbAbsorb (const CellCoords& cell) const {
   switch (cell.state) {
   case PairHMM::IIW:
-  case PairHMM::IIX:
     return insx[cell.xpos];
     break;
 
   case PairHMM::IMI:
-  case PairHMM::IDI:
     return insy[cell.ypos];
     break;
 
@@ -324,11 +296,9 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, AlignRowIndex 
       // cell is to be eliminated
       switch (c.state) {
       case PairHMM::IIW:
-      case PairHMM::IIX:
 	elimAlignPath[c] = x.state[c.xpos].alignPath;
 	break;
       case PairHMM::IMI:
-      case PairHMM::IDI:
 	elimAlignPath[c] = y.state[c.ypos].alignPath;
 	break;
       default:

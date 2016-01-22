@@ -9,9 +9,9 @@ struct PairHMM : AlphabetOwner {
   const ProbModel& r;
   gsl_vector* root;
 
-  typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IDI = 4, IIW = 5, IIX = 6,
-		 TotalStates = 7,
-		 SSS = 0, EEE = 7  /* EEE should come after all absorbing states, for sorting */
+  typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IIW = 4,
+		 TotalStates = 5,
+		 SSS = 0, EEE = 5  /* EEE should come after all absorbing states, for sorting */
   } State;
 
   // helper methods
@@ -37,20 +37,19 @@ struct PairHMM : AlphabetOwner {
 
   // Transition log-probabilities.
   // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}
-  // State idd is dropped.
+  // States involving overlapping events (idd,idi,iix) are dropped.
+  // Transitions between indistinguishable types of gap (iiw->imd, imi->idm) are also dropped.
   LogProb imm_imi, imm_iiw, imm_imm, imm_imd, imm_idm, imm_eee;
-  LogProb imd_iix, imd_imm, imd_imd, imd_idm, imd_eee;
-  LogProb idm_idi, idm_imm, idm_imd, idm_idm, idm_eee;
-  LogProb imi_imi, imi_iiw, imi_imm, imi_imd, imi_idm, imi_eee;
-  LogProb iiw_iiw, iiw_imm, iiw_imd, iiw_idm, iiw_eee;
-  LogProb idi_idi, idi_imm, idi_imd, idi_idm, idi_eee;
-  LogProb iix_iix, iix_imm, iix_imd, iix_idm, iix_eee;
+  LogProb imd_imm, imd_imd, imd_idm, imd_eee;
+  LogProb idm_imm, idm_imd, idm_idm, idm_eee;
+  LogProb imi_imi, imi_iiw, imi_imm, imi_imd, imi_eee;
+  LogProb iiw_iiw, iiw_imm, iiw_idm, iiw_eee;
 
   // constructor
   PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root);
 
   // helpers
-  static vector<State> states();
+  static vector<State> states();  // excludes EEE
   LogProb lpTrans (State src, State dest) const;
 };
 
