@@ -49,7 +49,7 @@ struct PairHMM : AlphabetOwner {
   PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root);
 
   // helpers
-  static vector<State> states();  // excludes EEE
+  static vguard<State> states();  // excludes EEE
   LogProb lpTrans (State src, State dest) const;
 };
 

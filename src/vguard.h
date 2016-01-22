@@ -19,6 +19,7 @@ public:
   vguard (size_t n, const value_type& t = value_type(), const allocator_type& a = allocator_type())
     : _vgbase(n,t,a) { }
   vguard (const _vgbase& v) : _vgbase(v) { }
+  vguard (std::initializer_list<T> l) : _vgbase(l) { }
   template<typename InputIterator>
   vguard (InputIterator __first, InputIterator __last,
 	  const allocator_type& a = allocator_type())

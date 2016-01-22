@@ -384,11 +384,11 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells) {
   for (const auto profStateIter : profStateIndex) {
     const CellCoords& cell = profStateIter.first;
     const ProfileStateIndex srcIdx = profStateIter.second;
-    vector<ProfileTransitionIndex>& srcOut = prof.state[srcIdx].out;
+    vguard<ProfileTransitionIndex>& srcOut = prof.state[srcIdx].out;
     for (const auto effTransIter : effTrans[cell]) {
       const ProfileStateIndex destIdx = effTransIter.first;
       const EffectiveTransition& srcDestEffTrans = effTransIter.second;
-      vector<ProfileTransitionIndex>& destIn = prof.state[destIdx].in;
+      vguard<ProfileTransitionIndex>& destIn = prof.state[destIdx].in;
       const ProfileTransitionIndex transIdx = prof.trans.size();
       ProfileTransition trans;
       trans.src = srcIdx;

@@ -8,10 +8,10 @@
 
 class ForwardMatrix {
 private:
-  vector<LogProb> cellStorage;  // partial Forward sums by cell
-  vector<LogProb> insx, insy;  // insert probabilities by x & y indices
-  vector<LogProb> delx, dely;  // delete probabilities by x & y indices
-  vector<LogProb> absorbScratch;  // scratch space for computing absorb profiles
+  vguard<LogProb> cellStorage;  // partial Forward sums by cell
+  vguard<LogProb> insx, insy;  // insert probabilities by x & y indices
+  vguard<LogProb> delx, dely;  // delete probabilities by x & y indices
+  vguard<LogProb> absorbScratch;  // scratch space for computing absorb profiles
 
 public:
   struct CellCoords {
@@ -54,22 +54,22 @@ public:
   // helpers
 private:
   static inline LogProb logInnerProduct (gsl_vector* gslv,
-					 const vector<LogProb>::const_iterator& begin,
-					 const vector<LogProb>::const_iterator& end) {
+					 const vguard<LogProb>::const_iterator& begin,
+					 const vguard<LogProb>::const_iterator& end) {
     LogProb lip = -numeric_limits<double>::infinity();
     size_t n = 0;
-    for (vector<LogProb>::const_iterator iter = begin; iter != end; ++iter, ++n)
+    for (vguard<LogProb>::const_iterator iter = begin; iter != end; ++iter, ++n)
       lip = log_sum_exp (lip, *iter + gsl_vector_get(gslv,n));
     return lip;
   }
 
-  static inline LogProb logInnerProduct (gsl_vector* gslv, const vector<LogProb>& stlv) {
+  static inline LogProb logInnerProduct (gsl_vector* gslv, const vguard<LogProb>& stlv) {
     return logInnerProduct (gslv, stlv.begin(), stlv.end());
   }
 
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
-    const vector<double>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
-    const vector<double>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
+    const vguard<double>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
+    const vguard<double>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
     for (size_t n = 0; n < hmm.alphabetSize(); ++n)
       absorbScratch[n] = xbegin[n] + ybegin[n];
   }

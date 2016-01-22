@@ -101,7 +101,7 @@ LogProb PairHMM::lpTrans (State src, State dest) const {
   return -numeric_limits<double>::infinity();
 }
 
-vector<PairHMM::State> PairHMM::states() {
-  vector<PairHMM::State> s = { IMM, IMD, IDM, IMI, IIW };
+vguard<PairHMM::State> PairHMM::states() {
+  vguard<PairHMM::State> s = { IMM, IMD, IDM, IMI, IIW };
   return s;
 }

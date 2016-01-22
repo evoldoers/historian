@@ -13,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include "util.h"
+#include "vguard.h"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ private:
   int verbosity;
   set<string> logTags;
   bool useAnsiColor;
-  vector<string> logAnsiColor;
+  vguard<string> logAnsiColor;
   string threadAnsiColor, ansiColorOff;
   
   recursive_timed_mutex mx;

@@ -4,12 +4,12 @@
 // map used by alignPathMerge
 struct AlignSeqMap {
   typedef size_t AlignNum;
-  const vector<AlignPath>& alignments;
+  const vguard<AlignPath>& alignments;
   map<AlignRowIndex,SeqIdx> seqLen;
-  vector<AlignColIndex> alignCols;
+  vguard<AlignColIndex> alignCols;
   map<AlignNum,map<AlignColIndex,map<AlignRowIndex,SeqIdx> > > alignColRowToPos;
   map<AlignRowIndex,map<SeqIdx,map<AlignNum,AlignColIndex> > > rowPosAlignToCol;
-  AlignSeqMap (const vector<AlignPath>& alignments);
+  AlignSeqMap (const vguard<AlignPath>& alignments);
   map<AlignNum,AlignColIndex> linkedColumns (AlignNum nAlign, AlignColIndex col) const;
 };
 
@@ -37,7 +37,7 @@ AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const Align
   return alignPathConcat (alignPathConcat (a1, a2), a3);
 }
 
-AlignSeqMap::AlignSeqMap (const vector<AlignPath>& alignments)
+AlignSeqMap::AlignSeqMap (const vguard<AlignPath>& alignments)
   : alignments (alignments)
 {
   // get row indices and sequence lengths; confirm row & sequence lengths match
@@ -102,12 +102,12 @@ map<AlignSeqMap::AlignNum,AlignColIndex> AlignSeqMap::linkedColumns (AlignNum nA
   return ac;
 }
 
-AlignPath alignPathMerge (const vector<AlignPath>& alignments) {
+AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
   const AlignSeqMap alignSeqMap (alignments);
   AlignPath a;
   for (auto& row_seqlen : alignSeqMap.seqLen)
     a[row_seqlen.first].clear();
-  vector<AlignColIndex> nextCol (alignments.size(), 0);
+  vguard<AlignColIndex> nextCol (alignments.size(), 0);
   bool allDone, noneReady;
   do {
     allDone = noneReady = true;
@@ -150,7 +150,7 @@ AlignPath alignPathMerge (const vector<AlignPath>& alignments) {
   return a;
 }
 
-Alignment::Alignment (const vector<FastSeq>& gapped)
+Alignment::Alignment (const vguard<FastSeq>& gapped)
   : ungapped (gapped.size())
  {
   for (AlignRowIndex row = 0; row < gapped.size(); ++row) {
@@ -167,12 +167,12 @@ Alignment::Alignment (const vector<FastSeq>& gapped)
   }
 }
 
-Alignment::Alignment (const vector<FastSeq>& ungapped, const AlignPath& path)
+Alignment::Alignment (const vguard<FastSeq>& ungapped, const AlignPath& path)
   : ungapped(ungapped), path(path)
 { }
 
-vector<FastSeq> Alignment::gapped() const {
-  vector<FastSeq> gs (ungapped.size());
+vguard<FastSeq> Alignment::gapped() const {
+  vguard<FastSeq> gs (ungapped.size());
   for (auto& row_path : path) {
     FastSeq& g = gs[row_path.first];
     const FastSeq& ug = ungapped[row_path.first];

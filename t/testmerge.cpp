@@ -9,8 +9,8 @@ int main (int argc, char **argv) {
   }
 
   map<string,AlignRowIndex> nameToRowIndex;
-  vector<FastSeq> ungapped;
-  vector<AlignPath> paths;
+  vguard<FastSeq> ungapped;
+  vguard<AlignPath> paths;
 
   for (int n = 1; n < argc; ++n) {
     vguard<FastSeq> gapped = readFastSeqs (argv[n]);

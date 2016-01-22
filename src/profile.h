@@ -17,8 +17,8 @@ struct ProfileTransition {
 };
 
 struct ProfileState {
-  vector<ProfileTransitionIndex> in, out;
-  vector<LogProb> lpAbsorb;
+  vguard<ProfileTransitionIndex> in, out;
+  vguard<LogProb> lpAbsorb;
   AlignPath alignPath;
   ProfileState (AlphTok alphSize = 0);
   inline bool isNull() const { return lpAbsorb.empty(); }
@@ -26,8 +26,8 @@ struct ProfileState {
 
 struct Profile {
   AlphTok alphSize;
-  vector<ProfileState> state;
-  vector<ProfileTransition> trans;
+  vguard<ProfileState> state;
+  vguard<ProfileTransition> trans;
   Profile() { }
   Profile (AlphTok alphSize, const vguard<AlphTok>& seq, AlignRowIndex rowIndex);
   ProfileStateIndex size() const { return state.size(); }

@@ -109,8 +109,8 @@ JsonValue& JsonUtil::findOrDie (const JsonValue& parent, const char* key) {
   return *val;
 }
 
-vector<double> JsonUtil::doubleVec (const JsonValue& arr) {
-  vector<double> v;
+vguard<double> JsonUtil::doubleVec (const JsonValue& arr) {
+  vguard<double> v;
   Assert (arr.getTag() == JSON_ARRAY, "JSON value is not an array");
   for (auto n : arr) {
     Assert (n->value.getTag() == JSON_NUMBER, "JSON value is not a number");
@@ -119,8 +119,8 @@ vector<double> JsonUtil::doubleVec (const JsonValue& arr) {
   return v;
 }
 
-vector<size_t> JsonUtil::indexVec (const JsonValue& arr) {
-  vector<size_t> v;
+vguard<size_t> JsonUtil::indexVec (const JsonValue& arr) {
+  vguard<size_t> v;
   Assert (arr.getTag() == JSON_ARRAY, "JSON value is not an array");
   for (auto n : arr) {
     Assert (n->value.getTag() == JSON_NUMBER, "JSON value is not a number");

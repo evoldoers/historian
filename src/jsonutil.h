@@ -2,8 +2,8 @@
 #define JSONUTIL_INCLUDED
 
 #include <map>
-#include <vector>
 #include <string>
+#include "vguard.h"
 #include "gason.h"
 
 using namespace std;
@@ -52,8 +52,8 @@ public:
 struct JsonUtil {
   static JsonValue* find (const JsonValue& parent, const char* key);
   static JsonValue& findOrDie (const JsonValue& parent, const char* key);
-  static vector<double> doubleVec (const JsonValue& arr);
-  static vector<size_t> indexVec (const JsonValue& arr);
+  static vguard<double> doubleVec (const JsonValue& arr);
+  static vguard<size_t> indexVec (const JsonValue& arr);
   static string quoteEscaped (const string& str);
 
   // helpers
