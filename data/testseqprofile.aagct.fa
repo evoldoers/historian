@@ -1,0 +1,43 @@
+{
+ "alphSize": 4,
+ "state": [
+  {
+   "n": 0,
+   "trans": [ { "to": 1, "lpTrans": 0 } ]
+  },
+  {
+   "n": 1,
+   "path": [ [ 0, "*" ] ],
+   "lpAbsorb": [ 0, "-inf", "-inf", "-inf" ],
+   "trans": [ { "to": 2, "lpTrans": 0 } ]
+  },
+  {
+   "n": 2,
+   "path": [ [ 0, "*" ] ],
+   "lpAbsorb": [ 0, "-inf", "-inf", "-inf" ],
+   "trans": [ { "to": 3, "lpTrans": 0 } ]
+  },
+  {
+   "n": 3,
+   "path": [ [ 0, "*" ] ],
+   "lpAbsorb": [ "-inf", "-inf", 0, "-inf" ],
+   "trans": [ { "to": 4, "lpTrans": 0 } ]
+  },
+  {
+   "n": 4,
+   "path": [ [ 0, "*" ] ],
+   "lpAbsorb": [ "-inf", 0, "-inf", "-inf" ],
+   "trans": [ { "to": 5, "lpTrans": 0 } ]
+  },
+  {
+   "n": 5,
+   "path": [ [ 0, "*" ] ],
+   "lpAbsorb": [ "-inf", "-inf", "-inf", 0 ],
+   "trans": [ { "to": 6, "lpTrans": 0 } ]
+  },
+  {
+   "n": 6,
+   "trans": [ ]
+  }
+ ]
+}

@@ -48,3 +48,58 @@ const ProfileTransition* Profile::getTrans (ProfileStateIndex src, ProfileStateI
       return &trans[t];
   return NULL;
 }
+
+string alignPathJson (const AlignPath& a) {
+  string s = "[";
+  for (auto& row_path : a) {
+    if (s.size() > 1)
+      s += ",";
+    s += " [ " + to_string(row_path.first) + ", \"";
+    for (auto col : row_path.second)
+      s += (col ? "*" : "-");
+    s += "\" ]";
+  }
+  s += " ]";
+  return s;
+}
+
+void Profile::writeJson (ostream& out) const {
+  out << "{" << endl;
+  out << " \"alphSize\": " << alphSize << "," << endl;
+  out << " \"state\": [" << endl;
+  for (ProfileStateIndex s = 0; s < state.size(); ++s) {
+    out << "  {" << endl;
+    out << "   \"n\": " << s << "," << endl;
+    if (state[s].alignPath.size())
+      out << "   \"path\": " << alignPathJson(state[s].alignPath) << "," << endl;
+    if (!state[s].isNull()) {
+      out << "   \"lpAbsorb\": [";
+      for (AlphTok a = 0; a < alphSize; ++a) {
+	if (state[s].lpAbsorb[a] == -numeric_limits<double>::infinity())
+	  out << " \"-inf\"";
+	else
+	  out << " " << state[s].lpAbsorb[a];
+	if (a < alphSize - 1)
+	  out << ",";
+      }
+      out << " ]," << endl;
+    }
+    out << "   \"trans\": [";
+    for (size_t nt = 0; nt < state[s].out.size(); ++nt) {
+      const ProfileTransition& tr = trans[state[s].out[nt]];
+      out << " { \"to\": " << tr.dest << ",";
+      if (tr.alignPath.size())
+	out << " \"path\": " << alignPathJson(tr.alignPath) << ",";
+      out << " \"lpTrans\": " << tr.lpTrans << " }";
+      if (nt < state[s].out.size() - 1)
+	out << ",";
+    }
+    out << " ]" << endl;
+    out << "  }";
+    if (s < state.size() - 1)
+      out << ",";
+    out << endl;
+  }
+  out << " ]" << endl;
+  out << "}" << endl;
+}

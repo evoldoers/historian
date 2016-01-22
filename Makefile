@@ -85,7 +85,7 @@ bin/%: $(CPPFILES) t/%.cpp
 
 # Tests
 
-test: testlogsumexp testrateio testmatexp testmerge
+test: testlogsumexp testrateio testmatexp testmerge testseqprofile
 
 testlogsumexp: bin/testlogsumexp
 	bin/testlogsumexp -slow >data/logsumexp.txt
@@ -104,6 +104,9 @@ testmerge: bin/testmerge
 	perl/testexpect.pl bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
 	echo "\nThe next test is expected to throw an exception - do not be alarmed:\n"
 	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty
+
+testseqprofile: bin/testseqprofile
+	perl/testexpect.pl bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.fa
 
 # Rules for building files in the repository
 # For updating README.md

@@ -35,6 +35,7 @@ struct Profile {
   const ProfileState& start() const { return state.front(); }
   const ProfileState& end() const { return state.back(); }
   const ProfileTransition* getTrans (ProfileStateIndex src, ProfileStateIndex dest) const;
+  void writeJson (ostream& out) const;
 };
 
 #endif /* PROFILE_INCLUDED */
