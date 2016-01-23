@@ -33,7 +33,7 @@ public:
   };
 
   typedef list<CellCoords> Path;
-  typedef default_random_engine random_engine;
+  typedef mt19937 random_engine;
 
   const Profile& x, y;
   const Profile subx, suby;
@@ -70,6 +70,8 @@ public:
   }
 
   string cellName (const CellCoords& cell) const;
+
+  static random_engine newRNG();
   
 private:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {

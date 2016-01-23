@@ -59,7 +59,7 @@ int main (int argc, char **argv) {
     prof = forward.bestProfile (strategy);
 
   else {
-    default_random_engine generator;
+    auto generator = forward.newRNG();
     prof = forward.sampleProfile (generator, nPaths, 0, strategy);
   }
     

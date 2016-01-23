@@ -94,43 +94,44 @@ obj/%.o: t/%.cpp
 
 # Tests
 
+TEST = @perl/testexpect.pl
+
 test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward
 
 testlogsumexp: bin/testlogsumexp
-	bin/testlogsumexp -slow >data/logsumexp.txt
-	perl/testexpect.pl bin/testlogsumexp -fast data/logsumexp.txt
+	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
+	$(TEST) bin/testlogsumexp -fast data/logsumexp.txt 2> /dev/null
 
 testmatexp: bin/testmatexp
-	perl/testexpect.pl bin/testmatexp data/testrates.json 1 data/testrates.probs.json
+	$(TEST) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
 
 testrateio: bin/testrateio
-	perl/testexpect.pl bin/testrateio data/testrates.json data/testrates.out.json
+	$(TEST) bin/testrateio data/testrates.json data/testrates.out.json
 
 testmerge: bin/testmerge
-	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa
-	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.ayz.fa data/testmerge1.xyaz.fa
-	perl/testexpect.pl bin/testmerge data/testmerge1.xz.fa data/testmerge1.ayz.fa data/testmerge1.xzay.fa
-	perl/testexpect.pl bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
-	echo "\nThe next test is expected to throw an exception - do not be alarmed:\n"
-	perl/testexpect.pl bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty
+	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa
+	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.ayz.fa data/testmerge1.xyaz.fa
+	$(TEST) bin/testmerge data/testmerge1.xz.fa data/testmerge1.ayz.fa data/testmerge1.xzay.fa
+	$(TEST) bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
+	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty 2> /dev/null
 
 testseqprofile: bin/testseqprofile
-	perl/testexpect.pl bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.fa
+	$(TEST) bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.fa
 
 testforward: bin/testforward
-	perl/testexpect.pl bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
-	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.nosub.json 1 data/testforward.len2.nosub.best.out
-	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
-	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out
-	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .01 1 data/testforward.len2-4.yins.out
-	perl/testexpect.pl bin/testforward -all 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.all.out
-	perl/testexpect.pl bin/testforward -absorbers 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.abs.out
-	perl/testexpect.pl bin/testforward -hubs 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.hubs.out
+	$(TEST) bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
+	$(TEST) bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.nosub.json 1 data/testforward.len2.nosub.best.out
+	$(TEST) bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
+	$(TEST) bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out
+	$(TEST) bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .01 1 data/testforward.len2-4.yins.out
+	$(TEST) bin/testforward -all 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.all.out
+	$(TEST) bin/testforward -absorbers 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.abs.out
+	$(TEST) bin/testforward -hubs 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.hubs.out
 
 
 
 testnullforward: bin/testnullforward
-	perl/testexpect.pl bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
+	$(TEST) bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
 
 # Rules for building files in the repository
 # For updating README.md

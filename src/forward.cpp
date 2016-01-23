@@ -291,6 +291,10 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
   return clp;
 }
 
+ForwardMatrix::random_engine ForwardMatrix::newRNG() {
+  return random_engine();
+}
+
 string ForwardMatrix::cellName (const CellCoords& c) const {
   return string("(") + hmm.stateName(c.state,c.xpos==0,c.ypos==0) + "," + x.state[c.xpos].name + "," + y.state[c.ypos].name + ")";
 }
