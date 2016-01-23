@@ -9,8 +9,8 @@
 class ForwardMatrix {
 private:
   vguard<LogProb> cellStorage;  // partial Forward sums by cell
-  vguard<LogProb> insx, insy;  // insert probabilities by x & y indices
-  vguard<LogProb> delx, dely;  // delete probabilities by x & y indices
+  vguard<LogProb> insx, insy;  // insert-on-branch probabilities by x & y indices
+  vguard<LogProb> rootsubx, rootsuby;  // insert-at-root-then-substitute probabilities by x & y indices
   vguard<LogProb> absorbScratch;  // scratch space for computing absorb profiles
 
 public:
@@ -52,7 +52,7 @@ public:
   Profile bestProfile();
 
   // helpers
-private:
+public:
   static inline LogProb logInnerProduct (const vguard<LogProb>::const_iterator& begin1,
 					 const vguard<LogProb>::const_iterator& begin2,
 					 const vguard<LogProb>::const_iterator& end2) {
@@ -66,9 +66,10 @@ private:
     return logInnerProduct (v1.begin(), v2.begin(), v2.end());
   }
 
+private:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
-    const vguard<double>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
-    const vguard<double>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
+    const vguard<LogProb>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
+    const vguard<LogProb>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
     for (size_t n = 0; n < hmm.alphabetSize(); ++n)
       absorbScratch[n] = xbegin[n] + ybegin[n];
   }

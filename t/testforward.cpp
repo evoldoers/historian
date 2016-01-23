@@ -40,6 +40,7 @@ int main (int argc, char **argv) {
   allCells.insert (forward.endCell);
 
   Profile prof = forward.makeProfile (allCells, true);
+  prof.calcSumPathAbsorbProbs (hmm.logRoot);
   prof.writeJson (cout);
 
   exit (EXIT_SUCCESS);

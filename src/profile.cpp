@@ -1,6 +1,7 @@
 #include <math.h>
 #include "profile.h"
 #include "jsonutil.h"
+#include "forward.h"
 
 ProfileTransition::ProfileTransition()
   : lpTrans(-numeric_limits<double>::infinity())
@@ -54,6 +55,19 @@ const ProfileTransition* Profile::getTrans (ProfileStateIndex src, ProfileStateI
     if (trans[t].src == src)
       return &trans[t];
   return NULL;
+}
+
+void Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag) {
+  vector<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
+  lpCumAbs[0] = 0;
+  for (ProfileStateIndex pos = 1; pos < state.size(); ++pos) {
+    const LogProb lpAbs = state[pos].isNull() ? 0 : ForwardMatrix::logInnerProduct (input, state[pos].lpAbsorb);
+    for (auto ti : state[pos].in) {
+      const ProfileTransition& t = trans[ti];
+      log_accum_exp (lpCumAbs[pos], lpCumAbs[t.src] + t.lpTrans + lpAbs);
+    }
+    state[pos].meta[string(tag)] = to_string(lpCumAbs[pos]);
+  }
 }
 
 string alignPathJson (const AlignPath& a) {
