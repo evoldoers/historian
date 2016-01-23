@@ -36,11 +36,11 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
 
-      double imd = -numeric_limits<double>::infinity();
-      double iiw = -numeric_limits<double>::infinity();
-      double idm = -numeric_limits<double>::infinity();
-      double imi = -numeric_limits<double>::infinity();
-      double imm = -numeric_limits<double>::infinity();
+      double& imm = cell(i,j,PairHMM::IMM);
+      double& imd = cell(i,j,PairHMM::IMD);
+      double& idm = cell(i,j,PairHMM::IDM);
+      double& imi = cell(i,j,PairHMM::IMI);
+      double& iiw = cell(i,j,PairHMM::IIW);
 
       // x-absorbing transitions into IMD, IIW
       if (!xState.isNull()) {
@@ -61,8 +61,8 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 + xTrans.lpTrans);
 	}
 
-	cell(i,j,PairHMM::IMD) = imd + rootsubx[i];
-	cell(i,j,PairHMM::IIW) = iiw + insx[i];
+	imd += rootsubx[i];
+	iiw += insx[i];
       }
 
       // y-absorbing transitions into IDM, IMI
@@ -83,8 +83,8 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 + yTrans.lpTrans);
 	}
 
-	cell(i,j,PairHMM::IDM) = idm + rootsuby[j];
-	cell(i,j,PairHMM::IMI) = imi + insy[j];
+	idm += rootsuby[j];
+	imi += insy[j];
       }
 
       // xy-absorbing transitions into IMM
@@ -105,7 +105,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 	  }
 	}
 
-	cell(i,j,PairHMM::IMM) = imm + computeLogProbAbsorb(i,j);
+	imm += computeLogProbAbsorb(i,j);
       }
     }
   }
