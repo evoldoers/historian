@@ -158,16 +158,19 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
   }
 }
 
-ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) {
+ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const {
   double ptot = 0;
   for (auto& iter : cellLogProb)
     ptot += exp (iter.second);
   uniform_real_distribution<double> dist (0, ptot);
-  double p = dist (generator);
+  const double p0 = dist (generator);
+  double p = p0;
   for (auto& iter : cellLogProb)
-    if ((p -= iter.second) <= 0)
+    if ((p -= exp (iter.second)) <= 0)
       return iter.first;
-  Abort ("%s fail",__func__);
+  for (auto& iter : cellLogProb)
+    cerr << "Log P" << cellName(iter.first) << " = " << iter.second << endl;
+  Abort ("%s fail (ptot=%g, p=%g)",__func__,ptot,p0);
   return CellCoords();
 }
 
@@ -288,6 +291,10 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
   return clp;
 }
 
+string ForwardMatrix::cellName (const CellCoords& c) const {
+  return string("(") + hmm.stateName(c.state,c.xpos==0,c.ypos==0) + "," + x.state[c.xpos].name + "," + y.state[c.ypos].name + ")";
+}
+
 bool ForwardMatrix::isAbsorbing (const CellCoords& c) const {
   return (c.state == PairHMM::IMM && !x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
     || (c.state == PairHMM::IMD && !x.state[c.xpos].isNull())
@@ -400,7 +407,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	  break;
 	}
       prof.state.back().alignPath = cellAlignPath(c);
-      prof.state.back().name = string("(") + hmm.stateName(c.state,c.xpos==0,c.ypos==0) + "," + x.state[c.xpos].name + "," + y.state[c.ypos].name + ")";
+      prof.state.back().name = cellName(c);
       prof.state.back().meta["fwdLogProb"] = to_string(c.state == PairHMM::EEE ? lpEnd : cell(c.xpos,c.ypos,c.state));
     } else {
       // cell is to be eliminated

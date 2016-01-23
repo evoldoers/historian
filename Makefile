@@ -123,6 +123,10 @@ testforward: bin/testforward
 	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
 	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out
 	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .01 1 data/testforward.len2-4.yins.out
+	perl/testexpect.pl bin/testforward -all 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.all.out
+	perl/testexpect.pl bin/testforward -absorbers 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.abs.out
+	perl/testexpect.pl bin/testforward -hubs 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.hubs.out
+
 
 
 testnullforward: bin/testnullforward

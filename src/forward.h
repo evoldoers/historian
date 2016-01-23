@@ -69,6 +69,8 @@ public:
     return logInnerProduct (v1.begin(), v2.begin(), v2.end());
   }
 
+  string cellName (const CellCoords& cell) const;
+  
 private:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
     const vguard<LogProb>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
@@ -91,7 +93,7 @@ private:
   AlignPath cellAlignPath (const CellCoords& cell) const;
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
 
-  static CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator);
+  CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
   static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
 };
 
