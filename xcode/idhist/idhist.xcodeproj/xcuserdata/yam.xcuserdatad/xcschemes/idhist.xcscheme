@@ -68,7 +68,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "data/testforward.len2.fa data/testforward.json .01"
+            argument = "data/testforward.len2.fa data/testforward.jukescantor.json 1"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
