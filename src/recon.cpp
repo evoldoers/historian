@@ -1,6 +1,6 @@
 #include "recon.h"
 #include "util.h"
-#include "profile.h"
+#include "forward.h"
 
 Reconstructor::Reconstructor()
   : profileSamples(100),
@@ -25,15 +25,32 @@ AlignPath Reconstructor::reconstruct (ktree_t* tree, const vguard<FastSeq>& seqs
     if (children.find(node) == children.end())
       Assert (seqIndex.find (tree->node[node].name) != seqIndex.end(), "Can't find sequence for node %s", tree->node[node].name);
 
+  gsl_vector* eqm = model.getEqmProb();
+  auto generator = ForwardMatrix::newRNG();
+  AlignPath path;
   map<int,Profile> prof;
   for (int node = 0; node < tree->n; ++node) {
     if (children.find(node) == children.end())
       prof[node] = Profile (model.alphabet, seqs[seqIndex.at (string (tree->node[node].name))], node);
     else {
-      // WRITE ME
+      const int lChildNode = children.at(node)[0];
+      const int rChildNode = children.at(node)[1];
+      const FastSeq& lSeq = seqs[seqIndex.at (string (tree->node[lChildNode].name))];
+      const FastSeq& rSeq = seqs[seqIndex.at (string (tree->node[rChildNode].name))];
+      Profile lProf (model.alphabet, lSeq, lChildNode);
+      Profile rProf (model.alphabet, rSeq, rChildNode);
+      ProbModel lProbs (model, tree->node[lChildNode].d);
+      ProbModel rProbs (model, tree->node[lChildNode].d);
+      PairHMM hmm (lProbs, rProbs, eqm);
+      ForwardMatrix forward (lProf, rProf, hmm, node);
+      if (node == tree->n - 1)
+	path = forward.bestAlignPath();
+      else
+	prof[node] = forward.sampleProfile (generator, profileSamples, profileNodeLimit);
     }
   }
+
+  gsl_vector_free (eqm);
   
-  // WRITE ME
-  return AlignPath();
+  return path;
 }

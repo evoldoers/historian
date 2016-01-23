@@ -219,6 +219,11 @@ ForwardMatrix::Path ForwardMatrix::bestTrace() {
   return path;
 }
 
+AlignPath ForwardMatrix::bestAlignPath() {
+  Path trace = bestTrace();
+  return traceAlignPath (trace);
+}
+
 map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
   map<CellCoords,LogProb> sc = sourceTransitions (destCell);
   for (auto& c_lp : sc)

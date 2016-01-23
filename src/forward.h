@@ -48,6 +48,7 @@ public:
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
+  AlignPath bestAlignPath();
 
   enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
   Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
