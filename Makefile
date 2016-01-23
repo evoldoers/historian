@@ -47,6 +47,7 @@ CPPFLAGS = -DUSE_VECTOR_GUARDS -std=c++11 -g $(GSLFLAGS) $(BOOSTFLAGS)
 LIBFLAGS = -lstdc++ -lz $(GSLLIBS) $(BOOSTLIBS)
 
 CPPFILES = $(wildcard src/*.cpp)
+OBJFILES = $(subst src/,obj/,$(subst .cpp,.o,$(CPPFILES)))
 
 # try clang++, fall back to g++
 CPP = clang++
@@ -76,12 +77,20 @@ uninstall:
 	rm $(PREFIX)/bin/$(MAIN)
 
 clean:
-	rm -rf bin/*
+	rm -rf bin/* obj/*
 
-# Main build rule
-bin/%: $(CPPFILES) t/%.cpp
-	test -e bin || mkdir bin
-	$(CPP) $(CPPFLAGS) $(LIBFLAGS) -o $@ t/$*.cpp $(CPPFILES)
+# Main build rules
+bin/%: $(OBJFILES) obj/%.o
+	@test -e bin || mkdir bin
+	$(CPP) $(LIBFLAGS) -o $@ obj/$*.o $(OBJFILES)
+
+obj/%.o: src/%.cpp
+	@test -e obj || mkdir obj
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
+
+obj/%.o: t/%.cpp
+	@test -e obj || mkdir obj
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
 
 # Tests
 
