@@ -35,10 +35,15 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     const ProfileState& xState = x.state[i];
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
-      if (i > 0) {
-	// x-absorbing transitions into IMD, IIW
-	double imd = -numeric_limits<double>::infinity();
-	double iiw = -numeric_limits<double>::infinity();
+
+      double imd = -numeric_limits<double>::infinity();
+      double iiw = -numeric_limits<double>::infinity();
+      double idm = -numeric_limits<double>::infinity();
+      double imi = -numeric_limits<double>::infinity();
+      double imm = -numeric_limits<double>::infinity();
+
+      // x-absorbing transitions into IMD, IIW
+      if (!xState.isNull()) {
 	for (auto xt : xState.in) {
 	  const ProfileTransition& xTrans = x.trans[xt];
 
@@ -56,15 +61,12 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 + xTrans.lpTrans);
 	}
 
-	if (j > 0)
-	  cell(i,j,PairHMM::IMD) = imd + rootsubx[i];
+	cell(i,j,PairHMM::IMD) = imd + rootsubx[i];
 	cell(i,j,PairHMM::IIW) = iiw + insx[i];
       }
 
-      if (j > 0) {
-	// y-absorbing transitions into IDM, IMI
-	double idm = -numeric_limits<double>::infinity();
-	double imi = -numeric_limits<double>::infinity();
+      // y-absorbing transitions into IDM, IMI
+      if (!yState.isNull()) {
 	for (auto yt : yState.in) {
 	  const ProfileTransition& yTrans = y.trans[yt];
 
@@ -81,14 +83,12 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 			 + yTrans.lpTrans);
 	}
 
-	if (i > 0)
-	  cell(i,j,PairHMM::IDM) = idm + rootsuby[j];
+	cell(i,j,PairHMM::IDM) = idm + rootsuby[j];
 	cell(i,j,PairHMM::IMI) = imi + insy[j];
       }
 
-      if (i > 0 && j > 0) {
-	// xy-absorbing transitions into IMM
-	double imm = -numeric_limits<double>::infinity();
+      // xy-absorbing transitions into IMM
+      if (!xState.isNull() && !yState.isNull()) {
 	for (auto xt : xState.in) {
 	  const ProfileTransition& xTrans = x.trans[xt];
 	  for (auto yt : yState.in) {
@@ -196,8 +196,6 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
   switch (destCell.state) {
     // x-absorbing transitions into IMD, IIW
   case PairHMM::IMD:
-    if (destCell.ypos == 0)
-      break;
   case PairHMM::IIW:
     for (auto xt : x.state[destCell.xpos].in)
       for (auto s : hmm.sources (destCell.state))
@@ -206,8 +204,6 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
 
     // y-absorbing transitions into IDM, IMI
   case PairHMM::IDM:
-    if (destCell.xpos == 0)
-      break;
   case PairHMM::IMI:
     for (auto yt : y.state[destCell.ypos].in)
       for (auto s : hmm.sources (destCell.state))

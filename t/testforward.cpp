@@ -29,15 +29,13 @@ int main (int argc, char **argv) {
   ForwardMatrix forward (xprof, yprof, hmm, 0);
 
   set<ForwardMatrix::CellCoords> allCells;
+  allCells.insert (forward.startCell);
+  allCells.insert (forward.endCell);
   for (ProfileStateIndex xpos = 0; xpos < xprof.size() - 1; ++xpos)
     for (ProfileStateIndex ypos = 0; ypos < yprof.size() - 1; ++ypos)
       for (PairHMM::State s : hmm.states())
-	if ((xpos > 0 && ypos > 0)
-	    || (xpos == 0 && ypos == 0 && s == PairHMM::SSS)
-	    || (xpos == 0 && ypos > 0 && s == PairHMM::SSI)
-	    || (xpos > 0 && ypos == 0 && s == PairHMM::SIW))
+	if (xpos > 0 || ypos > 0)
 	  allCells.insert (ForwardMatrix::CellCoords (xpos, ypos, s));
-  allCells.insert (forward.endCell);
 
   Profile prof = forward.makeProfile (allCells, true);
   prof.calcSumPathAbsorbProbs (hmm.logRoot);
