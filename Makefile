@@ -118,7 +118,7 @@ testseqprofile: bin/testseqprofile
 	perl/testexpect.pl bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.fa
 
 testforward: bin/testforward
-	perl/testexpect.pl bin/testforward data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
+	perl/testexpect.pl bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
 
 testnullforward: bin/testnullforward
 	perl/testexpect.pl bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out

@@ -47,7 +47,7 @@ int main (int argc, char **argv) {
 	if (xpos > 0 || ypos > 0)
 	  allCells.insert (ForwardMatrix::CellCoords (xpos, ypos, s));
 
-  Profile prof = forward.makeProfile (allCells, true);
+  Profile prof = forward.makeProfile (allCells, ForwardMatrix::KeepAll);
   prof.calcSumPathAbsorbProbs (hmm.logRoot);
   prof.writeJson (cout);
 

@@ -358,7 +358,7 @@ AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellC
   return path;
 }
 
-Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAbsorbingCells) {
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy) {
   Profile prof (alphSize);
   prof.name = string("(") + x.name + ":" + to_string(hmm.l.t) + "," + y.name + ":" + to_string(hmm.r.t) + ")";
 
@@ -369,9 +369,18 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
   // retain only start, end, and absorbing cells
   map<CellCoords,ProfileStateIndex> profStateIndex;
   map<CellCoords,AlignPath> elimAlignPath;
+  map<CellCoords,int> outgoingTransitionCount;
+
+  for (const auto& dest : cells)
+    for (const auto& src_lp : sourceTransitions (dest))
+      ++outgoingTransitionCount[src_lp.first];
 
   for (const auto& c : cells)
-    if (isAbsorbing(c) || keepNonAbsorbingCells) {
+    if (isAbsorbing(c)
+	|| c == startCell
+	|| c == endCell
+	|| (strategy == KeepHubsAndAbsorbers && outgoingTransitionCount[c] > 1)
+	|| strategy == KeepAll) {
       // cell is to be retained
       profStateIndex[c] = prof.state.size();
       prof.state.push_back (ProfileState());
@@ -465,12 +474,12 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
   return prof;
 }
 
-Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator) {
+Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, EliminationStrategy strategy) {
   map<CellCoords,size_t> cellCount;
   const Path best = bestTrace();
   for (auto& c : best)
     cellCount[c] = 2;  // avoid dropping these cells
-  for (size_t n = 0; n < profileSamples && cellCount.size() < maxCells; ++n) {
+  for (size_t n = 0; n < profileSamples && (maxCells == 0 || cellCount.size() < maxCells); ++n) {
     const Path sampled = sampleTrace (generator);
     for (auto& c : sampled)
       ++cellCount[c];
@@ -479,12 +488,12 @@ Profile ForwardMatrix::sampleProfile (size_t profileSamples, size_t maxCells, ra
   for (const auto& cc : cellCount)
     if (cc.second > 1)
       profCells.insert (cc.first);
-  return makeProfile (profCells, false);
+  return makeProfile (profCells, strategy);
 }
 
-Profile ForwardMatrix::bestProfile() {
+Profile ForwardMatrix::bestProfile (EliminationStrategy strategy) {
   const Path best = bestTrace();
   const set<CellCoords> profCells (best.begin(), best.end());
-  return makeProfile (profCells, false);
+  return makeProfile (profCells, strategy);
 }
 

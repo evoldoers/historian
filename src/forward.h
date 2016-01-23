@@ -23,6 +23,8 @@ public:
     { }
     bool operator< (const CellCoords& c) const
     { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
+    bool operator== (const CellCoords& c) const
+    { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
   };
   struct EffectiveTransition {
     LogProb lpPath, lpBestAlignPath;
@@ -46,9 +48,11 @@ public:
   { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
-  Profile makeProfile (const set<CellCoords>& cells, bool keepNonAbsorbingCells = false);
-  Profile sampleProfile (size_t profileSamples, size_t maxCells, random_engine& generator);
-  Profile bestProfile();
+
+  enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
+  Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
+  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers);  // maxCells=0 to unlimit
+  Profile bestProfile (EliminationStrategy strategy = KeepHubsAndAbsorbers);
 
   // helpers
 public:
