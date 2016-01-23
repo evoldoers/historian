@@ -4,6 +4,8 @@
 #ifndef KNHX_H_
 #define KNHX_H_
 
+#include <stddef.h>
+
 #define KNERR_MISSING_LEFT   0x01
 #define KNERR_MISSING_RGHT   0x02
 #define KNERR_BRACKET        0x04

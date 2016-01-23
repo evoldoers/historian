@@ -369,6 +369,15 @@ AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellC
   return path;
 }
 
+AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
+  AlignPath p;
+  const vector<CellCoords> pv (path.begin(), path.end());
+  for (size_t n = 0; n < pv.size() - 1; ++n)
+    p = alignPathConcat (p, cellAlignPath(pv[n]), transitionAlignPath(pv[n],pv[n+1]));
+  p = alignPathConcat (p, cellAlignPath(pv.back()));
+  return p;
+}
+
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy) {
   Profile prof (alphSize);
   prof.name = string("(") + x.name + ":" + to_string(hmm.l.t) + "," + y.name + ":" + to_string(hmm.r.t) + ")";
