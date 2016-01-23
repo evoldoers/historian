@@ -239,7 +239,7 @@ bool ForwardMatrix::CellCoords::isAbsorbing() const {
     || (state == PairHMM::IDM && ypos > 0);
 }
 
-LogProb ForwardMatrix::eliminatedLogProbAbsorb (const CellCoords& cell) const {
+LogProb ForwardMatrix::eliminatedLogProbInsert (const CellCoords& cell) const {
   switch (cell.state) {
   case PairHMM::IIW:
     return insx[cell.xpos];
@@ -252,12 +252,16 @@ LogProb ForwardMatrix::eliminatedLogProbAbsorb (const CellCoords& cell) const {
   case PairHMM::IMM:
   case PairHMM::IMD:
   case PairHMM::IDM:
+  case PairHMM::EEE:
+    return 0;
+    break;
+    
   default:
     Abort ("%s fail",__func__);
     break;
   }
 
-  return 0;
+  return -numeric_limits<double>::infinity();
 }
 
 ForwardMatrix::EffectiveTransition::EffectiveTransition()
@@ -348,6 +352,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
   for (auto iter = cells.crbegin(); iter != cells.crend(); ++iter) {
     const CellCoords& cell = *iter;
     const map<CellCoords,LogProb>& slp = sourceTransitions (cell);
+    const LogProb cellLogProbInsert = eliminatedLogProbInsert (cell);
     if (profStateIndex.find(cell) != profStateIndex.end()) {
       // cell is to be retained. Incoming & outgoing paths can be kept separate
       const ProfileStateIndex cellIdx = profStateIndex[cell];
@@ -355,13 +360,12 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
 	EffectiveTransition& eff = effTrans[src][cellIdx];
-	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans;
+	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
       }
     } else {
       // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
       const auto& cellEffTrans = effTrans[cell];
       const AlignPath& cap = elimAlignPath[cell];
-      const LogProb cellLogProbAbsorb = eliminatedLogProbAbsorb (cell);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
@@ -370,9 +374,9 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
 	  const EffectiveTransition& cellDestEffTrans = cellEffTransIter.second;
 	  EffectiveTransition& srcDestEffTrans = srcEffTrans[destIdx];
-	  log_accum_exp (srcDestEffTrans.lpPath, srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpPath);
+	  log_accum_exp (srcDestEffTrans.lpPath, srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath);
 	  // we also want to keep the best single alignment consistent w/this set of paths
-	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbAbsorb + cellDestEffTrans.lpBestAlignPath;
+	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
 	    srcDestEffTrans.lpBestAlignPath = srcDestLogProbBestAlignPath;
 	    srcDestEffTrans.bestAlignPath = alignPathConcat (transitionAlignPath(src,cell), cap, cellDestEffTrans.bestAlignPath);

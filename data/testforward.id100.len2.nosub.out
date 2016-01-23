@@ -15,7 +15,7 @@
    "name": "(SSI,START,a1)",
    "meta": { "fwdLogProb": "-inf" },
    "path": [ [ 2, "*" ] ],
-   "trans": [ { "to": 2, "lpTrans": -0.105361 },
+   "trans": [ { "to": 2, "lpTrans": -1.491655 },
               { "to": 5, "lpTrans": "-inf" },
               { "to": 8, "lpTrans": "-inf" },
               { "to": 9, "lpTrans": -2.302585 } ]
@@ -34,7 +34,7 @@
    "meta": { "fwdLogProb": "-inf" },
    "path": [ [ 1, "*" ] ],
    "trans": [ { "to": 6, "lpTrans": "-inf" },
-              { "to": 14, "lpTrans": -0.105361 },
+              { "to": 14, "lpTrans": -1.491655 },
               { "to": 15, "lpTrans": -2.302585 } ]
   },
   {
@@ -74,7 +74,7 @@
    "name": "(IMI,a1,a1)",
    "meta": { "fwdLogProb": "-inf" },
    "path": [ [ 2, "*" ] ],
-   "trans": [ { "to": 12, "lpTrans": -0.105361 },
+   "trans": [ { "to": 12, "lpTrans": -1.491655 },
               { "to": 16, "lpTrans": "-inf" },
               { "to": 19, "lpTrans": "-inf" },
               { "to": 20, "lpTrans": -2.302585 } ]
@@ -85,7 +85,7 @@
    "meta": { "fwdLogProb": "-inf" },
    "path": [ [ 1, "*" ] ],
    "trans": [ { "to": 11, "lpTrans": "-inf" },
-              { "to": 19, "lpTrans": -0.105361 },
+              { "to": 19, "lpTrans": -1.491655 },
               { "to": 20, "lpTrans": -2.302585 } ]
   },
   {
@@ -126,7 +126,7 @@
    "name": "(IIW,a1,g2)",
    "meta": { "fwdLogProb": "-inf" },
    "path": [ [ 1, "*" ] ],
-   "trans": [ { "to": 24, "lpTrans": -0.105361 } ]
+   "trans": [ { "to": 24, "lpTrans": -1.491655 } ]
   },
   {
    "n": 14,
@@ -165,7 +165,7 @@
    "name": "(IMI,g2,a1)",
    "meta": { "fwdLogProb": "-inf" },
    "path": [ [ 2, "*" ] ],
-   "trans": [ { "to": 23, "lpTrans": -0.105361 } ]
+   "trans": [ { "to": 23, "lpTrans": -1.491655 } ]
   },
   {
    "n": 19,

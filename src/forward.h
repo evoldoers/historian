@@ -80,7 +80,7 @@ private:
 
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
-  LogProb eliminatedLogProbAbsorb (const CellCoords& cell) const;
+  LogProb eliminatedLogProbInsert (const CellCoords& cell) const;
 
   AlignPath cellAlignPath (const CellCoords& cell) const;
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
