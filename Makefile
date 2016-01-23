@@ -85,7 +85,7 @@ bin/%: $(CPPFILES) t/%.cpp
 
 # Tests
 
-test: testlogsumexp testrateio testmatexp testmerge testseqprofile
+test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward
 
 testlogsumexp: bin/testlogsumexp
 	bin/testlogsumexp -slow >data/logsumexp.txt
@@ -107,6 +107,9 @@ testmerge: bin/testmerge
 
 testseqprofile: bin/testseqprofile
 	perl/testexpect.pl bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.fa
+
+testforward: bin/testforward
+	perl/testexpect.pl bin/testforward data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
 
 # Rules for building files in the repository
 # For updating README.md
