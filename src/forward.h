@@ -23,7 +23,6 @@ public:
     { }
     bool operator< (const CellCoords& c) const
     { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
-    bool isAbsorbing() const;
   };
   struct EffectiveTransition {
     LogProb lpPath, lpBestAlignPath;
@@ -79,6 +78,8 @@ private:
     return logInnerProduct (hmm.logRoot, absorbScratch);
   }
 
+  bool isAbsorbing (const CellCoords& c) const;
+  
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
   LogProb eliminatedLogProbInsert (const CellCoords& cell) const;

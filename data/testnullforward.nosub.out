@@ -1,0 +1,928 @@
+{
+ "name": "(x:1.000000,y:1.000000)",
+ "alphSize": 4,
+ "state": [
+  {
+   "n": 0,
+   "name": "(SSS,START,START)",
+   "meta": { "fwdLogProb": "0.000000" },
+   "trans": [ { "to": 1, "lpTrans": 0.000000 },
+              { "to": 17, "lpTrans": "-inf" },
+              { "to": 20, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 1,
+   "name": "(IMM,START,c1)",
+   "meta": 
+    {
+     "cumLogProb": "0.000000",
+     "fwdLogProb": "0.000000"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 8, "lpTrans": "-inf" },
+              { "to": 9, "lpTrans": "-inf" },
+              { "to": 22, "lpTrans": "-inf" },
+              { "to": 25, "lpTrans": "-inf" },
+              { "to": 26, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 2,
+   "name": "(IMD,START,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 8, "lpTrans": "-inf" },
+              { "to": 22, "lpTrans": -0.105361 },
+              { "to": 26, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 3,
+   "name": "(IDM,START,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 8, "lpTrans": -0.105361 },
+              { "to": 22, "lpTrans": "-inf" },
+              { "to": 26, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 4,
+   "name": "(SSI,START,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 9, "lpTrans": -1.491655 },
+              { "to": 22, "lpTrans": "-inf" },
+              { "to": 25, "lpTrans": "-inf" },
+              { "to": 26, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 5,
+   "name": "(IIW,START,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 8, "lpTrans": "-inf" },
+              { "to": 25, "lpTrans": -1.491655 },
+              { "to": 26, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 6,
+   "name": "(IMM,START,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 13, "lpTrans": "-inf" },
+              { "to": 14, "lpTrans": "-inf" },
+              { "to": 27, "lpTrans": "-inf" },
+              { "to": 30, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 7,
+   "name": "(IMD,START,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 13, "lpTrans": "-inf" },
+              { "to": 27, "lpTrans": -0.105361 },
+              { "to": 31, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 8,
+   "name": "(IDM,START,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 13, "lpTrans": -0.105361 },
+              { "to": 27, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 9,
+   "name": "(SSI,START,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 14, "lpTrans": -1.491655 },
+              { "to": 27, "lpTrans": "-inf" },
+              { "to": 30, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 10,
+   "name": "(IIW,START,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 13, "lpTrans": "-inf" },
+              { "to": 30, "lpTrans": -1.491655 },
+              { "to": 31, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 11,
+   "name": "(IMM,START,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 32, "lpTrans": "-inf" },
+              { "to": 35, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 12,
+   "name": "(IMD,START,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 32, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 13,
+   "name": "(IDM,START,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ { "to": 32, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 14,
+   "name": "(SSI,START,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 32, "lpTrans": "-inf" },
+              { "to": 35, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 15,
+   "name": "(IIW,START,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 35, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 16,
+   "name": "(IMM,a1,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 21, "lpTrans": 0.000000 },
+              { "to": 36, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 17,
+   "name": "(IMD,a1,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 37, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 18,
+   "name": "(IDM,a1,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 23, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 19,
+   "name": "(IMI,a1,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 24, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 20,
+   "name": "(SIW,a1,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 40, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 21,
+   "name": "(IMM,a1,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ], [ 2, "*" ] ],
+   "trans": [ { "to": 28, "lpTrans": "-inf" },
+              { "to": 29, "lpTrans": "-inf" },
+              { "to": 41, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 22,
+   "name": "(IMD,a1,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 28, "lpTrans": "-inf" },
+              { "to": 42, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 23,
+   "name": "(IDM,a1,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 28, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 24,
+   "name": "(IMI,a1,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 29, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 25,
+   "name": "(IIW,a1,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 28, "lpTrans": "-inf" },
+              { "to": 45, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 26,
+   "name": "(IMM,a1,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-1.386294",
+     "fwdLogProb": "-1.386294"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -0.000000, -41.446532, -41.446532, -41.446532 ],
+   "trans": [ { "to": 33, "lpTrans": "-inf" },
+              { "to": 34, "lpTrans": "-inf" },
+              { "to": 46, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 27,
+   "name": "(IMD,a1,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 33, "lpTrans": "-inf" },
+              { "to": 47, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 28,
+   "name": "(IDM,a1,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 33, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 29,
+   "name": "(IMI,a1,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 34, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 30,
+   "name": "(IIW,a1,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 33, "lpTrans": "-inf" },
+              { "to": 50, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 31,
+   "name": "(IMM,a1,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -20.723266, -41.446532, -20.723266, -41.446532 ],
+   "trans": [ { "to": 51, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 32,
+   "name": "(IMD,a1,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 52, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 33,
+   "name": "(IDM,a1,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ ]
+  },
+  {
+   "n": 34,
+   "name": "(IMI,a1,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ ]
+  },
+  {
+   "n": 35,
+   "name": "(IIW,a1,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 55, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 36,
+   "name": "(IMM,c2,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 57, "lpTrans": "-inf" },
+              { "to": 60, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 37,
+   "name": "(IMD,c2,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 57, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 38,
+   "name": "(IDM,c2,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 43, "lpTrans": 0.000000 },
+              { "to": 57, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 39,
+   "name": "(IMI,c2,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 44, "lpTrans": 0.000000 },
+              { "to": 57, "lpTrans": "-inf" },
+              { "to": 60, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 40,
+   "name": "(SIW,c2,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 60, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 41,
+   "name": "(IMM,c2,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ], [ 2, "*" ] ],
+   "trans": [ { "to": 48, "lpTrans": "-inf" },
+              { "to": 49, "lpTrans": "-inf" },
+              { "to": 62, "lpTrans": "-inf" },
+              { "to": 65, "lpTrans": "-inf" },
+              { "to": 66, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 42,
+   "name": "(IMD,c2,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 48, "lpTrans": "-inf" },
+              { "to": 62, "lpTrans": -0.105361 },
+              { "to": 66, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 43,
+   "name": "(IDM,c2,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 48, "lpTrans": -0.105361 },
+              { "to": 62, "lpTrans": "-inf" },
+              { "to": 66, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 44,
+   "name": "(IMI,c2,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 49, "lpTrans": -1.491655 },
+              { "to": 62, "lpTrans": "-inf" },
+              { "to": 65, "lpTrans": "-inf" },
+              { "to": 66, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 45,
+   "name": "(IIW,c2,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 48, "lpTrans": "-inf" },
+              { "to": 65, "lpTrans": -1.491655 },
+              { "to": 66, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 46,
+   "name": "(IMM,c2,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-1.386294",
+     "fwdLogProb": "-1.386294"
+    },
+   "path": [ [ 1, "*" ], [ 2, "*" ] ],
+   "trans": [ { "to": 53, "lpTrans": "-inf" },
+              { "to": 54, "lpTrans": "-inf" },
+              { "to": 67, "lpTrans": "-inf" },
+              { "to": 70, "lpTrans": "-inf" },
+              { "to": 71, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 47,
+   "name": "(IMD,c2,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 53, "lpTrans": "-inf" },
+              { "to": 67, "lpTrans": -0.105361 },
+              { "to": 71, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 48,
+   "name": "(IDM,c2,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 53, "lpTrans": -0.105361 },
+              { "to": 67, "lpTrans": "-inf" },
+              { "to": 71, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 49,
+   "name": "(IMI,c2,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 54, "lpTrans": -1.491655 },
+              { "to": 67, "lpTrans": "-inf" },
+              { "to": 70, "lpTrans": "-inf" },
+              { "to": 71, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 50,
+   "name": "(IIW,c2,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 53, "lpTrans": "-inf" },
+              { "to": 70, "lpTrans": -1.491655 },
+              { "to": 71, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 51,
+   "name": "(IMM,c2,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ], [ 2, "*" ] ],
+   "trans": [ { "to": 72, "lpTrans": "-inf" },
+              { "to": 75, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 52,
+   "name": "(IMD,c2,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 72, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 53,
+   "name": "(IDM,c2,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ { "to": 72, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 54,
+   "name": "(IMI,c2,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 72, "lpTrans": "-inf" },
+              { "to": 75, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 55,
+   "name": "(IIW,c2,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 75, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 56,
+   "name": "(IMM,g3,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 61, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 57,
+   "name": "(IMD,g3,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ ]
+  },
+  {
+   "n": 58,
+   "name": "(IDM,g3,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 63, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 59,
+   "name": "(IMI,g3,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "trans": [ { "to": 64, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 60,
+   "name": "(SIW,g3,START)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ ]
+  },
+  {
+   "n": 61,
+   "name": "(IMM,g3,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ], [ 2, "*" ] ],
+   "trans": [ { "to": 68, "lpTrans": "-inf" },
+              { "to": 69, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 62,
+   "name": "(IMD,g3,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ { "to": 68, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 63,
+   "name": "(IDM,g3,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 68, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 64,
+   "name": "(IMI,g3,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 69, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 65,
+   "name": "(IIW,g3,c1)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 68, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 66,
+   "name": "(IMM,g3,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -20.723266, -41.446532, -20.723266, -41.446532 ],
+   "trans": [ { "to": 73, "lpTrans": "-inf" },
+              { "to": 74, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 67,
+   "name": "(IMD,g3,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ { "to": 73, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 68,
+   "name": "(IDM,g3,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -0.000000, -20.723266, -20.723266, -20.723266 ],
+   "trans": [ { "to": 73, "lpTrans": -0.105361 } ]
+  },
+  {
+   "n": 69,
+   "name": "(IMI,g3,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 74, "lpTrans": -1.491655 } ]
+  },
+  {
+   "n": 70,
+   "name": "(IIW,g3,a2)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 73, "lpTrans": "-inf" } ]
+  },
+  {
+   "n": 71,
+   "name": "(IMM,g3,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-2.772589",
+     "fwdLogProb": "-2.772589"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -41.446532, -41.446532, -0.000000, -41.446532 ],
+   "trans": [ { "to": 76, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 72,
+   "name": "(IMD,g3,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ { "to": 76, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 73,
+   "name": "(IDM,g3,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 0, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -20.723266, -20.723266, -0.000000, -20.723266 ],
+   "trans": [ { "to": 76, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 74,
+   "name": "(IMI,g3,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "trans": [ { "to": 76, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 75,
+   "name": "(IIW,g3,g3)",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 1, "*" ] ],
+   "trans": [ { "to": 76, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 76,
+   "name": "(EEE,END,END)",
+   "meta": 
+    {
+     "cumLogProb": "-2.772589",
+     "fwdLogProb": "-2.772589"
+    },
+   "trans": [ ]
+  }
+ ]
+}

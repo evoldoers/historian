@@ -124,14 +124,14 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 	imm += computeLogProbAbsorb(i,j);
 
       } else {
-	if (xState.isNull()) {
+	if (xState.isNull() && i > 0) {
 	  // x-nonabsorbing transitions in IMM
 	  for (auto xt : xState.in) {
 	    const ProfileTransition& xTrans = x.trans[xt];
 	    log_accum_exp (imm, cell(xTrans.src,j,PairHMM::IMM) + xTrans.lpTrans);
 	  }
 
-	} else {  // !xState.isNull() && yState.isNull()
+	} else if (yState.isNull() && j > 0) {
 	  // y-nonabsorbing transitions in IMM
 	  for (auto yt : yState.in) {
 	    const ProfileTransition& yTrans = y.trans[yt];
@@ -255,15 +255,15 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
     break;
 
   case PairHMM::IMM:
-    if (xState.isNull())
+    if (xState.isNull() && destCell.xpos > 0)
       // x-nonabsorbing transitions in IMM
       for (auto xt : xState.in)
 	clp[CellCoords(x.trans[xt].src,destCell.ypos,destCell.state)] = x.trans[xt].lpTrans;
-    else if (yState.isNull())
+    else if (yState.isNull() && destCell.ypos > 0)
       // y-nonabsorbing transitions in IMM
       for (auto yt : yState.in)
 	clp[CellCoords(destCell.xpos,y.trans[yt].src,destCell.state)] = y.trans[yt].lpTrans;
-    else
+    else if (!xState.isNull() && !yState.isNull())
     // xy-absorbing transitions into IMM
       for (auto xt : xState.in)
 	for (auto yt : yState.in)
@@ -288,20 +288,20 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
   return clp;
 }
 
-bool ForwardMatrix::CellCoords::isAbsorbing() const {
-  return (state == PairHMM::IMM && xpos > 0 && ypos > 0)
-    || (state == PairHMM::IMD && xpos > 0)
-    || (state == PairHMM::IDM && ypos > 0);
+bool ForwardMatrix::isAbsorbing (const CellCoords& c) const {
+  return (c.state == PairHMM::IMM && !x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
+    || (c.state == PairHMM::IMD && !x.state[c.xpos].isNull())
+    || (c.state == PairHMM::IDM && !y.state[c.ypos].isNull());
 }
 
 LogProb ForwardMatrix::eliminatedLogProbInsert (const CellCoords& cell) const {
   switch (cell.state) {
   case PairHMM::IIW:
-    return insx[cell.xpos];
+    return x.state[cell.xpos].isNull() ? 0 : insx[cell.xpos];
     break;
 
   case PairHMM::IMI:
-    return insy[cell.ypos];
+    return y.state[cell.ypos].isNull() ? 0 : insy[cell.ypos];
     break;
 
   case PairHMM::IMM:
@@ -344,7 +344,7 @@ AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
     Abort ("%s fail",__func__);
     break;
   }
-  if (c.isAbsorbing())
+  if (isAbsorbing(c))
     alignPath[parentRowIndex].push_back (true);
   return alignPath;
 }
@@ -371,11 +371,11 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
   map<CellCoords,AlignPath> elimAlignPath;
 
   for (const auto& c : cells)
-    if (c.isAbsorbing() || keepNonAbsorbingCells) {
+    if (isAbsorbing(c) || keepNonAbsorbingCells) {
       // cell is to be retained
       profStateIndex[c] = prof.state.size();
       prof.state.push_back (ProfileState());
-      if (c.isAbsorbing())
+      if (isAbsorbing(c))
 	switch (c.state) {
 	case PairHMM::IMM:
 	  initAbsorbScratch (c.xpos, c.ypos);
