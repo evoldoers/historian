@@ -1,0 +1,46 @@
+{
+ "name": "(x:0.010000,y:1.000000)",
+ "alphSize": 4,
+ "state": [
+  {
+   "n": 0,
+   "name": "(SSS,START,START)",
+   "meta": { "fwdLogProb": "0.000000" },
+   "trans": [ { "to": 1, "lpTrans": -0.202000 } ]
+  },
+  {
+   "n": 1,
+   "name": "(IMM,a1,a1)",
+   "meta": 
+    {
+     "cumLogProb": "-2.923143",
+     "fwdLogProb": "-2.923143"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -1.362653, -6.029883, -6.029883, -6.029883 ],
+   "trans": [ { "to": 2, "lpTrans": -7.634703 }, "path": [ [ 2, "**" ] ] ]
+  },
+  {
+   "n": 2,
+   "name": "(IMM,g2,g4)",
+   "meta": 
+    {
+     "cumLogProb": "-13.278988",
+     "fwdLogProb": "-12.602100"
+    },
+   "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
+   "lpAbsorb": [ -6.029883, -6.029883, -1.362653, -6.029883 ],
+   "trans": [ { "to": 3, "lpTrans": -0.101000 } ]
+  },
+  {
+   "n": 3,
+   "name": "(EEE,END,END)",
+   "meta": 
+    {
+     "cumLogProb": "-13.379988",
+     "fwdLogProb": "-12.190677"
+    },
+   "trans": [ ]
+  }
+ ]
+}

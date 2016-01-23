@@ -121,6 +121,9 @@ testforward: bin/testforward
 	perl/testexpect.pl bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
 	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.nosub.json 1 data/testforward.len2.nosub.best.out
 	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
+	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out
+	perl/testexpect.pl bin/testforward -absorbers -best data/testforward.len2-4.fa data/testforward.jukescantor.json .01 1 data/testforward.len2-4.yins.out
+
 
 testnullforward: bin/testnullforward
 	perl/testexpect.pl bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
