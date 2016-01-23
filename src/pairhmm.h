@@ -8,7 +8,8 @@
 struct PairHMM : AlphabetOwner {
   const ProbModel& l;
   const ProbModel& r;
-  gsl_vector* root;
+  const LogProbModel logl, logr;
+  vector<LogProb> logRoot;
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IIW = 4,
 		 TotalStates = 5,

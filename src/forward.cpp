@@ -21,13 +21,13 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     endCell (xSize - 1, ySize - 1, PairHMM::EEE)
 {
   for (ProfileStateIndex i = 1; i < xSize - 1; ++i) {
-    insx[i] = logInnerProduct (hmm.l.insVec, x.state[i].lpAbsorb);
-    delx[i] = logInnerProduct (hmm.root, subx.state[i].lpAbsorb);
+    insx[i] = logInnerProduct (hmm.logl.logInsProb, x.state[i].lpAbsorb);
+    delx[i] = logInnerProduct (hmm.logRoot, subx.state[i].lpAbsorb);
   }
 
   for (ProfileStateIndex j = 1; j < ySize - 1; ++j) {
-    insy[j] = logInnerProduct (hmm.r.insVec, y.state[j].lpAbsorb);
-    dely[j] = logInnerProduct (hmm.root, suby.state[j].lpAbsorb);
+    insy[j] = logInnerProduct (hmm.logr.logInsProb, y.state[j].lpAbsorb);
+    dely[j] = logInnerProduct (hmm.logRoot, suby.state[j].lpAbsorb);
   }
 
   cell(0,0,PairHMM::IMM) = 0;
@@ -183,6 +183,13 @@ ForwardMatrix::Path ForwardMatrix::bestTrace() {
 }
 
 map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
+  map<CellCoords,LogProb> sc = sourceTransitions (destCell);
+  for (auto& c_lp : sc)
+    c_lp.second += cell (c_lp.first.xpos, c_lp.first.ypos, c_lp.first.state);
+  return sc;
+}
+
+map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCoords& destCell) {
   map<CellCoords,LogProb> clp;
   switch (destCell.state) {
     // x-absorbing transitions into IMD, IIW
@@ -190,7 +197,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
   case PairHMM::IIW:
     for (auto xt : x.state[destCell.xpos].in)
       for (auto s : hmm.sources (destCell.state))
-	clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = cell(x.trans[xt].src,destCell.ypos,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans;
+	clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans;
     break;
 
     // y-absorbing transitions into IDM, IMI
@@ -198,7 +205,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
   case PairHMM::IMI:
     for (auto yt : y.state[destCell.ypos].in)
       for (auto s : hmm.sources (destCell.state))
-	clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = cell(destCell.xpos,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans;
+	clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans;
     break;
 
     // xy-absorbing transitions into IMM
@@ -206,7 +213,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
     for (auto xt : x.state[destCell.xpos].in)
       for (auto yt : y.state[destCell.ypos].in)
 	for (auto s : hmm.sources (destCell.state))
-	  clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
+	  clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
     break;
 
     // null transitions into EEE
@@ -215,7 +222,7 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoo
       for (auto xt : x.end().in)
 	for (auto yt : y.end().in)
 	  for (auto s : hmm.sources (destCell.state))
-	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = cell(x.trans[xt].src,y.trans[yt].src,s) + hmm.lpTrans (s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
+	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = hmm.lpTrans (s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
     break;
 
   default:
@@ -326,6 +333,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
 	}
       prof.state.back().alignPath = cellAlignPath(c);
       prof.state.back().name = string("(") + hmm.stateName(c.state,c.xpos==0,c.ypos==0) + "," + x.state[c.xpos].name + "," + y.state[c.ypos].name + ")";
+      prof.state.back().meta["fwdLogProb"] = to_string(c.state == PairHMM::EEE ? lpEnd : cell(c.xpos,c.ypos,c.state));
     } else {
       // cell is to be eliminated
       elimAlignPath[c] = cellAlignPath (c);
@@ -339,7 +347,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, bool keepNonAb
   map<CellCoords,map<ProfileStateIndex,EffectiveTransition> > effTrans;  // effTrans[srcCell][destStateIdx]
   for (auto iter = cells.crbegin(); iter != cells.crend(); ++iter) {
     const CellCoords& cell = *iter;
-    const map<CellCoords,LogProb>& slp = sourceCells (cell);
+    const map<CellCoords,LogProb>& slp = sourceTransitions (cell);
     if (profStateIndex.find(cell) != profStateIndex.end()) {
       // cell is to be retained. Incoming & outgoing paths can be kept separate
       const ProfileStateIndex cellIdx = profStateIndex[cell];

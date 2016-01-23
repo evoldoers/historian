@@ -1,3 +1,4 @@
+#include <math.h>
 #include "profile.h"
 #include "jsonutil.h"
 
@@ -41,7 +42,7 @@ Profile Profile::leftMultiply (gsl_matrix* sub) const {
       for (AlphTok c = 0; c < alphSize; ++c) {
 	LogProb lp = -numeric_limits<double>::infinity();
 	for (AlphTok d = 0; d < alphSize; ++d)
-	  lp = log_sum_exp (lp, gsl_matrix_get(sub,c,d) + state[i].lpAbsorb[d]);
+	  lp = log_sum_exp (lp, log (gsl_matrix_get(sub,c,d)) + state[i].lpAbsorb[d]);
 	prof.state[i].lpAbsorb[c] = lp;
       }
     }
@@ -73,6 +74,8 @@ void Profile::writeJson (ostream& out) const {
   out << "{" << endl;
   if (name.size())
     out << " \"name\": \"" << name << "\"," << endl;
+  if (meta.size())
+    out << " \"meta\": " << JsonUtil::toString(meta,2) << "," << endl;
   out << " \"alphSize\": " << alphSize << "," << endl;
   out << " \"state\": [" << endl;
   for (ProfileStateIndex s = 0; s < state.size(); ++s) {
@@ -80,6 +83,8 @@ void Profile::writeJson (ostream& out) const {
     out << "   \"n\": " << s << "," << endl;
     if (state[s].name.size())
       out << "   \"name\": \"" << state[s].name << "\"," << endl;
+    if (state[s].meta.size())
+      out << "   \"meta\": " << JsonUtil::toString(state[s].meta,4) << "," << endl;
     if (state[s].alignPath.size())
       out << "   \"path\": " << alignPathJson(state[s].alignPath) << "," << endl;
     if (!state[s].isNull()) {

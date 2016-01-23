@@ -153,3 +153,24 @@ string JsonUtil::toString (double d) {
     return string ("\"inf\"");
   return to_string (d);
 }
+
+string JsonUtil::toString (const map<string,string>& tags, size_t indent) {
+  string s;
+  if (tags.empty())
+    s = "{ }";
+  else {
+    bool first = true;
+    for (auto& tag_val : tags) {
+      if (first)
+	s += tags.size() == 1 ? string("{ ") : (string("\n") + string(indent,' ') + "{");
+      else
+	s += ",";
+      first = false;
+      if (tags.size() > 1)
+	s += "\n" + string(indent+1,' ');
+      s += "\"" + tag_val.first + "\": \"" + tag_val.second + "\"";
+    }
+    s += (tags.size() == 1 ? string(" ") : (string("\n") + string(indent,' '))) + "}";
+  }
+  return s;
+}

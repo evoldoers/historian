@@ -56,6 +56,7 @@ struct JsonUtil {
   static vguard<size_t> indexVec (const JsonValue& arr);
   static string quoteEscaped (const string& str);
   static string toString (double d);
+  static string toString (const map<string,string>& tags, size_t indent = 0);
 
   // helpers
   static string readStringFromStream (istream& in);

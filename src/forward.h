@@ -53,18 +53,17 @@ public:
 
   // helpers
 private:
-  static inline LogProb logInnerProduct (gsl_vector* gslv,
-					 const vguard<LogProb>::const_iterator& begin,
-					 const vguard<LogProb>::const_iterator& end) {
+  static inline LogProb logInnerProduct (const vguard<LogProb>::const_iterator& begin1,
+					 const vguard<LogProb>::const_iterator& begin2,
+					 const vguard<LogProb>::const_iterator& end2) {
     LogProb lip = -numeric_limits<double>::infinity();
-    size_t n = 0;
-    for (vguard<LogProb>::const_iterator iter = begin; iter != end; ++iter, ++n)
-      lip = log_sum_exp (lip, *iter + gsl_vector_get(gslv,n));
+    for (vguard<LogProb>::const_iterator iter1 = begin1, iter2 = begin2; iter2 != end2; ++iter1, ++iter2)
+      lip = log_sum_exp (lip, *iter1 + *iter2);
     return lip;
   }
 
-  static inline LogProb logInnerProduct (gsl_vector* gslv, const vguard<LogProb>& stlv) {
-    return logInnerProduct (gslv, stlv.begin(), stlv.end());
+  static inline LogProb logInnerProduct (const vguard<LogProb>& v1, const vguard<LogProb>& v2) {
+    return logInnerProduct (v1.begin(), v2.begin(), v2.end());
   }
 
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
@@ -76,10 +75,11 @@ private:
 
   inline LogProb computeLogProbAbsorb (ProfileStateIndex xpos, ProfileStateIndex ypos) {
     initAbsorbScratch (xpos, ypos);
-    return logInnerProduct (hmm.root, absorbScratch);
+    return logInnerProduct (hmm.logRoot, absorbScratch);
   }
 
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
+  map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
   LogProb eliminatedLogProbAbsorb (const CellCoords& cell) const;
 
   AlignPath cellAlignPath (const CellCoords& cell) const;

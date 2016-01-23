@@ -175,3 +175,13 @@ void ProbModel::write (ostream& out) const {
   out << "}" << endl;
 }
 
+LogProbModel::LogProbModel (const ProbModel& pm)
+  : logInsProb (pm.alphabetSize()),
+    logSubProb (pm.alphabetSize(), vguard<LogProb> (pm.alphabetSize()))
+{
+  for (AlphTok i = 0; i < pm.alphabetSize(); ++i) {
+    logInsProb[i] = log (gsl_vector_get (pm.insVec, i));
+    for (AlphTok j = 0; j < pm.alphabetSize(); ++j)
+      logSubProb[i][j] = log (gsl_matrix_get (pm.subMat, i, j));
+  }
+}

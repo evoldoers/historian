@@ -7,6 +7,7 @@
 
 #include "gason.h"
 #include "fastseq.h"
+#include "logsumexp.h"
 
 using namespace std;
 
@@ -40,6 +41,12 @@ struct ProbModel : AlphabetOwner {
   ProbModel (const RateModel& model, double t);
   ~ProbModel();
   void write (ostream& out) const;
+};
+
+struct LogProbModel {
+  vguard<LogProb> logInsProb;
+  vguard<vguard<LogProb> > logSubProb;
+  LogProbModel (const ProbModel& pm);
 };
 
 #endif /* MODEL_INCLUDED */

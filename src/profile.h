@@ -18,6 +18,7 @@ struct ProfileTransition {
 
 struct ProfileState {
   string name;  // for debugging only
+  map<string,string> meta;  // for debugging only
   vguard<ProfileTransitionIndex> in, out;
   vguard<LogProb> lpAbsorb;
   AlignPath alignPath;
@@ -28,6 +29,7 @@ struct ProfileState {
 struct Profile {
   AlphTok alphSize;
   string name;  // for debugging only
+  map<string,string> meta;  // for debugging only
   vguard<ProfileState> state;
   vguard<ProfileTransition> trans;
   Profile (AlphTok alphSize) : alphSize(alphSize) { }
