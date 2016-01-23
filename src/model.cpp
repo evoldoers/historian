@@ -11,7 +11,6 @@ void AlphabetOwner::readAlphabet (const JsonValue& json) {
   const JsonMap jm (json);
   Assert (jm.containsType("alphabet",JSON_STRING), "No alphabet");
   alphabet = jm["alphabet"].toString();
-  transform (alphabet.begin(), alphabet.end(), alphabet.begin(), ::toupper);
   set<char> s;
   for (auto c : alphabet) {
     Assert (s.find(c) == s.end(), "Duplicate character %c in alphabet %s", c, alphabet.c_str());

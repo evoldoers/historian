@@ -7,10 +7,11 @@
 KSEQ_INIT(gzFile, gzread)
 
 UnvalidatedAlphTok tokenize (char c, const string& alphabet) {
-  UnvalidatedAlphTok tok;
-  const char* alphStr = alphabet.c_str(); 
-  tok = (UnvalidatedAlphTok) (strchr (alphStr, toupper(c)) - alphStr);
-  return tok >= (int) strlen(alphStr) ? -1 : tok;
+  const char* alphStr = alphabet.c_str();
+  const char* ptok = strchr (alphStr, c);
+  if (ptok == NULL)
+    ptok = strchr (alphStr, isupper(c) ? tolower(c) : toupper(c));
+  return ptok ? (UnvalidatedAlphTok) (ptok - alphStr) : -1;
 }
 
 const char FastSeq::minQualityChar = '!';
@@ -23,7 +24,7 @@ vguard<AlphTok> FastSeq::tokens (const string& alphabet) const {
   for (const auto& c : seq) {
     const int t = tokenize (c, alphabet);
     if (t < 0) {
-      cerr << "Unknown symbol " << c << " in sequence " << name << endl;
+      cerr << "Unknown symbol " << c << " in sequence " << name << " (alphabet is " << alphabet << ")" << endl;
       throw;
     }
     tok.push_back (t);
