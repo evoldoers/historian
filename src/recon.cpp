@@ -1,13 +1,66 @@
+#include <fstream>
 #include "recon.h"
 #include "util.h"
 #include "forward.h"
+#include "jsonutil.h"
 
 Reconstructor::Reconstructor()
-  : profileSamples(100),
-    profileNodeLimit(0)
+  : profileSamples (100),
+    profileNodeLimit (0),
+    tree (NULL)
 { }
 
-AlignPath Reconstructor::reconstruct (ktree_t* tree, const vguard<FastSeq>& seqs, const RateModel& model) {
+Reconstructor::~Reconstructor()
+{
+  if (tree)
+    kn_free (tree);
+}
+
+bool Reconstructor::parseReconArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-tree") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      treeFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-model") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      modelFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-seqs") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      seqsFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+Alignment Reconstructor::loadFilesAndReconstruct() {
+  Require (seqsFilename.size() > 0, "Must specify sequences");
+  Require (treeFilename.size() > 0, "Must specify a tree");
+  Require (modelFilename.size() > 0, "Must specify an evolutionary model");
+
+  tree = kn_parse (treeFilename.c_str());
+  seqs = readFastSeqs (seqsFilename.c_str());
+
+  ifstream modelFile (modelFilename);
+  ParsedJson pj (modelFile);
+  model.read (pj.value);
+
+  return reconstruct();
+}
+
+Alignment Reconstructor::reconstruct() {
   map<string,size_t> seqIndex;
   for (size_t n = 0; n < seqs.size(); ++n) {
     Assert (seqIndex.find (seqs[n].name) == seqIndex.end(), "Duplicate sequence name %s", seqs[n].name.c_str());
@@ -43,14 +96,25 @@ AlignPath Reconstructor::reconstruct (ktree_t* tree, const vguard<FastSeq>& seqs
       ProbModel rProbs (model, tree->node[lChildNode].d);
       PairHMM hmm (lProbs, rProbs, eqm);
       ForwardMatrix forward (lProf, rProf, hmm, node);
-      if (node == tree->n - 1)
+      if (node == tree->n - 1) {
 	path = forward.bestAlignPath();
-      else
+	prof[node] = forward.bestProfile();
+      } else
 	prof[node] = forward.sampleProfile (generator, profileSamples, profileNodeLimit);
     }
   }
 
   gsl_vector_free (eqm);
-  
-  return path;
+
+  vguard<FastSeq> ungapped (tree->n);
+  for (int node = 0; node < tree->n; ++node) {
+    const string nodeName (tree->node[node].name);
+    if (seqIndex.find(nodeName) == seqIndex.end()) {
+      ungapped[node].seq = string (alignPathResiduesInRow(path,node), '*');
+      ungapped[node].name = nodeName.size() ? nodeName : prof[node].name;
+    } else
+      ungapped[node] = seqs[seqIndex.at(nodeName)];
+  }
+
+  return Alignment (ungapped, path);
 }

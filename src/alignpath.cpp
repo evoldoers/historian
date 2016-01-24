@@ -29,6 +29,14 @@ AlignColIndex alignPathColumns (const AlignPath& a) {
   return cols;
 }
 
+SeqIdx alignPathResiduesInRow (const AlignPath& a, AlignRowIndex idx) {
+  SeqIdx r = 0;
+  for (bool b : a.at(idx))
+    if (b)
+      ++r;
+  return r;
+}
+
 AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2) {
   AlignPath a = a1;
   a.insert (a2.begin(), a2.end());
