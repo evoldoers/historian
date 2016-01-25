@@ -119,7 +119,7 @@ Alignment Reconstructor::reconstruct() {
   vguard<FastSeq> ungapped (nodes());
   for (int node = 0; node < nodes(); ++node) {
     if (seqIndex.find(rowName[node]) == seqIndex.end()) {
-      ungapped[node].seq = string (alignPathResiduesInRow(path,node), '*');
+      ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), '*');
       ungapped[node].name = rowName[node];
     } else
       ungapped[node] = seqs[seqIndex.at(rowName[node])];

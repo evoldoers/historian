@@ -12,7 +12,7 @@ typedef vguard<bool> AlignRowPath;
 typedef map<AlignRowIndex,AlignRowPath> AlignPath;
 
 AlignColIndex alignPathColumns (const AlignPath& a);
-SeqIdx alignPathResiduesInRow (const AlignPath& a, AlignRowIndex idx);
+SeqIdx alignPathResiduesInRow (const AlignRowPath& r);
 
 AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2);  // simple union (no AlignRowIndex shared between a1 & a2)
 AlignPath alignPathMerge (const vguard<AlignPath>& alignments);  // synchronized merge

@@ -29,12 +29,12 @@ AlignColIndex alignPathColumns (const AlignPath& a) {
   return cols;
 }
 
-SeqIdx alignPathResiduesInRow (const AlignPath& a, AlignRowIndex idx) {
-  SeqIdx r = 0;
-  for (bool b : a.at(idx))
+SeqIdx alignPathResiduesInRow (const AlignRowPath& r) {
+  SeqIdx l = 0;
+  for (bool b : r)
     if (b)
-      ++r;
-  return r;
+      ++l;
+  return l;
 }
 
 AlignPath alignPathUnion (const AlignPath& a1, const AlignPath& a2) {
@@ -81,10 +81,7 @@ AlignSeqMap::AlignSeqMap (const vguard<AlignPath>& alignments)
 	  cols = &alignCols.back();
 	} else
 	  Assert (*cols == path.size(), "Incompatible number of columns in row #%d of alignment (%d != %d)", row, *cols, path.size());
-	SeqIdx len = 0;
-	for (bool b : path)
-	  if (b)
-	    ++len;
+	SeqIdx len = alignPathResiduesInRow (path);
 	if (seqLen.find(row) == seqLen.end())
 	  seqLen[row] = len;
 	else
