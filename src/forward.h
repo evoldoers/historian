@@ -71,6 +71,7 @@ public:
   }
 
   string cellName (const CellCoords& cell) const;
+  static string ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 
   static random_engine newRNG();
   

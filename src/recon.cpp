@@ -3,6 +3,7 @@
 #include "util.h"
 #include "forward.h"
 #include "jsonutil.h"
+#include "logger.h"
 
 Reconstructor::Reconstructor()
   : profileSamples (100),
@@ -60,43 +61,52 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   return reconstruct();
 }
 
-Alignment Reconstructor::reconstruct() {
-  map<string,size_t> seqIndex;
+void Reconstructor::buildIndices() {
   for (size_t n = 0; n < seqs.size(); ++n) {
     Assert (seqIndex.find (seqs[n].name) == seqIndex.end(), "Duplicate sequence name %s", seqs[n].name.c_str());
     seqIndex[seqs[n].name] = n;
   }
 
-  map<int,vector<int> > children;
-  for (int node = 0; node < tree->n; ++node)
-    if (tree->node[node].parent >= 0)
-      children[tree->node[node].parent].push_back (node);
+  for (int node = 0; node < nodes(); ++node)
+    if (parentNode(node) >= 0)
+      children[parentNode(node)].push_back (node);
   for (auto& nc : children)
-    Assert (nc.second.size() == 2, "Tree is not binary: node %s has %s", tree->node[nc.first].name, plural(nc.second.size(),"child","children").c_str());
+    Assert (nc.second.size() == 2, "Tree is not binary: node %d has %s", nc.first, plural(nc.second.size(),"child","children").c_str());
   
-  for (int node = 0; node < tree->n; ++node)
-    if (children.find(node) == children.end())
-      Assert (seqIndex.find (tree->node[node].name) != seqIndex.end(), "Can't find sequence for node %s", tree->node[node].name);
+  for (int node = 0; node < nodes(); ++node)
+    if (isLeaf(node)) {
+      Assert (nodeName(node).length() > 0, "Leaf node %d is unnamed", node);
+      Assert (seqIndex.find (nodeName(node)) != seqIndex.end(), "Can't find sequence for leaf node %s", nodeName(node).c_str());
+      nodeToSeqIndex[node] = seqIndex[nodeName(node)];
+      rowName.push_back (nodeName(node));
+    } else
+      rowName.push_back (ForwardMatrix::ancestorName (rowName[children[node][0]], branchLength(children[node][0]), rowName[children[node][1]], branchLength(children[node][0])));
+}
 
+Alignment Reconstructor::reconstruct() {
+  buildIndices();
+  
   gsl_vector* eqm = model.getEqmProb();
   auto generator = ForwardMatrix::newRNG();
+
   AlignPath path;
   map<int,Profile> prof;
-  for (int node = 0; node < tree->n; ++node) {
-    if (children.find(node) == children.end())
-      prof[node] = Profile (model.alphabet, seqs[seqIndex.at (string (tree->node[node].name))], node);
+  for (int node = 0; node < nodes(); ++node) {
+    if (isLeaf(node))
+      prof[node] = Profile (model.alphabet, seqs[nodeToSeqIndex[node]], node);
     else {
       const int lChildNode = children.at(node)[0];
       const int rChildNode = children.at(node)[1];
-      const FastSeq& lSeq = seqs[seqIndex.at (string (tree->node[lChildNode].name))];
-      const FastSeq& rSeq = seqs[seqIndex.at (string (tree->node[rChildNode].name))];
-      Profile lProf (model.alphabet, lSeq, lChildNode);
-      Profile rProf (model.alphabet, rSeq, rChildNode);
-      ProbModel lProbs (model, tree->node[lChildNode].d);
-      ProbModel rProbs (model, tree->node[lChildNode].d);
+      const Profile& lProf = prof[lChildNode];
+      const Profile& rProf = prof[rChildNode];
+      ProbModel lProbs (model, branchLength(lChildNode));
+      ProbModel rProbs (model, branchLength(rChildNode));
       PairHMM hmm (lProbs, rProbs, eqm);
+
+      LogThisAt(1,"Aligning " << lProf.name << " and " << rProf.name);
+
       ForwardMatrix forward (lProf, rProf, hmm, node);
-      if (node == tree->n - 1) {
+      if (node == nodes() - 1) {
 	path = forward.bestAlignPath();
 	prof[node] = forward.bestProfile();
       } else
@@ -106,15 +116,36 @@ Alignment Reconstructor::reconstruct() {
 
   gsl_vector_free (eqm);
 
-  vguard<FastSeq> ungapped (tree->n);
-  for (int node = 0; node < tree->n; ++node) {
-    const string nodeName (tree->node[node].name);
-    if (seqIndex.find(nodeName) == seqIndex.end()) {
+  vguard<FastSeq> ungapped (nodes());
+  for (int node = 0; node < nodes(); ++node) {
+    if (seqIndex.find(rowName[node]) == seqIndex.end()) {
       ungapped[node].seq = string (alignPathResiduesInRow(path,node), '*');
-      ungapped[node].name = nodeName.size() ? nodeName : prof[node].name;
+      ungapped[node].name = rowName[node];
     } else
-      ungapped[node] = seqs[seqIndex.at(nodeName)];
+      ungapped[node] = seqs[seqIndex.at(rowName[node])];
   }
 
   return Alignment (ungapped, path);
+}
+
+string Reconstructor::nodeName (int node) const {
+  if (tree->node[node].name)
+    return string (tree->node[node].name);
+  return string();
+}
+
+double Reconstructor::branchLength (int node) const {
+  return tree->node[node].d;
+}
+
+int Reconstructor::nodes() const {
+  return tree->n;
+}
+
+int Reconstructor::parentNode (int node) const {
+  return tree->node[node].parent;
+}
+
+bool Reconstructor::isLeaf (int node) const {
+  return children.find(node) == children.end();
 }

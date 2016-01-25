@@ -385,7 +385,7 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
 
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy) {
   Profile prof (alphSize);
-  prof.name = string("(") + x.name + ":" + to_string(hmm.l.t) + "," + y.name + ":" + to_string(hmm.r.t) + ")";
+  prof.name = ancestorName (x.name, hmm.l.t, y.name, hmm.r.t);
 
   Assert (cells.find (startCell) != cells.end(), "Missing SSS");
   Assert (cells.find (endCell) != cells.end(), "Missing EEE");
@@ -522,3 +522,6 @@ Profile ForwardMatrix::bestProfile (EliminationStrategy strategy) {
   return makeProfile (profCells, strategy);
 }
 
+string ForwardMatrix::ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
+  return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
+}
