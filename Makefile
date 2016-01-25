@@ -128,10 +128,11 @@ testforward: bin/testforward
 	$(TEST) bin/testforward -absorbers 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.abs.out
 	$(TEST) bin/testforward -hubs 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.hubs.out
 
-
-
 testnullforward: bin/testnullforward
 	$(TEST) bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
+
+testhist: bin/historian
+	bin/historian align data/PF16593.fa data/PF16593.nhx -model data/amino.json -vv
 
 # Rules for building files in the repository
 # For updating README.md

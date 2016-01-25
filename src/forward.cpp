@@ -1,5 +1,6 @@
 #include "forward.h"
 #include "util.h"
+#include "logger.h"
 
 ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex)
   : x(x),
@@ -380,6 +381,11 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
   for (size_t n = 0; n < pv.size() - 1; ++n)
     p = alignPathConcat (p, cellAlignPath(pv[n]), transitionAlignPath(pv[n],pv[n+1]));
   p = alignPathConcat (p, cellAlignPath(pv.back()));
+
+  const AlignRowIndex rows = p.size();
+  const AlignColIndex cols = alignPathColumns (p);  // this will also test if alignment is flush
+  LogThisAt(2,"Converted Forward matrix trace into alignment with " << rows << " rows and " << cols << " columns" << endl);
+
   return p;
 }
 

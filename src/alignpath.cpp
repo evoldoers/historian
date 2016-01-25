@@ -170,7 +170,7 @@ AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
 
   const AlignRowIndex rows = a.size();
   const AlignColIndex cols = alignPathColumns (a);  // this will also test if alignment is flush
-  LogThisAt(2,"Merged " << alignments.size() << " alignments into a single alignment with " << rows << " rows and " << cols << "columns" << endl);
+  LogThisAt(2,"Merged " << alignments.size() << " alignments into a single alignment with " << rows << " rows and " << cols << " columns" << endl);
 
   return a;
 }
@@ -209,8 +209,12 @@ vguard<FastSeq> Alignment::gapped() const {
     SeqIdx pos = 0;
     for (AlignColIndex col = 0; col < cols; ++col)
       if (row_path.second[col]) {
+	Assert (ug.seq.size() > pos, "Sequence position %u out of bounds for sequence %s", col, ug.name.c_str());
 	g.seq.push_back (ug.seq[pos]);
-	g.qual.push_back (ug.qual[pos]);
+	if (ug.hasQual()) {
+	  Assert (ug.qual.size() > pos, "Quality score at position %u out of bounds for sequence %s", col, ug.name.c_str());
+	  g.qual.push_back (ug.qual[pos]);
+	}
 	++pos;
       } else {
 	g.seq.push_back ('-');
