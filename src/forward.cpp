@@ -341,6 +341,13 @@ ForwardMatrix::EffectiveTransition::EffectiveTransition()
     lpBestAlignPath (-numeric_limits<double>::infinity())
 { }
 
+map<AlignRowIndex,SeqIdx> ForwardMatrix::cellSeqCoords (const CellCoords& c) const {
+  map<AlignRowIndex,SeqIdx> coords = x.state[c.xpos].seqCoords;
+  for (const auto& s_c : y.state[c.ypos].seqCoords)
+    coords[s_c.first] = s_c.second;
+  return coords;
+}
+
 AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   AlignPath alignPath;
   switch (c.state) {
@@ -397,6 +404,7 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy) {
   Profile prof (alphSize);
   prof.name = ancestorName (x.name, hmm.l.t, y.name, hmm.r.t);
+  prof.meta["node"] = to_string(parentRowIndex);
 
   Assert (cells.find (startCell) != cells.end(), "Missing SSS");
   Assert (cells.find (endCell) != cells.end(), "Missing EEE");
@@ -435,9 +443,9 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	  break;
 	}
       prof.state.back().alignPath = cellAlignPath(c);
+      prof.state.back().seqCoords = cellSeqCoords(c);
       prof.state.back().name = cellName(c);
       prof.state.back().meta["fwdLogProb"] = to_string(c.state == PairHMM::EEE ? lpEnd : cell(c.xpos,c.ypos,c.state));
-      prof.state.back().meta["node"] = to_string(parentRowIndex);
     }
 
   // Calculate log-probabilities of "effective transitions" from cells to retained-cells.

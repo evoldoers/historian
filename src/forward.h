@@ -97,7 +97,9 @@ private:
   AlignPath cellAlignPath (const CellCoords& cell) const;
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
   AlignPath traceAlignPath (const Path& path) const;
-  
+
+  map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
+
   CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
   static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
 };

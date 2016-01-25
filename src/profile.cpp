@@ -20,7 +20,9 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
   name = seq.name;
   state.front() = state.back() = ProfileState();  // start and end are null states
   state.front().name = "START";
+  state.front().seqCoords[rowIndex] = 0;
   state.back().name = "END";
+  state.front().seqCoords[rowIndex] = seq.length();
   const vguard<AlphTok> dsq = seq.tokens (alphabet);
   for (size_t pos = 0; pos <= dsq.size(); ++pos) {
     ProfileTransition& t = trans[pos];
@@ -33,6 +35,7 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
       state[pos+1].name = string(1,seq.seq[pos]) + to_string(pos+1);
       state[pos+1].lpAbsorb[dsq[pos]] = 0;
       state[pos+1].alignPath[rowIndex].push_back (true);
+      state[pos+1].seqCoords[rowIndex] = pos;
     }
   }
 }
@@ -108,15 +111,23 @@ void Profile::writeJson (ostream& out) const {
 	out << (a > 0 ? ", " : " ") << JsonUtil::toString (state[s].lpAbsorb[a]);
       out << " ]," << endl;
     }
+    if (state[s].seqCoords.size()) {
+      out << "   \"seqPos\": [";
+      size_t nSeqPos = 0;
+      for (const auto& s_c : state[s].seqCoords)
+	out << (nSeqPos++ ? ", " : " ") << "[ " << s_c.first << ", " << s_c.second << " ]";
+      out << " ]," << endl;
+    }
     out << "   \"trans\": [";
     for (size_t nt = 0; nt < state[s].out.size(); ++nt) {
       const ProfileTransition& tr = trans[state[s].out[nt]];
       if (nt > 0)
 	out << ",\n             ";     
       out << " { \"to\": " << tr.dest << ",";
-      out << " \"lpTrans\": " << JsonUtil::toString (tr.lpTrans) << " }";
+      out << " \"lpTrans\": " << JsonUtil::toString (tr.lpTrans);
       if (tr.alignPath.size())
 	out << ", \"path\": " << alignPathJson(tr.alignPath);
+      out << " }";
     }
     out << " ]" << endl;
     out << "  }";

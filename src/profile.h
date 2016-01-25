@@ -22,6 +22,7 @@ struct ProfileState {
   vguard<ProfileTransitionIndex> in, out;
   vguard<LogProb> lpAbsorb;
   AlignPath alignPath;
+  map<AlignRowIndex,SeqIdx> seqCoords;
   ProfileState (AlphTok alphSize = 0);
   inline bool isNull() const { return lpAbsorb.empty(); }
 };
