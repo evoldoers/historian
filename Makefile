@@ -116,7 +116,7 @@ testmerge: bin/testmerge
 	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty 2> /dev/null
 
 testseqprofile: bin/testseqprofile
-	$(TEST) bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.fa
+	$(TEST) bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.json
 
 testforward: bin/testforward
 	$(TEST) bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
