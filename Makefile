@@ -63,7 +63,7 @@ SH = /bin/sh
 
 # Targets
 
-MAIN = idhist
+MAIN = historian
 
 all: $(MAIN)
 

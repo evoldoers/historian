@@ -10,15 +10,15 @@
 #include "../src/recon.h"
 
 // GNU --version
-#define IDHIST_PROGNAME "idhist"
-#define IDHIST_VERSION  "0.1"
+#define HISTORIAN_PROGNAME "historian"
+#define HISTORIAN_VERSION  "0.1"
 
 struct ProgUsage : OptParser {
   ProgUsage (int argc, char** argv);
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, IDHIST_PROGNAME, "{align,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{align,help,version} [options]")
 {
   text = briefText
     + "\n"
@@ -52,7 +52,7 @@ int main (int argc, char** argv) {
       writeFastaSeqs (cout, align.gapped());
       
     } else
-      return usage.parseUnknownCommand (command, IDHIST_VERSION);
+      return usage.parseUnknownCommand (command, HISTORIAN_VERSION);
 
   } catch (...) {
     return EXIT_FAILURE;
