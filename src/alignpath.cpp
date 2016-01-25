@@ -98,7 +98,6 @@ AlignSeqMap::AlignSeqMap (const vguard<AlignPath>& alignments)
 	  const SeqIdx pos = rowPos[row_path.first]++;
 	  alignColRowToPos[nAlign][col][row_path.first] = pos;
 	  rowPosAlignToCol[row_path.first][pos][nAlign] = col;
-	  //	  cerr << "Alignment " << nAlign << " column " << col << " <===> sequence " << row_path.first << " position " << pos << endl;
 	}
     }
   }
@@ -135,11 +134,9 @@ AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
     for (AlignSeqMap::AlignNum n = 0; n < alignments.size(); ++n)
       if (nextCol[n] < alignSeqMap.alignCols[n]) {
 	allDone = false;
-	//	cerr << "Alignment " << n << ": next column is " << nextCol[n] << endl;
 	bool ready = true;
 	linkedCols = alignSeqMap.linkedColumns (n, nextCol[n]);
 	for (const auto& nAlign_col : linkedCols) {
-	  //	  cerr << "...waiting for alignment " << nAlign_col.first << " column " << nAlign_col.second << " (currently at column " << nextCol[nAlign_col.first] << ")" << endl;
 	  if (nextCol[nAlign_col.first] != nAlign_col.second) {
 	    ready = false;
 	    break;
@@ -224,3 +221,29 @@ vguard<FastSeq> Alignment::gapped() const {
   return gs;
 }
 
+GuideAlignmentDistanceMetric::GuideAlignmentDistanceMetric (const AlignPath& guide) {
+  map<AlignRowIndex,SeqIdx> rowPos;
+  for (auto& row_path : guide)
+    rowPos[row_path.first] = 0;
+
+  const AlignColIndex cols = alignPathColumns (guide);
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    for (auto& row_path : guide)
+      if (row_path.second[col]) {
+	  const SeqIdx pos = rowPos[row_path.first]++;
+	  rowPosToCol[row_path.first][pos] = col;
+      }
+  }
+
+  for (auto& rp1 : guide)
+    for (auto& rp2 : guide)
+      if (rp1.first < rp2.first) {
+	int matches = 0;
+	vguard<int>& cm = cumulativeMatches[rp1.first][rp2.first];
+	cm.reserve (cols);
+	for (AlignColIndex col = 0; col < cols; ++col)
+	  if (rp1.second[col] && rp2.second[col])
+	    ++matches;
+	cm.push_back (matches);
+      }
+}

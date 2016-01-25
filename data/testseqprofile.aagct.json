@@ -4,52 +4,53 @@
   {
    "n": 0,
    "name": "START",
-   "seqPos": [ [ 0, 5 ] ],
+   "seqPos": [ [ 0, 0 ] ],
    "trans": [ { "to": 1, "lpTrans": 0.000000 } ]
   },
   {
    "n": 1,
    "name": "A1",
    "path": [ [ 0, "*" ] ],
+   "seqPos": [ [ 0, 1 ] ],
    "lpAbsorb": [ 0.000000, "-inf", "-inf", "-inf" ],
-   "seqPos": [ [ 0, 0 ] ],
    "trans": [ { "to": 2, "lpTrans": 0.000000 } ]
   },
   {
    "n": 2,
    "name": "A2",
    "path": [ [ 0, "*" ] ],
+   "seqPos": [ [ 0, 2 ] ],
    "lpAbsorb": [ 0.000000, "-inf", "-inf", "-inf" ],
-   "seqPos": [ [ 0, 1 ] ],
    "trans": [ { "to": 3, "lpTrans": 0.000000 } ]
   },
   {
    "n": 3,
    "name": "G3",
    "path": [ [ 0, "*" ] ],
+   "seqPos": [ [ 0, 3 ] ],
    "lpAbsorb": [ "-inf", "-inf", 0.000000, "-inf" ],
-   "seqPos": [ [ 0, 2 ] ],
    "trans": [ { "to": 4, "lpTrans": 0.000000 } ]
   },
   {
    "n": 4,
    "name": "C4",
    "path": [ [ 0, "*" ] ],
+   "seqPos": [ [ 0, 4 ] ],
    "lpAbsorb": [ "-inf", 0.000000, "-inf", "-inf" ],
-   "seqPos": [ [ 0, 3 ] ],
    "trans": [ { "to": 5, "lpTrans": 0.000000 } ]
   },
   {
    "n": 5,
    "name": "T5",
    "path": [ [ 0, "*" ] ],
+   "seqPos": [ [ 0, 5 ] ],
    "lpAbsorb": [ "-inf", "-inf", "-inf", 0.000000 ],
-   "seqPos": [ [ 0, 4 ] ],
    "trans": [ { "to": 6, "lpTrans": 0.000000 } ]
   },
   {
    "n": 6,
    "name": "END",
+   "seqPos": [ [ 0, 5 ] ],
    "trans": [ ]
   }
  ]
