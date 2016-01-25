@@ -16,7 +16,6 @@ struct Reconstructor {
 
   map<string,size_t> seqIndex;
   map<int,size_t> nodeToSeqIndex;
-  map<int,vector<int> > children;
   vguard<string> rowName;
   
   Reconstructor();
@@ -33,6 +32,10 @@ struct Reconstructor {
   int nodes() const;
   int parentNode (int node) const;
   bool isLeaf (int node) const;
+  int nChildren (int node) const;
+  int getChild (int node, int childNum) const;
+  string treeString (int root) const;
+  string treeString() const;
 };
 
 

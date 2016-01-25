@@ -51,7 +51,9 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   Require (treeFilename.size() > 0, "Must specify a tree");
   Require (modelFilename.size() > 0, "Must specify an evolutionary model");
 
-  tree = kn_parse (treeFilename.c_str());
+  ifstream treeFile (treeFilename);
+  tree = kn_parse (JsonUtil::readStringFromStream (treeFile).c_str());
+
   seqs = readFastSeqs (seqsFilename.c_str());
 
   ifstream modelFile (modelFilename);
@@ -68,11 +70,9 @@ void Reconstructor::buildIndices() {
   }
 
   for (int node = 0; node < nodes(); ++node)
-    if (parentNode(node) >= 0)
-      children[parentNode(node)].push_back (node);
-  for (auto& nc : children)
-    Assert (nc.second.size() == 2, "Tree is not binary: node %d has %s", nc.first, plural(nc.second.size(),"child","children").c_str());
-  
+    if (!isLeaf(node))
+      Assert (nChildren(node) == 2, "Tree is not binary: node %d has %s\nSubtree rooted at %d: %s\n", node, plural(nChildren(node),"child","children").c_str(), node, treeString(node).c_str());
+
   for (int node = 0; node < nodes(); ++node)
     if (isLeaf(node)) {
       Assert (nodeName(node).length() > 0, "Leaf node %d is unnamed", node);
@@ -80,7 +80,7 @@ void Reconstructor::buildIndices() {
       nodeToSeqIndex[node] = seqIndex[nodeName(node)];
       rowName.push_back (nodeName(node));
     } else
-      rowName.push_back (ForwardMatrix::ancestorName (rowName[children[node][0]], branchLength(children[node][0]), rowName[children[node][1]], branchLength(children[node][0])));
+      rowName.push_back (ForwardMatrix::ancestorName (rowName[getChild(node,0)], branchLength(getChild(node,0)), rowName[getChild(node,1)], branchLength(getChild(node,1))));
 }
 
 Alignment Reconstructor::reconstruct() {
@@ -95,8 +95,8 @@ Alignment Reconstructor::reconstruct() {
     if (isLeaf(node))
       prof[node] = Profile (model.alphabet, seqs[nodeToSeqIndex[node]], node);
     else {
-      const int lChildNode = children.at(node)[0];
-      const int rChildNode = children.at(node)[1];
+      const int lChildNode = getChild(node,0);
+      const int rChildNode = getChild(node,1);
       const Profile& lProf = prof[lChildNode];
       const Profile& rProf = prof[rChildNode];
       ProbModel lProbs (model, branchLength(lChildNode));
@@ -147,5 +147,26 @@ int Reconstructor::parentNode (int node) const {
 }
 
 bool Reconstructor::isLeaf (int node) const {
-  return children.find(node) == children.end();
+  return nChildren (node) == 0;
+}
+
+int Reconstructor::nChildren (int node) const {
+  return tree->node[node].n;
+}
+
+int Reconstructor::getChild (int node, int childNum) const {
+  return tree->node[node].child[childNum];
+}
+
+string Reconstructor::treeString (int root) const {
+  kstring_t str;
+  str.l = str.m = 0; str.s = 0;
+  kn_format(tree->node, root, &str);
+  string s (str.s);
+  free (str.s);
+  return s;
+}
+
+string Reconstructor::treeString() const {
+  return treeString (tree->n - 1);
 }
