@@ -1,3 +1,4 @@
+#include <sstream>
 #include <math.h>
 #include "profile.h"
 #include "jsonutil.h"
@@ -125,4 +126,10 @@ void Profile::writeJson (ostream& out) const {
   }
   out << " ]" << endl;
   out << "}" << endl;
+}
+
+string Profile::toJson() const {
+  ostringstream s;
+  writeJson (s);
+  return s.str();
 }

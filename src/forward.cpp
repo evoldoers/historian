@@ -345,7 +345,12 @@ AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   AlignPath alignPath;
   switch (c.state) {
   case PairHMM::IMM:
-    alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+    if (!x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
+      alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
+    else if (!x.state[c.xpos].isNull() && y.state[c.ypos].isNull())
+      alignPath = y.state[c.ypos].alignPath;
+    else // x.state[c.xpos].isNull()
+      alignPath = x.state[c.xpos].alignPath;
     break;
   case PairHMM::IMD:
   case PairHMM::IIW:
@@ -399,7 +404,6 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
   // build states
   // retain only start, end, and absorbing cells
   map<CellCoords,ProfileStateIndex> profStateIndex;
-  map<CellCoords,AlignPath> elimAlignPath;
   map<CellCoords,int> outgoingTransitionCount;
 
   for (const auto& dest : cells)
@@ -433,9 +437,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
       prof.state.back().alignPath = cellAlignPath(c);
       prof.state.back().name = cellName(c);
       prof.state.back().meta["fwdLogProb"] = to_string(c.state == PairHMM::EEE ? lpEnd : cell(c.xpos,c.ypos,c.state));
-    } else {
-      // cell is to be eliminated
-      elimAlignPath[c] = cellAlignPath (c);
+      prof.state.back().meta["node"] = to_string(parentRowIndex);
     }
 
   // Calculate log-probabilities of "effective transitions" from cells to retained-cells.
@@ -456,11 +458,12 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	const LogProb srcCellLogProbTrans = slpIter.second;
 	EffectiveTransition& eff = effTrans[src][cellIdx];
 	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
+	eff.bestAlignPath = transitionAlignPath(src,cell);
       }
     } else {
       // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
       const auto& cellEffTrans = effTrans[cell];
-      const AlignPath& cap = elimAlignPath[cell];
+      const AlignPath& cap = cellAlignPath (cell);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;

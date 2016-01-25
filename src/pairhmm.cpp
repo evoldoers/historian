@@ -23,12 +23,12 @@ PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root)
   imd_imm = log (lNoIns() * lNoDel() * rNoDelExt());
   imd_imd = log (lNoIns() * lNoDel() * rDelExt());
   imd_idm = log (lNoIns() * lDel() * rNoDelExt());
-  imd_eee = log (lNoIns());
+  imd_eee = log (lNoIns() * rNoDelExt());
 
   idm_imm = log (rNoIns() * lNoDelExt() * rNoDel());
   idm_imd = log (rNoIns() * lNoDelExt() * rDel());
   idm_idm = log (rNoIns() * lDelExt() * rNoDel());
-  idm_eee = log (rNoIns());
+  idm_eee = log (rNoIns() * lNoDelExt());
 
   imi_imi = log (rInsExt());
   imi_iiw = log (lIns() * rNoInsExt());

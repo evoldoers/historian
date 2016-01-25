@@ -42,6 +42,7 @@ struct Profile {
   const ProfileTransition* getTrans (ProfileStateIndex src, ProfileStateIndex dest) const;
   void calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag = "cumLogProb");
   void writeJson (ostream& out) const;
+  string toJson() const;
 };
 
 #endif /* PROFILE_INCLUDED */

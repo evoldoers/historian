@@ -40,6 +40,13 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-samples") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      profileSamples = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
     }
   }
   
@@ -111,6 +118,8 @@ Alignment Reconstructor::reconstruct() {
 	prof[node] = forward.bestProfile();
       } else
 	prof[node] = forward.sampleProfile (generator, profileSamples, profileNodeLimit);
+
+      LogThisAt(5,prof[node].toJson());
     }
   }
 
