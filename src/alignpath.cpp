@@ -1,5 +1,6 @@
 #include "alignpath.h"
 #include "util.h"
+#include "logger.h"
 
 // map used by alignPathMerge
 struct AlignSeqMap {
@@ -72,15 +73,10 @@ AlignSeqMap::AlignSeqMap (const vguard<AlignPath>& alignments)
     if (align.size() == 0)
       alignCols.push_back (0);
     else {
-      AlignColIndex* cols = NULL;
+      alignCols.push_back (alignPathColumns (align));
       for (auto& row_path : align) {
 	const AlignRowIndex row = row_path.first;
 	const AlignRowPath& path = row_path.second;
-	if (cols == NULL) {
-	  alignCols.push_back (path.size());
-	  cols = &alignCols.back();
-	} else
-	  Assert (*cols == path.size(), "Incompatible number of columns in row #%d of alignment (%d != %d)", row, *cols, path.size());
 	SeqIdx len = alignPathResiduesInRow (path);
 	if (seqLen.find(row) == seqLen.end())
 	  seqLen[row] = len;
@@ -171,6 +167,11 @@ AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
       Abort ("%s fail, no alignments ready", __func__);
     }
   } while (!allDone);
+
+  const AlignRowIndex rows = a.size();
+  const AlignColIndex cols = alignPathColumns (a);  // this will also test if alignment is flush
+  LogThisAt(2,"Merged " << alignments.size() << " alignments into a single alignment with " << rows << " rows and " << cols << "columns" << endl);
+
   return a;
 }
 

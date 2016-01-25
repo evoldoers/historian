@@ -103,7 +103,7 @@ Alignment Reconstructor::reconstruct() {
       ProbModel rProbs (model, branchLength(rChildNode));
       PairHMM hmm (lProbs, rProbs, eqm);
 
-      LogThisAt(1,"Aligning " << lProf.name << " and " << rProf.name);
+      LogThisAt(1,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
       ForwardMatrix forward (lProf, rProf, hmm, node);
       if (node == nodes() - 1) {
