@@ -12,7 +12,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     ySize (y.size()),
     subx (x.leftMultiply (hmm.l.subMat)),
     suby (y.leftMultiply (hmm.r.subMat)),
-    cellStorage (x.size() * y.size() * PairHMM::TotalStates, -numeric_limits<double>::infinity()),
+    cellStorage (x.size()),
     absorbScratch (hmm.alphabetSize()),
     insx (x.size(), -numeric_limits<double>::infinity()),
     insy (y.size(), -numeric_limits<double>::infinity()),

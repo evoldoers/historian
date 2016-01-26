@@ -8,7 +8,14 @@
 
 class ForwardMatrix {
 private:
-  vguard<LogProb> cellStorage;  // partial Forward sums by cell
+  struct XYCell {
+    LogProb lp[PairHMM::TotalStates];
+    XYCell() {
+      for (size_t s = 0; s < PairHMM::TotalStates; ++s)
+	lp[s] = -numeric_limits<double>::infinity();
+    }
+  };
+  vguard<map<ProfileStateIndex,XYCell> > cellStorage;  // partial Forward sums by cell
   vguard<LogProb> insx, insy;  // insert-on-branch probabilities by x & y indices
   vguard<LogProb> rootsubx, rootsuby;  // insert-at-root-then-substitute probabilities by x & y indices
   vguard<LogProb> absorbScratch;  // scratch space for computing absorb profiles
@@ -45,7 +52,12 @@ public:
   LogProb lpEnd;
   ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex);
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
-  { return cellStorage[(ypos * xSize + xpos) * PairHMM::TotalStates + state]; }
+  { return cellStorage[xpos][ypos].lp[state]; }
+  inline const double cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
+  {
+    auto iter = cellStorage[xpos].find(ypos);
+    return iter == cellStorage[xpos].end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
+  }
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
   AlignPath bestAlignPath();
