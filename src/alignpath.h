@@ -32,7 +32,7 @@ struct GuideAlignmentDistanceMetric {
   // cumulativeMatches[row1][row2][col] = number of matches before column #col of pairwise alignment of (row1,row2)
   map<AlignRowIndex,map<AlignRowIndex,vguard<int> > > cumulativeMatches;
   // rowPosToCol[row][seqpos] = alignment column number of position #seqpos of row #row
-  map<AlignRowIndex,map<SeqIdx,AlignColIndex > > rowPosToCol;
+  map<AlignRowIndex,vguard<AlignColIndex> > rowPosToCol;
 
   GuideAlignmentDistanceMetric (const AlignPath& guide);
 

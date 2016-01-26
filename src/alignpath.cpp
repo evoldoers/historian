@@ -227,12 +227,12 @@ GuideAlignmentDistanceMetric::GuideAlignmentDistanceMetric (const AlignPath& gui
     rowPos[row_path.first] = 0;
 
   const AlignColIndex cols = alignPathColumns (guide);
+  for (auto& row_path : guide)
+    rowPosToCol[row_path.first].push_back (0);
   for (AlignColIndex col = 0; col < cols; ++col) {
     for (auto& row_path : guide)
-      if (row_path.second[col]) {
-	  const SeqIdx pos = rowPos[row_path.first]++;
-	  rowPosToCol[row_path.first][pos] = col;
-      }
+      if (row_path.second[col])
+	rowPosToCol[row_path.first].push_back (col);
   }
 
   for (auto& rp1 : guide)
