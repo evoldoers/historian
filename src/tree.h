@@ -3,6 +3,7 @@
 
 #include <string>
 #include "vguard.h"
+#include "fastseq.h"
 
 using namespace std;
 
@@ -37,7 +38,8 @@ struct Tree {
   string toString (TreeNodeIndex root) const;
   string toString() const;
 
-  void buildByNeighborJoining (const vguard<string>& nodeName, const vector<vector<TreeBranchLength> >& distanceMatrix);
+  void buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
+  void buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
 };
 
 #endif /* TREE_INCLUDED */

@@ -75,13 +75,13 @@ TreeNodeIndex Tree::getChild (TreeNodeIndex n, size_t childNum) const {
   return node[n].child[childNum];
 }
 
-void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vector<vector<TreeBranchLength> >& distanceMatrix) {
+void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
   // check that there are more than 2 nodes
   Assert (nodeName.size() >= 2, "Fewer than 2 nodes; can't make a binary tree");
   // clear the existing tree
   node.clear();
   // copy distance matrix
-  vector<vector<TreeBranchLength> > dist = distanceMatrix;
+  vguard<vguard<TreeBranchLength> > dist = distanceMatrix;
   // estimate tree by neighbor-joining
   // algorithm follows description in Durbin et al, pp170-171
   // first, initialise the list of active nodes
@@ -93,7 +93,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vector<
     node.back().parent = -1;
   }
   // main loop
-  vector<TreeBranchLength> avgDist;
+  vguard<TreeBranchLength> avgDist;
   while (true)
     {
       // get number of active nodes
@@ -102,7 +102,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vector<
       if (nActiveNodes == 2) break;
       Assert (nActiveNodes > 2, "Fewer than 2 nodes left -- should never get here");
       // calculate average distances from each node
-      avgDist = vector<TreeBranchLength> (nodes(), (double) 0);
+      avgDist = vguard<TreeBranchLength> (nodes(), (double) 0);
       for (auto ni : activeNodes)
 	{
 	  double a_i = 0;
@@ -134,7 +134,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vector<
       // nodes min_i and min_j are neighbors -- join them with new index k
       // first, calculate new distances as per NJ algorithm
       const TreeNodeIndex k = nodes();
-      dist.push_back (vector<TreeBranchLength> (k + 1));
+      dist.push_back (vguard<TreeBranchLength> (k + 1));
       dist[k][k] = 0;
       const TreeBranchLength d_ij = dist[min_i][min_j];
       for (TreeNodeIndex m = 0; m < k; ++m)
@@ -183,3 +183,12 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vector<
   node[j].d = d/2;
   LogThisAt(4,"Neighbor-joining tree: " << toString() << endl);
 }
+
+void Tree::buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
+  vguard<string> nodeName;
+  nodeName.reserve (seq.size());
+  for (const auto& s : seq)
+    nodeName.push_back (s.name);
+  return buildByNeighborJoining (nodeName, distanceMatrix);
+}
+

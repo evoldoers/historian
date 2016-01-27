@@ -10,6 +10,7 @@
 #include "jsonutil.h"
 #include "util.h"
 #include "alignpath.h"
+#include "logger.h"
 
 void AlphabetOwner::readAlphabet (const JsonValue& json) {
   const JsonMap jm (json);
@@ -205,23 +206,35 @@ struct DistanceMatrixParams {
       model(model)
   { }
   double tML (int maxIterations) const;
+  double negLogLike (double t) const;
 };
 
 vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations) const {
   vguard<vguard<double> > dist (gappedSeq.size(), vguard<double> (gappedSeq.size()));
   for (size_t i = 0; i < gappedSeq.size() - 1; ++i)
     for (size_t j = i + 1; j < gappedSeq.size(); ++j) {
+      LogThisAt(4,"Estimating distance from " << gappedSeq[i].name << " to " << gappedSeq[j].name << endl);
       map<pair<AlphTok,AlphTok>,int> pairCount;
       for (size_t col = 0; col < gappedSeq[i].length(); ++col) {
 	const char ci = gappedSeq[i].seq[col];
 	const char cj = gappedSeq[j].seq[col];
 	if (!Alignment::isGap(ci) && !Alignment::isGap(cj))
 	  ++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
-
-	const DistanceMatrixParams dmp (pairCount, *this);
-	dist[i][j] = dist[j][i] = dmp.tML (maxIterations);
       }
+      if (LoggingThisAt(6)) {
+	LogThisAt(6,"Counts:");
+	for (const auto& pc : pairCount)
+	  LogThisAt(6," " << pc.second << "*" << alphabet[pc.first.first] << alphabet[pc.first.second]);
+	LogThisAt(6,endl);
+      }
+      const DistanceMatrixParams dmp (pairCount, *this);
+      dist[i][j] = dist[j][i] = dmp.tML (maxIterations);
     }
+  if (LoggingThisAt(3)) {
+    LogThisAt(3,"Distance matrix (" << dist.size() << " rows):" << endl);
+    for (const auto& row : dist)
+      LogThisAt(3,to_string_join(row) << endl);
+  }
   return dist;
 }
 
@@ -235,6 +248,10 @@ double distanceMatrixNegLogLike (double t, void *params) {
   return -ll;
 }
 
+double DistanceMatrixParams::negLogLike (double t) const {
+  return distanceMatrixNegLogLike (t, (void*) this);
+}
+
 double DistanceMatrixParams::tML (int maxIterations) const {
   const gsl_min_fminimizer_type *T;
   gsl_min_fminimizer *s;
@@ -243,11 +260,30 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   F.function = &distanceMatrixNegLogLike;
   F.params = (void*) this;
 
-  T = gsl_min_fminimizer_brent;
+  T = gsl_min_fminimizer_goldensection; // gsl_min_fminimizer_brent;
   s = gsl_min_fminimizer_alloc (T);
 
-  double t = 1;
-  const double tLower = 0, tUpper = 10;
+  double t;
+  const double tLower = .0001, tUpper = 10 + tLower;
+  const double llLower = negLogLike(tLower), llUpper = negLogLike(tUpper);
+  LogThisAt(4,"tML: f(" << tLower << ") = " << llLower << ", f(" << tUpper << ") = " << llUpper << endl);
+
+  const double maxSteps = 128;
+  double nSteps;
+  bool foundGuess = false;
+  for (double step = 4; step > 1.0001 && !foundGuess; step = sqrt(step))
+    for (double x = tLower + step; x < tUpper && !foundGuess; x += step) {
+      const double ll = negLogLike(x);
+      LogThisAt(4,"tML: f(" << x << ") = " << ll << endl);
+      if (ll < llLower && ll < llUpper) {
+	foundGuess = true;
+	t = x;
+      }
+    }
+  if (!foundGuess)
+    return llLower < llUpper ? tLower : tUpper;
+
+  LogThisAt(4,"Initializing with t=" << t << ", tLower=" << tLower << ", tUpper=" << tUpper << endl);
   gsl_min_fminimizer_set (s, &F, t, tLower, tUpper);
 
   for (int iter = 0; iter < maxIterations; ++iter) {
@@ -257,7 +293,9 @@ double DistanceMatrixParams::tML (int maxIterations) const {
     const double a = gsl_min_fminimizer_x_lower (s);
     const double b = gsl_min_fminimizer_x_upper (s);
 
-    const int status = gsl_min_test_interval (a, b, 0.001, 0.0);
+    LogThisAt(5,"Iteration #" << iter+1 << " tML: f(" << t << ") = " << negLogLike(t) << endl);
+    
+    const int status = gsl_min_test_interval (a, b, 0.01, 0.0);  // converge to 1%
     if (status == GSL_SUCCESS)
       break;
   }
