@@ -21,21 +21,15 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     startCell (0, 0, PairHMM::SSS),
     endCell (xSize - 1, ySize - 1, PairHMM::EEE),
     envelope (env),
-    xClosestLeafPos (xSize),
-    yClosestLeafPos (ySize)
+    xClosestLeafPos (xSize, 0),
+    yClosestLeafPos (ySize, 0)
 {
   if (env.initialized()) {
-    for (ProfileStateIndex i = 0; i < xSize; ++i) {
-      auto coords = x.state[i].seqCoords;
-      auto iter = coords.find (env.row1);
-      xClosestLeafPos[i] = iter == coords.end() ? 0 : iter->second;
-    }
+    for (ProfileStateIndex i = 1; i < xSize; ++i)
+      xClosestLeafPos[i] = x.state[i].seqCoords.at(env.row1);
 
-    for (ProfileStateIndex j = 0; j < ySize; ++j) {
-      auto coords = y.state[j].seqCoords;
-      auto iter = coords.find (env.row2);
-      yClosestLeafPos[j] = iter == coords.end() ? 0 : iter->second;
-    }
+    for (ProfileStateIndex j = 1; j < ySize; ++j)
+      yClosestLeafPos[j] = y.state[j].seqCoords.at(env.row2);
   }
 
   for (ProfileStateIndex i = 1; i < xSize - 1; ++i) {
@@ -207,6 +201,8 @@ ForwardMatrix::CellCoords ForwardMatrix::bestCell (const map<CellCoords,LogProb>
 }
 
 ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
+  Assert (lpEnd > -numeric_limits<double>::infinity(), "Forward likelihood is zero; traceback fail");
+
   Path path;
   path.push_back (endCell);
 
@@ -224,6 +220,8 @@ ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
 }
 
 ForwardMatrix::Path ForwardMatrix::bestTrace() {
+  Assert (lpEnd > -numeric_limits<double>::infinity(), "Forward likelihood is zero; traceback fail");
+
   Path path;
   path.push_back (endCell);
 
