@@ -228,6 +228,9 @@ GuideAlignmentEnvelope::GuideAlignmentEnvelope (const AlignPath& guide, AlignRow
     row1 (row1),
     row2 (row2)
 {
+  Assert (guide.find(row1) != guide.end(), "Guide alignment is missing row #%u", row1);
+  Assert (guide.find(row2) != guide.end(), "Guide alignment is missing row #%u", row2);
+
   const AlignColIndex cols = alignPathColumns (guide);
   cumulativeMatches.reserve (cols);
   int matches = 0;

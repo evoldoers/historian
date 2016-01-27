@@ -113,8 +113,8 @@ void Reconstructor::buildIndices() {
       const size_t seqidx = seqIndex[nodeName(node)];
       nodeToSeqIndex[node] = seqidx;
 
-      if (guide.find(seqidx) != guide.end())
-	reorderedGuide[node] = guide[seqidx];
+      if (!guide.empty())
+	reorderedGuide[node] = guide.at(seqidx);
 
       closestLeaf.push_back (node);
       closestLeafDistance.push_back (0);
@@ -128,7 +128,7 @@ void Reconstructor::buildIndices() {
 	const int c = getChild(node,nc);
 	const double dc = closestLeafDistance[c] + branchLength(c);
 	if (nc == 0 || dc < dcl) {
-	  cl = c;
+	  cl = closestLeaf[c];
 	  dcl = dc;
 	}
       }

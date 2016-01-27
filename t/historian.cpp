@@ -30,33 +30,28 @@ ProgUsage::ProgUsage (int argc, char** argv)
 
 int main (int argc, char** argv) {
 
-  try {
-    ProgUsage usage (argc, argv);
+  ProgUsage usage (argc, argv);
   
-    const string command = usage.getCommand();
+  const string command = usage.getCommand();
 
-    if (command == "align") {
+  if (command == "align") {
 
-      Reconstructor recon;
+    Reconstructor recon;
       
-      usage.implicitSwitches.push_back (string ("-seqs"));
-      usage.implicitSwitches.push_back (string ("-tree"));
+    usage.implicitSwitches.push_back (string ("-seqs"));
+    usage.implicitSwitches.push_back (string ("-tree"));
       
-      deque<string>& argvec (usage.argvec);
-      while (logger.parseLogArgs (argvec)
-	     || recon.parseReconArgs (argvec)
-	     || usage.parseUnknown())
-	{ }
+    deque<string>& argvec (usage.argvec);
+    while (logger.parseLogArgs (argvec)
+	   || recon.parseReconArgs (argvec)
+	   || usage.parseUnknown())
+      { }
 
-      Alignment align = recon.loadFilesAndReconstruct();
-      writeFastaSeqs (cout, align.gapped());
+    Alignment align = recon.loadFilesAndReconstruct();
+    writeFastaSeqs (cout, align.gapped());
       
-    } else
-      return usage.parseUnknownCommand (command, HISTORIAN_VERSION);
-
-  } catch (...) {
-    return EXIT_FAILURE;
-  }
+  } else
+    return usage.parseUnknownCommand (command, HISTORIAN_VERSION);
 
   return EXIT_SUCCESS;
 }
