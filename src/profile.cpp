@@ -61,7 +61,7 @@ const ProfileTransition* Profile::getTrans (ProfileStateIndex src, ProfileStateI
   return NULL;
 }
 
-void Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag) {
+LogProb Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag) {
   vector<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
   lpCumAbs[0] = 0;
   for (ProfileStateIndex pos = 1; pos < state.size(); ++pos) {
@@ -70,8 +70,10 @@ void Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* 
       const ProfileTransition& t = trans[ti];
       log_accum_exp (lpCumAbs[pos], lpCumAbs[t.src] + t.lpTrans + lpAbs);
     }
-    state[pos].meta[string(tag)] = to_string(lpCumAbs[pos]);
+    if (tag != NULL)
+      state[pos].meta[string(tag)] = to_string(lpCumAbs[pos]);
   }
+  return lpCumAbs.back();
 }
 
 string alignPathJson (const AlignPath& a) {

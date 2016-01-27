@@ -8,11 +8,8 @@ PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root)
     r (r),
     logl (l),
     logr (r),
-    logRoot (l.alphabetSize())
+    logRoot (log_gsl_vector (root))
 {
-  for (AlphTok i = 0; i < l.alphabetSize(); ++i)
-    logRoot[i] = log (gsl_vector_get (root, i));
-
   imm_imi = log (rIns());
   imm_iiw = log (lIns() * rNoIns());
   imm_imm = log (lNoIns() * rNoIns() * lNoDel() * rNoDel());

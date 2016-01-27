@@ -121,3 +121,10 @@ double log_sum_exp_unary_slow (double x) {
 void log_accum_exp (double& a, double b) {
   a = log_sum_exp (a, b);
 }
+
+std::vector<LogProb> log_gsl_vector (gsl_vector* v) {
+  std::vector<LogProb> l (v->size);
+  for (size_t i = 0; i < v->size; ++i)
+    l[i] = log (gsl_vector_get (v, i));
+  return l;
+}

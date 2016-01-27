@@ -14,8 +14,11 @@ private:
       for (size_t s = 0; s < PairHMM::TotalStates; ++s)
 	lp[s] = -numeric_limits<double>::infinity();
     }
+    LogProb& operator() (PairHMM::State s) { return lp[s]; }
+    LogProb operator() (PairHMM::State s) const { return lp[s]; }
   };
   vguard<map<ProfileStateIndex,XYCell> > cellStorage;  // partial Forward sums by cell
+  XYCell emptyCell;  // always -inf
   vguard<LogProb> insx, insy;  // insert-on-branch probabilities by x & y indices
   vguard<LogProb> rootsubx, rootsuby;  // insert-at-root-then-substitute probabilities by x & y indices
   vguard<LogProb> absorbScratch;  // scratch space for computing absorb profiles
@@ -55,18 +58,30 @@ public:
   int maxDistance;
 
   ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env);
-  inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
+
+  // cell accessors
+  inline XYCell& xyCell (ProfileStateIndex xpos, ProfileStateIndex ypos) { return cellStorage[xpos][ypos]; }
+  inline const XYCell& xyCell (ProfileStateIndex xpos, ProfileStateIndex ypos) const {
+    const auto& column = cellStorage[xpos];
+    auto iter = column.find(ypos);
+    return iter == column.end() ? emptyCell : iter->second;
+  }
+
+  inline LogProb& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[xpos][ypos].lp[state]; }
-  inline const double cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
+  inline const LogProb cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
   {
     const auto& column = cellStorage[xpos];
     auto iter = column.find(ypos);
     return iter == column.end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
   }
+
+  // traceback
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
   AlignPath bestAlignPath();
 
+  // profile construction
   enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
   Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
   Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit

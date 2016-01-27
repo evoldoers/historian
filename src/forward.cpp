@@ -50,28 +50,30 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 
       if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
 
-	double& imm = cell(i,j,PairHMM::IMM);
-	double& imd = cell(i,j,PairHMM::IMD);
-	double& idm = cell(i,j,PairHMM::IDM);
-	double& imi = cell(i,j,PairHMM::IMI);
-	double& iiw = cell(i,j,PairHMM::IIW);
+	XYCell& dest = xyCell(i,j);
+	double& imm = dest(PairHMM::IMM);
+	double& imd = dest(PairHMM::IMD);
+	double& idm = dest(PairHMM::IDM);
+	double& imi = dest(PairHMM::IMI);
+	double& iiw = dest(PairHMM::IIW);
 
 	if (!xState.isNull()) {
 	  // x-absorbing transitions into IMD, IIW
 	  for (auto xt : xState.in) {
 	    const ProfileTransition& xTrans = x.trans[xt];
+	    const XYCell& src = xyCell(xTrans.src,j);
 
 	    log_accum_exp (imd,
-			   log_sum_exp (cell(xTrans.src,j,PairHMM::IMM) + hmm.imm_imd,
-					cell(xTrans.src,j,PairHMM::IMD) + hmm.imd_imd,
-					cell(xTrans.src,j,PairHMM::IDM) + hmm.idm_imd,
-					cell(xTrans.src,j,PairHMM::IMI) + hmm.imi_imd)
+			   log_sum_exp (src(PairHMM::IMM) + hmm.imm_imd,
+					src(PairHMM::IMD) + hmm.imd_imd,
+					src(PairHMM::IDM) + hmm.idm_imd,
+					src(PairHMM::IMI) + hmm.imi_imd)
 			   + xTrans.lpTrans);
 
 	    log_accum_exp (iiw,
-			   log_sum_exp (cell(xTrans.src,j,PairHMM::IMM) + hmm.imm_iiw,
-					cell(xTrans.src,j,PairHMM::IMI) + hmm.imi_iiw,
-					cell(xTrans.src,j,PairHMM::IIW) + hmm.iiw_iiw)
+			   log_sum_exp (src(PairHMM::IMM) + hmm.imm_iiw,
+					src(PairHMM::IMI) + hmm.imi_iiw,
+					src(PairHMM::IIW) + hmm.iiw_iiw)
 			   + xTrans.lpTrans);
 	  }
 
@@ -82,8 +84,9 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 	  // x-nonabsorbing transitions in IMD, IIW
 	  for (auto xt : xState.in) {
 	    const ProfileTransition& xTrans = x.trans[xt];
-	    log_accum_exp (imd, cell(xTrans.src,j,PairHMM::IMD) + xTrans.lpTrans);
-	    log_accum_exp (iiw, cell(xTrans.src,j,PairHMM::IIW) + xTrans.lpTrans);
+	    const XYCell& src = xyCell(xTrans.src,j);
+	    log_accum_exp (imd, src(PairHMM::IMD) + xTrans.lpTrans);
+	    log_accum_exp (iiw, src(PairHMM::IIW) + xTrans.lpTrans);
 	  }
 	}
 
@@ -91,17 +94,18 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 	  // y-absorbing transitions into IDM, IMI
 	  for (auto yt : yState.in) {
 	    const ProfileTransition& yTrans = y.trans[yt];
+	    const XYCell& src = xyCell(i,yTrans.src);
 
 	    log_accum_exp (idm,
-			   log_sum_exp (cell(i,yTrans.src,PairHMM::IMM) + hmm.imm_idm,
-					cell(i,yTrans.src,PairHMM::IMD) + hmm.imd_idm,
-					cell(i,yTrans.src,PairHMM::IDM) + hmm.idm_idm,
-					cell(i,yTrans.src,PairHMM::IIW) + hmm.iiw_idm)
+			   log_sum_exp (src(PairHMM::IMM) + hmm.imm_idm,
+					src(PairHMM::IMD) + hmm.imd_idm,
+					src(PairHMM::IDM) + hmm.idm_idm,
+					src(PairHMM::IIW) + hmm.iiw_idm)
 			   + yTrans.lpTrans);
 
 	    log_accum_exp (imi,
-			   log_sum_exp (cell(i,yTrans.src,PairHMM::IMM) + hmm.imm_imi,
-					cell(i,yTrans.src,PairHMM::IMI) + hmm.imi_imi)
+			   log_sum_exp (src(PairHMM::IMM) + hmm.imm_imi,
+					src(PairHMM::IMI) + hmm.imi_imi)
 			   + yTrans.lpTrans);
 	  }
 
@@ -112,8 +116,9 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 	  // y-nonabsorbing transitions in IDM, IMI
 	  for (auto yt : yState.in) {
 	    const ProfileTransition& yTrans = y.trans[yt];
-	    log_accum_exp (idm, cell(i,yTrans.src,PairHMM::IDM) + yTrans.lpTrans);
-	    log_accum_exp (imi, cell(i,yTrans.src,PairHMM::IMI) + yTrans.lpTrans);
+	    const XYCell& src = xyCell(i,yTrans.src);
+	    log_accum_exp (idm, src(PairHMM::IDM) + yTrans.lpTrans);
+	    log_accum_exp (imi, src(PairHMM::IMI) + yTrans.lpTrans);
 	  }
 	}
 
@@ -123,13 +128,14 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 	    const ProfileTransition& xTrans = x.trans[xt];
 	    for (auto yt : yState.in) {
 	      const ProfileTransition& yTrans = y.trans[yt];
+	      const XYCell& src = xyCell(xTrans.src,yTrans.src);
 
 	      log_accum_exp (imm,
-			     log_sum_exp (cell(xTrans.src,yTrans.src,PairHMM::IMM) + hmm.imm_imm,
-					  cell(xTrans.src,yTrans.src,PairHMM::IMD) + hmm.imd_imm,
-					  cell(xTrans.src,yTrans.src,PairHMM::IDM) + hmm.idm_imm,
-					  cell(xTrans.src,yTrans.src,PairHMM::IMI) + hmm.imi_imm,
-					  cell(xTrans.src,yTrans.src,PairHMM::IIW) + hmm.iiw_imm)
+			     log_sum_exp (src(PairHMM::IMM) + hmm.imm_imm,
+					  src(PairHMM::IMD) + hmm.imd_imm,
+					  src(PairHMM::IDM) + hmm.idm_imm,
+					  src(PairHMM::IMI) + hmm.imi_imm,
+					  src(PairHMM::IIW) + hmm.iiw_imm)
 			     + xTrans.lpTrans
 			     + yTrans.lpTrans);
 	    }
@@ -202,7 +208,7 @@ ForwardMatrix::CellCoords ForwardMatrix::bestCell (const map<CellCoords,LogProb>
 
 ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
   Assert (lpEnd > -numeric_limits<double>::infinity(), "Forward likelihood is zero; traceback fail");
-
+  
   Path path;
   path.push_back (endCell);
 
@@ -536,10 +542,15 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 
 Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, EliminationStrategy strategy, bool includeBestTraceInProfile) {
   map<CellCoords,size_t> cellCount;
+
+  Require (includeBestTraceInProfile || profileSamples > 0, "Must allow at least one sample path in the profile");
+
+  size_t nTraces = 0;
   if (includeBestTraceInProfile) {
     const Path best = bestTrace();
     for (auto& c : best)
       cellCount[c] = 2;  // avoid dropping these cells
+    ++nTraces;
   }
   for (size_t n = 0; n < profileSamples && (maxCells == 0 || cellCount.size() < maxCells); ++n) {
     const Path sampled = sampleTrace (generator);
@@ -551,9 +562,10 @@ Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSa
     }
     for (auto& c : sampled)
       ++cellCount[c];
+    ++nTraces;
   }
   set<CellCoords> profCells;
-  const size_t threshold = (maxCells > 0 && cellCount.size() >= maxCells) ? 2 : 1;
+  const size_t threshold = (nTraces > 1 && maxCells > 0 && cellCount.size() >= maxCells) ? 2 : 1;
   for (const auto& cc : cellCount)
     if (cc.second >= threshold)
       profCells.insert (cc.first);

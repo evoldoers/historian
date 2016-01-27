@@ -150,7 +150,10 @@ void Reconstructor::buildIndices() {
       closestLeaf.push_back (cl);
       closestLeafDistance.push_back (dcl);
 
-      rowName.push_back (ForwardMatrix::ancestorName (rowName[getChild(node,0)], branchLength(getChild(node,0)), rowName[getChild(node,1)], branchLength(getChild(node,1))));
+      string n = nodeName(node);
+      if (n.size() == 0)
+	n = ForwardMatrix::ancestorName (rowName[getChild(node,0)], branchLength(getChild(node,0)), rowName[getChild(node,1)], branchLength(getChild(node,1)));
+      rowName.push_back (n);
     }
 
   guide = reorderedGuide;
@@ -161,7 +164,7 @@ Alignment Reconstructor::reconstruct() {
   auto generator = ForwardMatrix::newRNG();
   generator.seed (rndSeed);
 
-  LogProb lpFinal = -numeric_limits<double>::infinity();
+  LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
   AlignPath path;
   map<int,Profile> prof;
   for (int node = 0; node < nodes(); ++node) {
@@ -179,22 +182,28 @@ Alignment Reconstructor::reconstruct() {
       LogThisAt(2,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
       ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide));
-      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << endl);
 
+      Profile& nodeProf = prof[node];
       if (node == nodes() - 1) {
 	path = forward.bestAlignPath();
-	prof[node] = forward.bestProfile();
-	lpFinal = forward.lpEnd;
+	nodeProf = forward.bestProfile();
       } else
-	prof[node] = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
+	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
+
+      const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(eqm), NULL);
+      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", sampled profile log-likelihood is " << lpTrace << endl);
+      
+      if (node == nodes() - 1) {
+	lpFinalFwd = forward.lpEnd;
+	lpFinalTrace = lpTrace;
+      }
 
       LogThisAt(5,prof[node].toJson());
     }
   }
 
+  LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << ", final alignment log-likelihood is " << lpFinalTrace << endl);
   gsl_vector_free (eqm);
-
-  LogThisAt(1,"Final log-likelihood is " << lpFinal << endl);
 
   vguard<FastSeq> ungapped (nodes());
   for (int node = 0; node < nodes(); ++node) {

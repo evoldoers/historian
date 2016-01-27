@@ -1,6 +1,9 @@
 #ifndef LOGSUMEXP_INCLUDED
 #define LOGSUMEXP_INCLUDED
 
+#include <gsl/gsl_vector.h>
+#include <vector>
+
 /* uncomment to disable lookup table */
 /*
 #define LOGSUMEXP_DEBUG
@@ -12,6 +15,7 @@
 */
 
 typedef double LogProb;
+std::vector<LogProb> log_gsl_vector (gsl_vector* v);
 
 double log_sum_exp (double a, double b);  /* returns log(exp(a) + exp(b)) */
 double log_sum_exp (double a, double b, double c);
