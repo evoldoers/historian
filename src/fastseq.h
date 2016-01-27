@@ -14,9 +14,13 @@ using namespace std;
 typedef unsigned int SeqIdx;
 typedef unsigned int AlphTok;
 typedef int UnvalidatedAlphTok;
+typedef unsigned long long Kmer;
 typedef unsigned int QualScore;
 
 UnvalidatedAlphTok tokenize (char c, const string& alphabet);
+Kmer makeKmer (SeqIdx k, vector<AlphTok>::const_iterator tok, AlphTok alphabetSize);
+Kmer numberOfKmers (SeqIdx k, AlphTok alphabetSize);
+string kmerToString (Kmer kmer, SeqIdx k, const string& alphabet);
 
 struct FastSeq {
   // basic FASTQ data
@@ -44,5 +48,13 @@ void writeFastaSeqs (ostream& out, const vguard<FastSeq>& fastSeqs);
 void writeFastqSeqs (ostream& out, const vguard<FastSeq>& fastSeqs);
 
 set<string> fastSeqDuplicateNames (const vguard<FastSeq>& seqs);
+
+struct KmerIndex {
+  const FastSeq& seq;
+  const string& alphabet;
+  const SeqIdx kmerLen;
+  map <Kmer, vector<SeqIdx> > kmerLocations;
+  KmerIndex (const FastSeq& seq, const string& alphabet, SeqIdx kmerLen);
+};
 
 #endif /* KSEQCONTAINER_INCLUDED */
