@@ -32,7 +32,7 @@ struct GuideAlignmentEnvelope {
   // cumulativeMatches[col] = number of matches before column #col of pairwise alignment of (row1,row2)
   vguard<int> cumulativeMatches;
   // rowPosToCol[0 or 1][seqpos] = alignment column number of position #seqpos of (row1 or row2)
-  vguard<vguard<AlignColIndex> > rowPosToCol;
+  vguard<AlignColIndex> row1PosToCol, row2PosToCol;
   AlignRowIndex row1, row2;
   int maxDistance;
 
@@ -44,8 +44,8 @@ struct GuideAlignmentEnvelope {
   inline bool inRange (SeqIdx pos1, SeqIdx pos2) const {
     if (!initialized())
       return true;
-    const int d = cumulativeMatches[rowPosToCol[0][pos1]] - cumulativeMatches[rowPosToCol[1][pos2]];
-    return d <= maxDistance && -d <= maxDistance;
+    const int d = cumulativeMatches[row1PosToCol[pos1]] - cumulativeMatches[row2PosToCol[pos2]];
+    return abs(d) <= maxDistance;
   }
 };
 

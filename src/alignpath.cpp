@@ -222,9 +222,7 @@ vguard<FastSeq> Alignment::gapped() const {
 }
 
 GuideAlignmentEnvelope::GuideAlignmentEnvelope (const AlignPath& guide, AlignRowIndex row1, AlignRowIndex row2, int maxDistance)
-  : cumulativeMatches (2),
-    rowPosToCol (2),
-    maxDistance (maxDistance),
+  : maxDistance (maxDistance),
     row1 (row1),
     row2 (row2)
 {
@@ -235,15 +233,15 @@ GuideAlignmentEnvelope::GuideAlignmentEnvelope (const AlignPath& guide, AlignRow
   cumulativeMatches.reserve (cols);
   int matches = 0;
 
-  for (auto& rptc : rowPosToCol)
-    rptc.push_back (0);
+  row1PosToCol.push_back (0);
+  row2PosToCol.push_back (0);
 
   for (AlignColIndex col = 0; col < cols; ++col) {
     if (guide.at(row1)[col])
-      rowPosToCol[0].push_back (col);
+      row1PosToCol.push_back (col);
 
     if (guide.at(row2)[col])
-      rowPosToCol[1].push_back (col);
+      row2PosToCol.push_back (col);
 
     if (guide.at(row1)[col] && guide.at(row2)[col])
       ++matches;

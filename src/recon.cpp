@@ -162,6 +162,8 @@ Alignment Reconstructor::reconstruct() {
       LogThisAt(1,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
       ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide));
+      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << endl);
+
       if (node == nodes() - 1) {
 	path = forward.bestAlignPath();
 	prof[node] = forward.bestProfile();

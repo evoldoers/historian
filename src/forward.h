@@ -59,8 +59,9 @@ public:
   { return cellStorage[xpos][ypos].lp[state]; }
   inline const double cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
   {
-    auto iter = cellStorage[xpos].find(ypos);
-    return iter == cellStorage[xpos].end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
+    const auto& column = cellStorage[xpos];
+    auto iter = column.find(ypos);
+    return iter == column.end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
   }
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)

@@ -41,7 +41,7 @@ int main (int argc, char **argv) {
 
   Profile xprof (rates.alphabet, seqs[0], 1);
   Profile yprof (rates.alphabet, seqs[1], 2);
-  ForwardMatrix forward (xprof, yprof, hmm, 0);
+  ForwardMatrix forward (xprof, yprof, hmm, 0, GuideAlignmentEnvelope());
 
   Profile prof(0);
   if (useMatrix) {

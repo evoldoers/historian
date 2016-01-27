@@ -36,7 +36,7 @@ int main (int argc, char **argv) {
 
   yprof.state[1].lpAbsorb.clear();
 
-  ForwardMatrix forward (xprof, yprof, hmm, 0);
+  ForwardMatrix forward (xprof, yprof, hmm, 0, GuideAlignmentEnvelope());
 
   set<ForwardMatrix::CellCoords> allCells;
   allCells.insert (forward.startCell);
