@@ -8,7 +8,8 @@
 Reconstructor::Reconstructor()
   : profileSamples (100),
     profileNodeLimit (0),
-    tree (NULL)
+    tree (NULL),
+    maxDistanceFromGuide (10)
 { }
 
 Reconstructor::~Reconstructor()
@@ -36,7 +37,23 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
 
     } else if (arg == "-seqs") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      Require (guideFilename.size() == 0, "Can't specify both -guide and -seqs");
       seqsFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-guide") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      Require (seqsFilename.size() == 0, "Can't specify both -seqs and -guide");
+      guideFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-band") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      maxDistanceFromGuide = atoi (argvec[1].c_str());
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -54,19 +71,27 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
 }
 
 Alignment Reconstructor::loadFilesAndReconstruct() {
-  Require (seqsFilename.size() > 0, "Must specify sequences");
+  Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
   Require (treeFilename.size() > 0, "Must specify a tree");
   Require (modelFilename.size() > 0, "Must specify an evolutionary model");
 
   ifstream treeFile (treeFilename);
   tree = kn_parse (JsonUtil::readStringFromStream (treeFile).c_str());
 
-  seqs = readFastSeqs (seqsFilename.c_str());
+  if (seqsFilename.size()) {
+    seqs = readFastSeqs (seqsFilename.c_str());
+  } else {
+    const vguard<FastSeq> gapped = readFastSeqs (guideFilename.c_str());
+    const Alignment align (gapped);
+    guide = align.path;
+    seqs = align.ungapped;
+  }
 
   ifstream modelFile (modelFilename);
   ParsedJson pj (modelFile);
   model.read (pj.value);
 
+  buildIndices();
   return reconstruct();
 }
 
@@ -80,19 +105,43 @@ void Reconstructor::buildIndices() {
     if (!isLeaf(node))
       Assert (nChildren(node) == 2, "Tree is not binary: node %d has %s\nSubtree rooted at %d: %s\n", node, plural(nChildren(node),"child","children").c_str(), node, treeString(node).c_str());
 
+  AlignPath reorderedGuide;
   for (int node = 0; node < nodes(); ++node)
     if (isLeaf(node)) {
       Assert (nodeName(node).length() > 0, "Leaf node %d is unnamed", node);
       Assert (seqIndex.find (nodeName(node)) != seqIndex.end(), "Can't find sequence for leaf node %s", nodeName(node).c_str());
-      nodeToSeqIndex[node] = seqIndex[nodeName(node)];
+      const size_t seqidx = seqIndex[nodeName(node)];
+      nodeToSeqIndex[node] = seqidx;
+
+      if (guide.find(seqidx) != guide.end())
+	reorderedGuide[node] = guide[seqidx];
+
+      closestLeaf.push_back (node);
+      closestLeafDistance.push_back (0);
+
       rowName.push_back (nodeName(node));
-    } else
+
+    } else {
+      int cl = -1;
+      double dcl = 0;
+      for (int nc = 0; nc < nChildren(node); ++nc) {
+	const int c = getChild(node,nc);
+	const double dc = closestLeafDistance[c] + branchLength(c);
+	if (nc == 0 || dc < dcl) {
+	  cl = c;
+	  dcl = dc;
+	}
+      }
+      closestLeaf.push_back (cl);
+      closestLeafDistance.push_back (dcl);
+
       rowName.push_back (ForwardMatrix::ancestorName (rowName[getChild(node,0)], branchLength(getChild(node,0)), rowName[getChild(node,1)], branchLength(getChild(node,1))));
+    }
+
+  guide = reorderedGuide;
 }
 
 Alignment Reconstructor::reconstruct() {
-  buildIndices();
-  
   gsl_vector* eqm = model.getEqmProb();
   auto generator = ForwardMatrix::newRNG();
 
@@ -112,7 +161,7 @@ Alignment Reconstructor::reconstruct() {
 
       LogThisAt(1,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
-      ForwardMatrix forward (lProf, rProf, hmm, node);
+      ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide));
       if (node == nodes() - 1) {
 	path = forward.bestAlignPath();
 	prof[node] = forward.bestProfile();

@@ -6,9 +6,11 @@
 #include "alignpath.h"
 #include "model.h"
 
-struct Reconstructor {
-  string treeFilename, seqsFilename, modelFilename;
+class Reconstructor {
+public:
+  string treeFilename, seqsFilename, modelFilename, guideFilename;
   size_t profileSamples, profileNodeLimit;
+  int maxDistanceFromGuide;
 
   RateModel model;
   ktree_t* tree;
@@ -17,16 +19,18 @@ struct Reconstructor {
   map<string,size_t> seqIndex;
   map<int,size_t> nodeToSeqIndex;
   vguard<string> rowName;
+
+  AlignPath guide;
+  vguard<int> closestLeaf;
+  vguard<double> closestLeafDistance;
   
   Reconstructor();
   ~Reconstructor();
 
   bool parseReconArgs (deque<string>& argvec);
-  
-  Alignment reconstruct();
   Alignment loadFilesAndReconstruct();
-  void buildIndices();
 
+  // tree accessors
   string nodeName (int node) const;
   double branchLength (int node) const;
   int nodes() const;
@@ -36,6 +40,10 @@ struct Reconstructor {
   int getChild (int node, int childNum) const;
   string treeString (int root) const;
   string treeString() const;
+
+private:
+  void buildIndices();
+  Alignment reconstruct();
 };
 
 

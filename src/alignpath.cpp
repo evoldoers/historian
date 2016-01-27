@@ -221,29 +221,31 @@ vguard<FastSeq> Alignment::gapped() const {
   return gs;
 }
 
-GuideAlignmentDistanceMetric::GuideAlignmentDistanceMetric (const AlignPath& guide) {
-  map<AlignRowIndex,SeqIdx> rowPos;
-  for (auto& row_path : guide)
-    rowPos[row_path.first] = 0;
-
+GuideAlignmentEnvelope::GuideAlignmentEnvelope (const AlignPath& guide, AlignRowIndex row1, AlignRowIndex row2, int maxDistance)
+  : cumulativeMatches (2),
+    rowPosToCol (2),
+    maxDistance (maxDistance),
+    row1 (row1),
+    row2 (row2)
+{
   const AlignColIndex cols = alignPathColumns (guide);
-  for (auto& row_path : guide)
-    rowPosToCol[row_path.first].push_back (0);
+  cumulativeMatches.reserve (cols);
+  int matches = 0;
+
+  for (auto& rptc : rowPosToCol)
+    rptc.push_back (0);
+
   for (AlignColIndex col = 0; col < cols; ++col) {
-    for (auto& row_path : guide)
-      if (row_path.second[col])
-	rowPosToCol[row_path.first].push_back (col);
+    if (guide.at(row1)[col])
+      rowPosToCol[0].push_back (col);
+
+    if (guide.at(row2)[col])
+      rowPosToCol[1].push_back (col);
+
+    if (guide.at(row1)[col] && guide.at(row2)[col])
+      ++matches;
+
+    cumulativeMatches.push_back (matches);
   }
 
-  for (auto& rp1 : guide)
-    for (auto& rp2 : guide)
-      if (rp1.first < rp2.first) {
-	int matches = 0;
-	vguard<int>& cm = cumulativeMatches[rp1.first][rp2.first];
-	cm.reserve (cols);
-	for (AlignColIndex col = 0; col < cols; ++col)
-	  if (rp1.second[col] && rp2.second[col])
-	    ++matches;
-	cm.push_back (matches);
-      }
 }

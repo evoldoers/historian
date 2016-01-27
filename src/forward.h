@@ -50,7 +50,11 @@ public:
   const ProfileStateIndex xSize, ySize;
   const CellCoords startCell, endCell;
   LogProb lpEnd;
-  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex);
+  const GuideAlignmentEnvelope envelope;
+  vguard<int> xClosestLeafPos, yClosestLeafPos;
+  int maxDistance;
+
+  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env);
   inline double& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[xpos][ypos].lp[state]; }
   inline const double cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
