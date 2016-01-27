@@ -19,6 +19,7 @@ struct AlphabetOwner {
   inline size_t alphabetSize() const { return alphabet.size(); }
   void readAlphabet (const JsonValue& json);
   UnvalidatedAlphTok tokenize (char c) const;
+  AlphTok tokenizeOrDie (char c) const;
   gsl_matrix* newAlphabetMatrix() const;
   gsl_vector* newAlphabetVector() const;
 };
@@ -32,6 +33,8 @@ struct RateModel : AlphabetOwner {
   void write (ostream& out) const;
   gsl_vector* getEqmProb() const;
   gsl_matrix* getSubProb (double t) const;
+
+  vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
 };
 
 struct ProbModel : AlphabetOwner {

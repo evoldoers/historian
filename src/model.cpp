@@ -1,11 +1,15 @@
 #include <math.h>
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_min.h>
 #include <algorithm>
 #include <set>
 
 #include "model.h"
 #include "jsonutil.h"
 #include "util.h"
+#include "alignpath.h"
 
 void AlphabetOwner::readAlphabet (const JsonValue& json) {
   const JsonMap jm (json);
@@ -20,6 +24,14 @@ void AlphabetOwner::readAlphabet (const JsonValue& json) {
 
 UnvalidatedAlphTok AlphabetOwner::tokenize (char c) const {
   return ::tokenize (c, alphabet);
+}
+
+AlphTok AlphabetOwner::tokenizeOrDie (char c) const {
+  UnvalidatedAlphTok tok = tokenize (c);
+  if (tok >= 0 && tok < alphabetSize())
+    return tok;
+  Abort ("Character '%c' is not a member of alphabet '%s'", c, alphabet.c_str());
+  return 0;
 }
 
 gsl_matrix* AlphabetOwner::newAlphabetMatrix() const {
@@ -183,4 +195,74 @@ LogProbModel::LogProbModel (const ProbModel& pm)
     for (AlphTok j = 0; j < pm.alphabetSize(); ++j)
       logSubProb[i][j] = log (gsl_matrix_get (pm.subMat, i, j));
   }
+}
+
+struct DistanceMatrixParams {
+  const map<pair<AlphTok,AlphTok>,int>& pairCount;
+  const RateModel& model;
+  DistanceMatrixParams (const map<pair<AlphTok,AlphTok>,int>& pairCount, const RateModel& model)
+    : pairCount(pairCount),
+      model(model)
+  { }
+  double tML (int maxIterations) const;
+};
+
+vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations) const {
+  vguard<vguard<double> > dist (gappedSeq.size(), vguard<double> (gappedSeq.size()));
+  for (size_t i = 0; i < gappedSeq.size() - 1; ++i)
+    for (size_t j = i + 1; j < gappedSeq.size(); ++j) {
+      map<pair<AlphTok,AlphTok>,int> pairCount;
+      for (size_t col = 0; col < gappedSeq[i].length(); ++col) {
+	const char ci = gappedSeq[i].seq[col];
+	const char cj = gappedSeq[j].seq[col];
+	if (!Alignment::isGap(ci) && !Alignment::isGap(cj))
+	  ++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
+
+	const DistanceMatrixParams dmp (pairCount, *this);
+	dist[i][j] = dist[j][i] = dmp.tML (maxIterations);
+      }
+    }
+  return dist;
+}
+
+double distanceMatrixNegLogLike (double t, void *params) {
+  const DistanceMatrixParams& dmp = *(const DistanceMatrixParams*) params;
+  gsl_matrix* sub = dmp.model.getSubProb (t);
+  double ll = 0;
+  for (auto& pc : dmp.pairCount)
+    ll += log (gsl_matrix_get(sub,pc.first.first,pc.first.second)) * (double) pc.second;
+  gsl_matrix_free (sub);
+  return -ll;
+}
+
+double DistanceMatrixParams::tML (int maxIterations) const {
+  const gsl_min_fminimizer_type *T;
+  gsl_min_fminimizer *s;
+
+  gsl_function F;
+  F.function = &distanceMatrixNegLogLike;
+  F.params = (void*) this;
+
+  T = gsl_min_fminimizer_brent;
+  s = gsl_min_fminimizer_alloc (T);
+
+  double t = 1;
+  const double tLower = 0, tUpper = 10;
+  gsl_min_fminimizer_set (s, &F, t, tLower, tUpper);
+
+  for (int iter = 0; iter < maxIterations; ++iter) {
+    (void) gsl_min_fminimizer_iterate (s);
+
+    t = gsl_min_fminimizer_x_minimum (s);
+    const double a = gsl_min_fminimizer_x_lower (s);
+    const double b = gsl_min_fminimizer_x_upper (s);
+
+    const int status = gsl_min_test_interval (a, b, 0.001, 0.0);
+    if (status == GSL_SUCCESS)
+      break;
+  }
+
+  gsl_min_fminimizer_free (s);
+
+  return t;
 }
