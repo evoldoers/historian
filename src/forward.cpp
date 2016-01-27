@@ -534,19 +534,28 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
   return prof;
 }
 
-Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, EliminationStrategy strategy) {
+Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, EliminationStrategy strategy, bool includeBestTraceInProfile) {
   map<CellCoords,size_t> cellCount;
-  const Path best = bestTrace();
-  for (auto& c : best)
-    cellCount[c] = 2;  // avoid dropping these cells
+  if (includeBestTraceInProfile) {
+    const Path best = bestTrace();
+    for (auto& c : best)
+      cellCount[c] = 2;  // avoid dropping these cells
+  }
   for (size_t n = 0; n < profileSamples && (maxCells == 0 || cellCount.size() < maxCells); ++n) {
     const Path sampled = sampleTrace (generator);
+    if (LoggingThisAt(5)) {
+      LogThisAt(5,"Trace #" << n+1 << ":");
+      for (auto& c : sampled)
+	LogThisAt(5," " << cellName(c));
+      LogThisAt(5,endl);
+    }
     for (auto& c : sampled)
       ++cellCount[c];
   }
   set<CellCoords> profCells;
+  const size_t threshold = (maxCells > 0 && cellCount.size() >= maxCells) ? 2 : 1;
   for (const auto& cc : cellCount)
-    if (cc.second > 1)
+    if (cc.second >= threshold)
       profCells.insert (cc.first);
   return makeProfile (profCells, strategy);
 }

@@ -69,7 +69,7 @@ public:
 
   enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
   Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
-  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers);  // maxCells=0 to unlimit
+  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
   Profile bestProfile (EliminationStrategy strategy = KeepHubsAndAbsorbers);
 
   // helpers

@@ -11,6 +11,8 @@ public:
   string treeFilename, seqsFilename, modelFilename, guideFilename;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
+  bool includeBestTraceInProfile;
+  unsigned rndSeed;
 
   RateModel model;
   ktree_t* tree;

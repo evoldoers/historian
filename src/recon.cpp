@@ -1,4 +1,5 @@
 #include <fstream>
+#include <random>
 #include "recon.h"
 #include "util.h"
 #include "forward.h"
@@ -8,6 +9,8 @@
 Reconstructor::Reconstructor()
   : profileSamples (100),
     profileNodeLimit (0),
+    includeBestTraceInProfile (true),
+    rndSeed (ForwardMatrix::random_engine::default_seed),
     tree (NULL),
     maxDistanceFromGuide (10)
 { }
@@ -61,6 +64,18 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
     } else if (arg == "-samples") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       profileSamples = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-allrandom") {
+      includeBestTraceInProfile = false;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-seed") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      rndSeed = atoi (argvec[1].c_str());
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -144,7 +159,9 @@ void Reconstructor::buildIndices() {
 Alignment Reconstructor::reconstruct() {
   gsl_vector* eqm = model.getEqmProb();
   auto generator = ForwardMatrix::newRNG();
+  generator.seed (rndSeed);
 
+  LogProb lpFinal = -numeric_limits<double>::infinity();
   AlignPath path;
   map<int,Profile> prof;
   for (int node = 0; node < nodes(); ++node) {
@@ -159,7 +176,7 @@ Alignment Reconstructor::reconstruct() {
       ProbModel rProbs (model, branchLength(rChildNode));
       PairHMM hmm (lProbs, rProbs, eqm);
 
-      LogThisAt(1,"Aligning " << lProf.name << " and " << rProf.name << endl);
+      LogThisAt(2,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
       ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide));
       LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << endl);
@@ -167,14 +184,17 @@ Alignment Reconstructor::reconstruct() {
       if (node == nodes() - 1) {
 	path = forward.bestAlignPath();
 	prof[node] = forward.bestProfile();
+	lpFinal = forward.lpEnd;
       } else
-	prof[node] = forward.sampleProfile (generator, profileSamples, profileNodeLimit);
+	prof[node] = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
 
       LogThisAt(5,prof[node].toJson());
     }
   }
 
   gsl_vector_free (eqm);
+
+  LogThisAt(1,"Final log-likelihood is " << lpFinal << endl);
 
   vguard<FastSeq> ungapped (nodes());
   for (int node = 0; node < nodes(); ++node) {
