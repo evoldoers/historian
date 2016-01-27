@@ -215,6 +215,7 @@ vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gapped
     for (size_t j = i + 1; j < gappedSeq.size(); ++j) {
       LogThisAt(4,"Estimating distance from " << gappedSeq[i].name << " to " << gappedSeq[j].name << endl);
       map<pair<AlphTok,AlphTok>,int> pairCount;
+      Assert (gappedSeq[i].length() == gappedSeq[j].length(), "Sequences %s and %s have different lengths (%u, %u)", gappedSeq[i].name.c_str(), gappedSeq[j].name.c_str(), gappedSeq[i].length(), gappedSeq[j].length());
       for (size_t col = 0; col < gappedSeq[i].length(); ++col) {
 	const char ci = gappedSeq[i].seq[col];
 	const char cj = gappedSeq[j].seq[col];

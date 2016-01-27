@@ -19,7 +19,7 @@ int main (int argc, char **argv) {
 
   const vguard<FastSeq> gapped = readFastSeqs (argv[2]);
 
-  logger.setVerbose(6);
+  //  logger.setVerbose(6);
   auto dist = rates.distanceMatrix (gapped);
   Tree tree;
   tree.buildByNeighborJoining (gapped, dist);

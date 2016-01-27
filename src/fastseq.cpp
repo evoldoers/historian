@@ -61,11 +61,13 @@ void writeFastqSeqs (ostream& out, const vguard<FastSeq>& fastSeqs) {
 }
 
 void initFastSeq (FastSeq& seq, kseq_t* ks) {
-  seq.name = string(ks->name.s);
-  seq.seq = string(ks->seq.s);
+  if (ks->name.l)
+    seq.name = string(ks->name.s);
+  if (ks->seq.l)
+    seq.seq = string(ks->seq.s);
   if (ks->comment.l)
     seq.comment = string(ks->comment.s);
-  if (ks->qual.l == ks->seq.l)
+  if (ks->qual.l && ks->qual.l == ks->seq.l)
     seq.qual = string(ks->qual.s);
 }
 

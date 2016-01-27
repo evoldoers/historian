@@ -96,7 +96,7 @@ obj/%.o: t/%.cpp
 
 TEST = @perl/testexpect.pl
 
-test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward
+test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward testnj
 
 testlogsumexp: bin/testlogsumexp
 	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
@@ -130,6 +130,9 @@ testforward: bin/testforward
 
 testnullforward: bin/testnullforward
 	$(TEST) bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
+
+testnj: bin/testnj
+	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
 
 testhist: bin/historian
 	bin/historian align data/PF16593.fa data/PF16593.nhx -model data/amino.json -vv
