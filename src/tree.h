@@ -23,7 +23,7 @@ struct Tree {
   Tree (const string& nhx);
 
   string nodeName (TreeNodeIndex node) const;
-  double branchLength (TreeNodeIndex node) const;
+  TreeBranchLength branchLength (TreeNodeIndex node) const;
   TreeNodeIndex nodes() const;
   TreeNodeIndex root() const;
   TreeNodeIndex parentNode (TreeNodeIndex node) const;
@@ -33,8 +33,11 @@ struct Tree {
 
   void parse (const string& nhx);
   
+  string nodeToString (TreeNodeIndex n) const;  // omits trailing ";"
   string toString (TreeNodeIndex root) const;
   string toString() const;
+
+  void buildByNeighborJoining (const vguard<string>& nodeName, const vector<vector<TreeBranchLength> >& distanceMatrix);
 };
 
 #endif /* TREE_INCLUDED */
