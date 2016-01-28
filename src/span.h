@@ -2,6 +2,7 @@
 #define SPAN_INCLUDED
 
 #include "quickalign.h"
+#include "forward.h"
 
 struct AlignSpan {
   struct Edge {
@@ -14,7 +15,7 @@ struct AlignSpan {
   const double time;
   vguard<map<AlignRowIndex,Edge> > edge;
 
-  AlignSpan (const vguard<FastSeq>& seqs, const RateModel& model, const double time);
+  AlignSpan (const vguard<FastSeq>& seqs, const RateModel& model, const double time, ForwardMatrix::random_engine& generator);
   AlignPath minSpanTree() const;
 };
 
