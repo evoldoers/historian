@@ -133,7 +133,7 @@ testnullforward: bin/testnullforward
 
 testnj: bin/testnj
 	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
-	$(TEST) bin/testnj data/amino.json data/testspan.out.fa data/testnj.span.fa
+	$(TEST) bin/testnj data/amino.json data/testspan.out.fa data/testnj.span.nh
 
 testquickalign: bin/testquickalign
 	$(TEST) bin/testquickalign data/PF16593.pair.fa data/amino.json 1 data/testquickalign.out.fa
@@ -142,9 +142,14 @@ testspan: bin/testspan
 	$(TEST) bin/testspan data/PF16593.fa data/amino.json 1 data/testspan.out.fa
 
 testhist: bin/historian
-	$(TEST) bin/historian align -guide data/testspan.out.fa -model data/amino.json -tree data/testnj.span.fa -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/historian align -guide data/testspan.out.fa -model data/amino.json -tree data/testnj.span.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 
-testhist2: bin/historian
+# currently does not produce same results as testhist (but should):
+testhist2:
+	$(TEST) bin/historian align data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
+
+# this rule uses the Pfam alignment and tree:
+testhist3: bin/historian
 	bin/historian align -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/amino.json -vv
 
 # Rules for building files in the repository
@@ -152,3 +157,8 @@ testhist2: bin/historian
 README.md: bin/$(MAIN)
 	PATH=bin:$(PATH); $(MAIN) help | perl -pe 's/</&lt;/g;s/>/&gt;/g;' | perl -e 'open FILE,"<README.md";while(<FILE>){last if/<pre>/;print}close FILE;print"<pre><code>\n";while(<>){print};print"</code></pre>\n"' >temp.md
 	mv temp.md $@
+
+# For updating default model
+src/amino.cpp: data/amino.json
+	perl -e 'open S,"<".shift();while(<S>){print;last if/defaultAminoModelText =/}close S;open A,"<".shift();$$q=chr(34);while(<A>){chomp;s/$$q/\\$$q/g;print chr(34),$$_,"\\n",chr(34),"\n"}print";\n"' $@ $< >temp.cpp
+	mv temp.cpp $@

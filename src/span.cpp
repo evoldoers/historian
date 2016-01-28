@@ -103,3 +103,11 @@ AlignPath AlignGraph::mstPath() {
   const vguard<AlignPath> pathVec (pathList.begin(), pathList.end());
   return alignPathMerge (pathVec);
 }
+
+Alignment AlignGraph::mstAlign() {
+  return Alignment (seqs, mstPath());
+}
+
+vguard<FastSeq> AlignGraph::mstGapped() {
+  return mstAlign().gapped();
+}

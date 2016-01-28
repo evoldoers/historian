@@ -24,7 +24,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "Commands:\n"
     + "\n"
-    + " " + prog + " align seqs.fasta tree.newick  >alignment.fasta\n"
+    + " " + prog + " align seqs.fa [-tree tree.nh] [-model model.json] >alignment.fa\n"
     + "\n";
 }
 

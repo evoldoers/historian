@@ -33,6 +33,8 @@ struct AlignGraph {
   AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, ForwardMatrix::random_engine& generator);
   list<AlignPath> minSpanTree();
   AlignPath mstPath();
+  Alignment mstAlign();
+  vguard<FastSeq> mstGapped();
 };
 
 #endif /* SPAN_INCLUDED */

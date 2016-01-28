@@ -5,6 +5,7 @@
 #include "tree.h"
 #include "alignpath.h"
 #include "model.h"
+#include "forward.h"
 
 class Reconstructor {
 public:
@@ -12,11 +13,13 @@ public:
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
   bool includeBestTraceInProfile;
+
+  ForwardMatrix::random_engine generator;
   unsigned rndSeed;
 
   RateModel model;
   Tree tree;
-  vguard<FastSeq> seqs;
+  vguard<FastSeq> seqs, gapped;
 
   map<string,size_t> seqIndex;
   map<TreeNodeIndex,size_t> nodeToSeqIndex;

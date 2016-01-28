@@ -5,6 +5,8 @@
 #include "forward.h"
 #include "jsonutil.h"
 #include "logger.h"
+#include "span.h"
+#include "amino.h"
 
 Reconstructor::Reconstructor()
   : profileSamples (100),
@@ -54,6 +56,11 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-noband") {
+      maxDistanceFromGuide = -1;
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-samples") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       profileSamples = atoi (argvec[1].c_str());
@@ -80,24 +87,37 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
 
 Alignment Reconstructor::loadFilesAndReconstruct() {
   Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
-  Require (treeFilename.size() > 0, "Must specify a tree");
-  Require (modelFilename.size() > 0, "Must specify an evolutionary model");
 
-  ifstream treeFile (treeFilename);
-  tree.parse (JsonUtil::readStringFromStream (treeFile));
+  generator = ForwardMatrix::newRNG();
+  generator.seed (rndSeed);
+
+  if (modelFilename.size()) {
+    ifstream modelFile (modelFilename);
+    ParsedJson pj (modelFile);
+    model.read (pj.value);
+  } else
+    model = defaultAminoModel();
 
   if (seqsFilename.size()) {
     seqs = readFastSeqs (seqsFilename.c_str());
+    AlignGraph ag (seqs, model, 1, generator);
+    Alignment align = ag.mstAlign();
+    guide = align.path;
+    gapped = align.gapped();
   } else {
-    const vguard<FastSeq> gapped = readFastSeqs (guideFilename.c_str());
+    gapped = readFastSeqs (guideFilename.c_str());
     const Alignment align (gapped);
     guide = align.path;
     seqs = align.ungapped;
   }
 
-  ifstream modelFile (modelFilename);
-  ParsedJson pj (modelFile);
-  model.read (pj.value);
+  if (treeFilename.size()) {
+    ifstream treeFile (treeFilename);
+    tree.parse (JsonUtil::readStringFromStream (treeFile));
+  } else {
+    auto dist = model.distanceMatrix (gapped);
+    tree.buildByNeighborJoining (gapped, dist);
+  }
 
   buildIndices();
   return reconstruct();
@@ -154,8 +174,6 @@ void Reconstructor::buildIndices() {
 
 Alignment Reconstructor::reconstruct() {
   gsl_vector* eqm = model.getEqmProb();
-  auto generator = ForwardMatrix::newRNG();
-  generator.seed (rndSeed);
 
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
   AlignPath path;

@@ -25,10 +25,7 @@ int main (int argc, char **argv) {
 
   ForwardMatrix::random_engine generator = ForwardMatrix::newRNG();
   AlignGraph ag (seqs, rates, time, generator);
-  AlignPath path = ag.mstPath();
-
-  Alignment align (seqs, path);
-  vguard<FastSeq> gapped = align.gapped();
+  vguard<FastSeq> gapped = ag.mstGapped();
   writeFastaSeqs (cout, gapped);
   
   exit (EXIT_SUCCESS);
