@@ -77,7 +77,8 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
       ins(i,j) = max (ins(i,j-1) + i2i,
 		      mat(i,j-1) + m2i);
 
-      del(i,j) = max (del(i-1,j) + d2d,
+      del(i,j) = max (max (ins(i-1,j) + i2d,
+			   del(i-1,j) + d2d),
 		      mat(i-1,j) + m2d);
 
       if (j == yLen && i == xLen)
