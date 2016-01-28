@@ -131,6 +131,11 @@ testforward: bin/testforward
 testnullforward: bin/testnullforward
 	$(TEST) bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
 
+testtreeio: bin/testtreeio
+	$(TEST) bin/testtreeio data/PF16593.nhx data/PF16593.nhx
+	$(TEST) bin/testtreeio data/testnj.out.nh data/testnj.out.nh
+	$(TEST) bin/testtreeio data/testnj.span.nh data/testnj.span.nh
+
 testnj: bin/testnj
 	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
 	$(TEST) bin/testnj data/amino.json data/testspan.out.fa data/testnj.span.nh
@@ -141,16 +146,16 @@ testquickalign: bin/testquickalign
 testspan: bin/testspan
 	$(TEST) bin/testspan data/PF16593.fa data/amino.json 1 data/testspan.out.fa
 
-testhist: bin/historian
-	$(TEST) bin/historian align -guide data/testspan.out.fa -model data/amino.json -tree data/testnj.span.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+testhist: bin/$(MAIN)
+	$(TEST) bin/$(MAIN) align -guide data/testspan.out.fa -model data/amino.json -tree data/testnj.span.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 
 # currently does not produce same results as testhist (but should):
-testhist2:
-	$(TEST) bin/historian align data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
+testhist2: bin/$(MAIN)
+	$(TEST) bin/$(MAIN) align data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
 
 # this rule uses the Pfam alignment and tree:
-testhist3: bin/historian
-	bin/historian align -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/amino.json -vv
+testhist3: bin/$(MAIN)
+	bin/$(MAIN) align -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/amino.json -vv
 
 # Rules for building files in the repository
 # For updating README.md

@@ -27,11 +27,13 @@ string Tree::nodeToString (TreeNodeIndex root) const {
     return nodeName(root);
   string s = "(";
   for (int c = 0; c < nChildren(root); ++c) {
+    ostringstream d;
+    d << defaultfloat << branchLength(getChild(root,c));
     if (c > 0)
       s += ",";
-    s += nodeToString(getChild(root,c)) + ":" + to_string(branchLength(getChild(root,c)));
+    s += nodeToString(getChild(root,c)) + ":" + d.str(); // to_string(branchLength(getChild(root,c)));
   }
-  s += ")";
+  s += ")" + nodeName(root);
   return s;
 }
 
@@ -191,4 +193,3 @@ void Tree::buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vgua
     nodeName.push_back (s.name);
   return buildByNeighborJoining (nodeName, distanceMatrix);
 }
-
