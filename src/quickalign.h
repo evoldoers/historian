@@ -47,7 +47,10 @@ public:
   static size_t cellSize() { return 3*sizeof(double); }
 
   bool resultIsFinite() const { return result > -numeric_limits<double>::infinity(); }
-  AlignPath alignment() const;
+  AlignPath alignPath() const;
+  AlignPath alignPath (AlignRowIndex row1, AlignRowIndex row2) const;
+  Alignment alignment() const;
+  vguard<FastSeq> gappedSeq() const;
 
 protected:
   static void updateMax (LogProb& currentMax, State& currentMaxIdx, double candidateMax, State candidateMaxIdx);

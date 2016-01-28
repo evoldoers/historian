@@ -58,11 +58,7 @@ AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, con
     env.initFull();
 
     QuickAlignMatrix mx (env, model, time);
-    AlignPath quickPath = mx.alignment();
-
-    AlignPath& path = edgePath[src][dest];
-    path[src] = quickPath[0];
-    path[dest] = quickPath[1];
+    edgePath[src][dest] = mx.alignPath (src, dest);
     
     Edge e;
     e.row1 = src;

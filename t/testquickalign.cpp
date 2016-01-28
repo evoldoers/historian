@@ -27,9 +27,7 @@ int main (int argc, char **argv) {
   env.initFull();
 
   QuickAlignMatrix mx (env, rates, time);
-  AlignPath path = mx.alignment();
-
-  Alignment align (seqs, path);
+  Alignment align = mx.alignment();
   vguard<FastSeq> gapped = align.gapped();
   writeFastaSeqs (cout, gapped);
   

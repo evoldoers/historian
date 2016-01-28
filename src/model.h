@@ -34,6 +34,7 @@ struct RateModel : AlphabetOwner {
   gsl_vector* getEqmProb() const;
   gsl_matrix* getSubProb (double t) const;
 
+  double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = 100) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
 };
 

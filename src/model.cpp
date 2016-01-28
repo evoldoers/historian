@@ -12,6 +12,17 @@
 #include "alignpath.h"
 #include "logger.h"
 
+struct DistanceMatrixParams {
+  const map<pair<AlphTok,AlphTok>,int>& pairCount;
+  const RateModel& model;
+  DistanceMatrixParams (const map<pair<AlphTok,AlphTok>,int>& pairCount, const RateModel& model)
+    : pairCount(pairCount),
+      model(model)
+  { }
+  double tML (int maxIterations) const;
+  double negLogLike (double t) const;
+};
+
 void AlphabetOwner::readAlphabet (const JsonValue& json) {
   const JsonMap jm (json);
   Assert (jm.containsType("alphabet",JSON_STRING), "No alphabet");
@@ -198,39 +209,31 @@ LogProbModel::LogProbModel (const ProbModel& pm)
   }
 }
 
-struct DistanceMatrixParams {
-  const map<pair<AlphTok,AlphTok>,int>& pairCount;
-  const RateModel& model;
-  DistanceMatrixParams (const map<pair<AlphTok,AlphTok>,int>& pairCount, const RateModel& model)
-    : pairCount(pairCount),
-      model(model)
-  { }
-  double tML (int maxIterations) const;
-  double negLogLike (double t) const;
-};
+double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterations) const {
+  LogThisAt(4,"Estimating distance from " << x.name << " to " << y.name << endl);
+  map<pair<AlphTok,AlphTok>,int> pairCount;
+  Assert (x.length() == y.length(), "Sequences %s and %s have different lengths (%u, %u)", x.name.c_str(), y.name.c_str(), x.length(), y.length());
+  for (size_t col = 0; col < x.length(); ++col) {
+    const char ci = x.seq[col];
+    const char cj = y.seq[col];
+    if (!Alignment::isGap(ci) && !Alignment::isGap(cj))
+      ++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
+  }
+  if (LoggingThisAt(6)) {
+    LogThisAt(6,"Counts:");
+    for (const auto& pc : pairCount)
+      LogThisAt(6," " << pc.second << "*" << alphabet[pc.first.first] << alphabet[pc.first.second]);
+    LogThisAt(6,endl);
+  }
+  const DistanceMatrixParams dmp (pairCount, *this);
+  return dmp.tML (maxIterations);
+}
 
 vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations) const {
   vguard<vguard<double> > dist (gappedSeq.size(), vguard<double> (gappedSeq.size()));
   for (size_t i = 0; i < gappedSeq.size() - 1; ++i)
-    for (size_t j = i + 1; j < gappedSeq.size(); ++j) {
-      LogThisAt(4,"Estimating distance from " << gappedSeq[i].name << " to " << gappedSeq[j].name << endl);
-      map<pair<AlphTok,AlphTok>,int> pairCount;
-      Assert (gappedSeq[i].length() == gappedSeq[j].length(), "Sequences %s and %s have different lengths (%u, %u)", gappedSeq[i].name.c_str(), gappedSeq[j].name.c_str(), gappedSeq[i].length(), gappedSeq[j].length());
-      for (size_t col = 0; col < gappedSeq[i].length(); ++col) {
-	const char ci = gappedSeq[i].seq[col];
-	const char cj = gappedSeq[j].seq[col];
-	if (!Alignment::isGap(ci) && !Alignment::isGap(cj))
-	  ++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
-      }
-      if (LoggingThisAt(6)) {
-	LogThisAt(6,"Counts:");
-	for (const auto& pc : pairCount)
-	  LogThisAt(6," " << pc.second << "*" << alphabet[pc.first.first] << alphabet[pc.first.second]);
-	LogThisAt(6,endl);
-      }
-      const DistanceMatrixParams dmp (pairCount, *this);
-      dist[i][j] = dist[j][i] = dmp.tML (maxIterations);
-    }
+    for (size_t j = i + 1; j < gappedSeq.size(); ++j)
+      dist[i][j] = dist[j][i] = mlDistance (gappedSeq[i], gappedSeq[j]);
   if (LoggingThisAt(3)) {
     LogThisAt(3,"Distance matrix (" << dist.size() << " rows):" << endl);
     for (const auto& row : dist)

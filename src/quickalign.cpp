@@ -140,7 +140,7 @@ void QuickAlignMatrix::updateMax (double& currentMax, State& currentMaxIdx, doub
   }
 }
 
-AlignPath QuickAlignMatrix::alignment() const {
+AlignPath QuickAlignMatrix::alignPath() const {
   Require (resultIsFinite(), "Can't do Viterbi traceback if final score is -infinity");
   AlignPath path;
   SeqIdx i = xLen, j = yLen;
@@ -189,4 +189,24 @@ AlignPath QuickAlignMatrix::alignment() const {
     }
   }
   return path;
+}
+
+AlignPath QuickAlignMatrix::alignPath (AlignRowIndex row1, AlignRowIndex row2) const {
+  AlignPath oldPath = alignPath();
+  AlignPath newPath;
+  newPath[row1] = oldPath[0];
+  newPath[row2] = oldPath[1];
+  return newPath;
+}
+
+Alignment QuickAlignMatrix::alignment() const {
+  AlignPath path = alignPath();
+  vguard<FastSeq> seqs;
+  seqs.push_back (*px);
+  seqs.push_back (*py);
+  return Alignment (seqs, path);
+}
+
+vguard<FastSeq> QuickAlignMatrix::gappedSeq() const {
+  return alignment().gapped();
 }
