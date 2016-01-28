@@ -2,7 +2,7 @@
 #include "quickalign.h"
 #include "logger.h"
 
-double QuickAlignMatrix::dummy = -numeric_limits<double>::infinity();
+LogProb QuickAlignMatrix::dummy = -numeric_limits<double>::infinity();
 
 QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel& model, double time)
   : penv (&env),
@@ -93,8 +93,8 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
   LogThisAt(4, "Viterbi score: " << result << endl);
 }
 
-double QuickAlignMatrix::cellScore (SeqIdx i, SeqIdx j, State state) const {
-  double cs = numeric_limits<double>::quiet_NaN();
+LogProb QuickAlignMatrix::cellScore (SeqIdx i, SeqIdx j, State state) const {
+  LogProb cs = numeric_limits<double>::quiet_NaN();
   switch (state) {
   case Match:
     cs = mat(i,j);
@@ -146,8 +146,8 @@ AlignPath QuickAlignMatrix::alignment() const {
   State state = Match;
   while (state != Start) {
     LogThisAt(9, "Traceback: i=" << i << " j=" << j << " state=" << stateToString(state) << " score=" << cellScore(i,j,state) << endl);
-    double srcSc = -numeric_limits<double>::infinity();
-    double emitSc = 0;
+    LogProb srcSc = -numeric_limits<double>::infinity();
+    LogProb emitSc = 0;
     switch (state) {
     case Match:
       emitSc = matchEmitScore(i,j);
