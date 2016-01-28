@@ -96,7 +96,7 @@ obj/%.o: t/%.cpp
 
 TEST = @perl/testexpect.pl
 
-test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward testnj testquickalign testspan
+test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward testnj testquickalign testspan testhist
 
 testlogsumexp: bin/testlogsumexp
 	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
@@ -133,6 +133,7 @@ testnullforward: bin/testnullforward
 
 testnj: bin/testnj
 	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
+	$(TEST) bin/testnj data/amino.json data/testspan.out.fa data/testnj.span.fa
 
 testquickalign: bin/testquickalign
 	$(TEST) bin/testquickalign data/PF16593.pair.fa data/amino.json 1 data/testquickalign.out.fa
@@ -141,7 +142,10 @@ testspan: bin/testspan
 	$(TEST) bin/testspan data/PF16593.fa data/amino.json 1 data/testspan.out.fa
 
 testhist: bin/historian
-	bin/historian align data/PF16593.fa data/PF16593.nhx -model data/amino.json -vv
+	$(TEST) bin/historian align -guide data/testspan.out.fa -model data/amino.json -tree data/testnj.span.fa -band 10 data/PF16593.testspan.testnj.historian.fa
+
+testhist2: bin/historian
+	bin/historian align -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/amino.json -vv
 
 # Rules for building files in the repository
 # For updating README.md

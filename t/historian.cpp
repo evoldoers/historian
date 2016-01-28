@@ -37,10 +37,9 @@ int main (int argc, char** argv) {
   if (command == "align") {
 
     Reconstructor recon;
-      
+
     usage.implicitSwitches.push_back (string ("-seqs"));
-    usage.implicitSwitches.push_back (string ("-tree"));
-      
+
     deque<string>& argvec (usage.argvec);
     while (logger.parseLogArgs (argvec)
 	   || recon.parseReconArgs (argvec)
