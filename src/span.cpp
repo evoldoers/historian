@@ -1,4 +1,5 @@
 #include "span.h"
+#include "logger.h"
 
 AlignGraph::Partition::Partition (size_t n)
   : seqSetIdx (n),
@@ -17,8 +18,10 @@ bool AlignGraph::Partition::inSameSet (const AlignGraph::Edge& e) const {
 
 void AlignGraph::Partition::merge (const AlignGraph::Edge& e) {
   if (!inSameSet(e)) {
-    const size_t idx1 = seqSetIdx[e.row1];
-    const size_t idx2 = seqSetIdx[e.row2];
+    size_t idx1 = seqSetIdx[e.row1];
+    size_t idx2 = seqSetIdx[e.row2];
+    if (idx1 > idx2)
+      swap (idx1, idx2);
     set<size_t>& set1 = seqSet[idx1];
     set<size_t>& set2 = seqSet[idx2];
     for (auto n2 : set2)
@@ -29,21 +32,14 @@ void AlignGraph::Partition::merge (const AlignGraph::Edge& e) {
   }
 }
 
-AlignPath AlignGraph::Edge::path() const {
-  AlignPath p;
-  p[row1] = path1;
-  p[row2] = path2;
-  return p;
-}
-
 AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, ForwardMatrix::random_engine& generator)
   : seqs (seqs),
     model (model),
     time (time),
-    edges (seqs.size())
+    edges (seqs.size()),
+    edgePath (seqs.size())
 {
   Partition part (seqs.size());
-  vguard<set<AlignRowIndex> > edgeDests (seqs.size());
 
   const size_t nEdges = min ((size_t) (seqs.size() * (seqs.size() - 1) / 2),
 			     (size_t) ceil (log(seqs.size()) * (double) seqs.size() / log(2)));
@@ -56,25 +52,29 @@ AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, con
       dest = dist (generator);
       if (dest < src)
 	swap (src, dest);
-    } while (src == dest || edgeDests[src].count(dest));
+    } while (src == dest || edgePath[src].find(dest) != edgePath[src].end());
 
     DiagonalEnvelope env (seqs[src], seqs[dest]);
     env.initFull();
 
     QuickAlignMatrix mx (env, model, time);
-    AlignPath path = mx.alignment();
+    AlignPath quickPath = mx.alignment();
 
+    AlignPath& path = edgePath[src][dest];
+    path[src] = quickPath[0];
+    path[dest] = quickPath[1];
+    
     Edge e;
     e.row1 = src;
     e.row2 = dest;
-    e.path1 = path[0];
-    e.path2 = path[1];
     e.lp = mx.end;
 
-    edgeDests[src].insert (dest);
     edges[src].push (e);
+    edges[dest].push (e);
 
     part.merge (e);
+
+    LogThisAt(3,"Aligned " << seqs[src].name << " and " << seqs[dest].name << " (" << plural(n+1,"edge") << ", " << plural(part.nSets,"disconnected set") << ")" << endl);
   }
 }
 
@@ -83,16 +83,22 @@ list<AlignPath> AlignGraph::minSpanTree() {
   Partition part (seqs.size());
   while (part.nSets > 1) {
     Edge best;
+    bool foundBest = false;
     for (auto src : part.seqSet.front()) {
       while (!edges[src].empty() && part.inSameSet (edges[src].top()))
 	edges[src].pop();
-      if (!edges[src].empty() && edges[src].top().lp > best.lp)
+      if (!edges[src].empty() && (!foundBest || best < edges[src].top())) {
 	best = edges[src].top();
+	foundBest = true;
+      }
     }
-    paths.push_back (best.path());
+    Assert (foundBest, "Found no valid edge");
+    paths.push_back (edgePath[best.row1][best.row2]);
     part.merge (best);
+
+    LogThisAt(3,"Joined " << seqs[best.row1].name << " and " << seqs[best.row2].name << " (" << plural(paths.size(),"edge") << ", " << plural(part.nSets,"disconnected set") << ")" << endl);
   }
-  edges.clear();  // this method is unambiguously destructive...
+
   return paths;
 }
 
