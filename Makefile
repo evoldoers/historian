@@ -96,7 +96,7 @@ obj/%.o: t/%.cpp
 
 TEST = @perl/testexpect.pl
 
-test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward testnj testquickalign testspan testhist
+test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward testnj testquickalign testspan testtreeio testhist
 
 testlogsumexp: bin/testlogsumexp
 	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
