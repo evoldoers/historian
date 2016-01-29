@@ -1,6 +1,6 @@
 # Indel Historian
 Reconstruction of phylogenetic insertion-deletion histories using the transducer method of
-[http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572](Westesson, Lunter, Paten & Holmes) (see also [http://arxiv.org/abs/1103.4347](arXiv)).
+[Westesson, Lunter, Paten & Holmes](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) (see also [arXiv](http://arxiv.org/abs/1103.4347)).
 
 Reconstruction:
 
