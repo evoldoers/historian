@@ -21,8 +21,8 @@ File options:
 Reconstruction options:
    -band &lt;n&gt;       Size of band around guide alignment
    -noband         Turn off band, ignore guide alignment
-   -samples &lt;n&gt;    Max number of alignments to sample when building profiles
-   -states &lt;n&gt;     Max number of states allowed in any single profile
+   -samples &lt;n&gt;    Number of alignments to sample when building profiles
+   -states &lt;n&gt;     Limit number of states allowed in any single profile
    -seed &lt;n&gt;       Seed random number generator
 
 Guide alignment options:
