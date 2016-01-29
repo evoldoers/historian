@@ -153,6 +153,9 @@ testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) align data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) align -seqs data/PF16593.fa -tree data/PF16593.nhx data/PF16593.historian.fa
 
+testgp120:
+	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh -v8
+
 # Rules for building files in the repository
 # For updating README.md
 README.md: bin/$(MAIN)

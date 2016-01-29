@@ -177,6 +177,8 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
       }
     }
   }
+
+  LogThisAt(6,"Forward log-likelihood is " << lpEnd << endl);
 }
 
 ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const {
@@ -216,6 +218,8 @@ ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
   CellCoords current;
   while (true) {
     current = sampleCell (clp, generator);
+    LogThisAt(6,__func__ << " traceback at " << cellName(current) << endl);
+
     path.push_front (current);
     if (current.xpos == 0 && current.ypos == 0)
       break;
@@ -235,6 +239,8 @@ ForwardMatrix::Path ForwardMatrix::bestTrace() {
   CellCoords current;
   while (true) {
     current = bestCell (clp);
+    LogThisAt(6,__func__ << " traceback at " << cellName(current) << endl);
+
     path.push_front (current);
     if (current.xpos == 0 && current.ypos == 0)
       break;
