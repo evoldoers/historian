@@ -69,12 +69,15 @@ public:
 
   inline LogProb& cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state)
   { return cellStorage[xpos][ypos].lp[state]; }
-  inline const LogProb cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
+  inline LogProb cell (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state) const
   {
     const auto& column = cellStorage[xpos];
     auto iter = column.find(ypos);
     return iter == column.end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
   }
+
+  inline LogProb& cell (const CellCoords& c) { return cell(c.xpos,c.ypos,c.state); }
+  inline const LogProb cell (const CellCoords& c) const { return cell(c.xpos,c.ypos,c.state); }
 
   // traceback
   Path sampleTrace (random_engine& generator);

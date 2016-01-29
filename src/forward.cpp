@@ -182,15 +182,19 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 }
 
 ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const {
-  double ptot = 0;
+  double ptot = 0, lpmax = -numeric_limits<double>::infinity();
   for (auto& iter : cellLogProb)
-    ptot += exp (iter.second);
+    lpmax = max (lpmax, iter.second);
+  for (auto& iter : cellLogProb)
+    ptot += exp (iter.second - lpmax);
   uniform_real_distribution<double> dist (0, ptot);
   const double p0 = dist (generator);
   double p = p0;
   for (auto& iter : cellLogProb)
-    if ((p -= exp (iter.second)) <= 0)
+    if ((p -= exp (iter.second - lpmax)) <= 0) {
+      LogThisAt(8,"Sampled " << cellName(iter.first) << " with probability " << exp(iter.second - lpmax) << "/" << ptot << endl);
       return iter.first;
+    }
   for (auto& iter : cellLogProb)
     cerr << "Log P" << cellName(iter.first) << " = " << iter.second << endl;
   Abort ("%s fail (ptot=%g, p=%g)",__func__,ptot,p0);
@@ -218,7 +222,7 @@ ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
   CellCoords current;
   while (true) {
     current = sampleCell (clp, generator);
-    LogThisAt(6,__func__ << " traceback at " << cellName(current) << endl);
+    LogThisAt(6,__func__ << " traceback at " << cellName(current) << " score " << cell(current) << endl);
 
     path.push_front (current);
     if (current.xpos == 0 && current.ypos == 0)
@@ -239,7 +243,7 @@ ForwardMatrix::Path ForwardMatrix::bestTrace() {
   CellCoords current;
   while (true) {
     current = bestCell (clp);
-    LogThisAt(6,__func__ << " traceback at " << cellName(current) << endl);
+    LogThisAt(6,__func__ << " traceback at " << cellName(current) << " score " << cell(current) << endl);
 
     path.push_front (current);
     if (current.xpos == 0 && current.ypos == 0)
@@ -258,7 +262,7 @@ AlignPath ForwardMatrix::bestAlignPath() {
 map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
   map<CellCoords,LogProb> sc = sourceTransitions (destCell);
   for (auto& c_lp : sc)
-    c_lp.second += cell (c_lp.first.xpos, c_lp.first.ypos, c_lp.first.state);
+    c_lp.second += cell (c_lp.first);
   return sc;
 }
 
