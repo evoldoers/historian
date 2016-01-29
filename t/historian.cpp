@@ -49,15 +49,15 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "   -kmatchmax      Set kmer threshold to use all available memory (default)\n"
     + "   -kmatchoff      No kmer threshold, do full DP\n"
     + "\n"
-    + "The method is that of phylogenetic transducers, as described in\n"
-    + "the following papers by Westesson, Lunter, Paten & Holmes:\n"
+    + "The method is that of phylogenetic transducers, as described in:\n"
+    + " Westesson, Lunter, Paten & Holmes\n"
+    + " Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics\n"
+    + " PLoS One, DOI: 10.1371/journal.pone.0034572\n"
+    + " http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572\n"
     + "\n"
-    + "Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics\n"
-    + "PLoS One, DOI: 10.1371/journal.pone.0034572\n"
-    + "http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572\n"
-    + "\n"
-    + "Phylogenetic automata, pruning, and multiple alignment\n"
-    + "http://arxiv.org/abs/1103.4347"
+    + "See also:\n"
+    + " Phylogenetic automata, pruning, and multiple alignment\n"
+    + " http://arxiv.org/abs/1103.4347"
     + "\n";
 }
 

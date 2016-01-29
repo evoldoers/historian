@@ -1,8 +1,6 @@
 # Indel Historian
-Reconstruction of phylogenetic insertion-deletion histories.
-
-<pre><code>
-Usage: historian {align,help,version} [options]
+Reconstruction of phylogenetic insertion-deletion histories using the transducer method of
+[http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572](Westesson, Lunter, Paten & Holmes) (see also [http://arxiv.org/abs/1103.4347](arXiv)).
 
 Reconstruction:
 
@@ -31,13 +29,13 @@ Guide alignment options:
    -kmatchmax      Set kmer threshold to use all available memory (default)
    -kmatchoff      No kmer threshold, do full DP
 
-The method is that of phylogenetic transducers, as described in
-the following papers by Westesson, Lunter, Paten & Holmes:
+The method is that of phylogenetic transducers, as described in:
+ Westesson, Lunter, Paten & Holmes
+ Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics
+ PLoS One, DOI: 10.1371/journal.pone.0034572
+ http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572
 
-Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics
-PLoS One, DOI: 10.1371/journal.pone.0034572
-http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572
-
-Phylogenetic automata, pruning, and multiple alignment
-http://arxiv.org/abs/1103.4347
+See also:
+ Phylogenetic automata, pruning, and multiple alignment
+ http://arxiv.org/abs/1103.4347
 </code></pre>
