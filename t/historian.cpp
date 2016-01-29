@@ -59,7 +59,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "   -h, --help      Print help message\n"
     + "\n"
     + "The method is that of phylogenetic transducers, as described in:\n"
-    + " Westesson, Lunter, Paten & Holmes\n"
+    + " Westesson, Lunter, Paten & Holmes (2012).\n"
     + " Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics\n"
     + " PLoS One, DOI: 10.1371/journal.pone.0034572\n"
     + " http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572\n"

@@ -1,6 +1,6 @@
 # Indel Historian
 Reconstruction of phylogenetic insertion-deletion histories using the transducer method
-(see [here](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [here](http://arxiv.org/abs/1103.4347) for a longer description).
+(see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
 <pre><code>
 Usage: historian {align,help,version} [options]
@@ -40,7 +40,7 @@ General options:
    -h, --help      Print help message
 
 The method is that of phylogenetic transducers, as described in:
- Westesson, Lunter, Paten & Holmes
+ Westesson, Lunter, Paten & Holmes (2012).
  Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics
  PLoS One, DOI: 10.1371/journal.pone.0034572
  http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572
