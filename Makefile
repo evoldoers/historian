@@ -134,28 +134,24 @@ testnullforward: bin/testnullforward
 testtreeio: bin/testtreeio
 	$(TEST) bin/testtreeio data/PF16593.nhx data/PF16593.nhx
 	$(TEST) bin/testtreeio data/testnj.out.nh data/testnj.out.nh
-	$(TEST) bin/testtreeio data/testnj.span.nh data/testnj.span.nh
+	$(TEST) bin/testtreeio data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.nh
+
+testspan: bin/testspan
+	$(TEST) bin/testspan data/PF16593.fa data/amino.json 1 data/PF16593.testspan.fa
 
 testnj: bin/testnj
 	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
-	$(TEST) bin/testnj data/amino.json data/testspan.out.fa data/testnj.span.nh
+	$(TEST) bin/testnj data/amino.json data/PF16593.testspan.fa data/PF16593.testspan.testnj.nh
 
 testquickalign: bin/testquickalign
 	$(TEST) bin/testquickalign data/PF16593.pair.fa data/amino.json 1 data/testquickalign.out.fa
 
-testspan: bin/testspan
-	$(TEST) bin/testspan data/PF16593.fa data/amino.json 1 data/testspan.out.fa
-
 testhist: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) align -guide data/testspan.out.fa -model data/amino.json -tree data/testnj.span.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-
-# currently does not produce same results as testhist (but should):
-testhist2: bin/$(MAIN)
+	$(TEST) bin/$(MAIN) align -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -guide data/PF16593.testspan.fa data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) align data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
-
-# this rule uses the Pfam alignment and tree:
-testhist3: bin/$(MAIN)
-	bin/$(MAIN) align -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/amino.json -vv
+	$(TEST) bin/$(MAIN) align -seqs data/PF16593.fa -tree data/PF16593.nhx data/PF16593.historian.fa
 
 # Rules for building files in the repository
 # For updating README.md

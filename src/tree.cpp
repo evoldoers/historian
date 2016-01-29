@@ -183,7 +183,10 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
   node[i].d = d/2;
   node[j].parent = k;
   node[j].d = d/2;
-  LogThisAt(4,"Neighbor-joining tree: " << toString() << endl);
+
+  const string s = toString();
+  LogThisAt(4,"Neighbor-joining tree: " << s << endl);
+  parse (s);  // to ensure consistency
 }
 
 void Tree::buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {

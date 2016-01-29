@@ -49,6 +49,34 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-savetree") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      treeSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-savemodel") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      modelSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-saveseqs") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      seqsSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-saveguide") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      guideSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-band") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       maxDistanceFromGuide = atoi (argvec[1].c_str());
@@ -104,6 +132,7 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
     Alignment align = ag.mstAlign();
     guide = align.path;
     gapped = align.gapped();
+
   } else {
     gapped = readFastSeqs (guideFilename.c_str());
     const Alignment align (gapped);
@@ -119,11 +148,33 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
     tree.buildByNeighborJoining (gapped, dist);
   }
 
+  if (modelSaveFilename.size()) {
+    ofstream modelFile (modelSaveFilename);
+    model.write (modelFile);
+  }
+
+  if (seqsSaveFilename.size()) {
+    ofstream seqsFile (seqsSaveFilename);
+    writeFastaSeqs (seqsFile, seqs);
+  }
+
+  if (guideSaveFilename.size()) {
+    ofstream guideFile (guideSaveFilename);
+    writeFastaSeqs (guideFile, gapped);
+  }
+
+  if (treeSaveFilename.size()) {
+    ofstream treeFile (treeSaveFilename);
+    treeFile << tree.toString() << endl;
+  }
+
   buildIndices();
   return reconstruct();
 }
 
 void Reconstructor::buildIndices() {
+  generator.seed (rndSeed);  // re-seed generator, in case it was used during prealignment
+
   for (size_t n = 0; n < seqs.size(); ++n) {
     Assert (seqIndex.find (seqs[n].name) == seqIndex.end(), "Duplicate sequence name %s", seqs[n].name.c_str());
     seqIndex[seqs[n].name] = n;

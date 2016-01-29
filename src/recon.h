@@ -10,6 +10,7 @@
 class Reconstructor {
 public:
   string treeFilename, seqsFilename, modelFilename, guideFilename;
+  string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
   bool includeBestTraceInProfile;
