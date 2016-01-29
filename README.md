@@ -33,6 +33,12 @@ Guide alignment options:
    -kmatchmax      Set kmer threshold to use all available memory (default)
    -kmatchoff      No kmer threshold, do full DP
 
+General options:
+   -verbose, -vv, -vvv, -v4, -v5, etc.
+                   Various levels of logging (-nocolor for monochrome)
+   -V, --version   Print GNU-style version info
+   -h, --help      Print help message
+
 The method is that of phylogenetic transducers, as described in:
  Westesson, Lunter, Paten & Holmes
  Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics
