@@ -96,7 +96,14 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-allrandom") {
+    } else if (arg == "-states") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      profileNodeLimit = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-nobest") {
       includeBestTraceInProfile = false;
       argvec.pop_front();
       return true;
@@ -132,11 +139,15 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   if (seqsFilename.size()) {
     LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
     seqs = readFastSeqs (seqsFilename.c_str());
-    LogThisAt(1,"Building guide alignment" << endl);
-    AlignGraph ag (seqs, model, 1, diagEnvParams, generator);
-    Alignment align = ag.mstAlign();
-    guide = align.path;
-    gapped = align.gapped();
+    if (maxDistanceFromGuide < 0 && treeFilename.size())
+      LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
+    else {
+      LogThisAt(1,"Building guide alignment" << endl);
+      AlignGraph ag (seqs, model, 1, diagEnvParams, generator);
+      Alignment align = ag.mstAlign();
+      guide = align.path;
+      gapped = align.gapped();
+    }
 
   } else {
     LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
@@ -262,7 +273,7 @@ Alignment Reconstructor::reconstruct() {
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
 
       const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(eqm), NULL);
-      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", sampled profile log-likelihood is " << lpTrace << endl);
+      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", sampled profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
       
       if (node == tree.root()) {
 	lpFinalFwd = forward.lpEnd;
