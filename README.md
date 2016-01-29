@@ -19,10 +19,10 @@ File options:
                    Save various intermediate analysis results to files
 
 Reconstruction options:
-   -band &lt;n&gt;       Size of band around guide alignment
+   -band &lt;n&gt;       Size of band around guide alignment (default 10)
    -noband         Turn off band, ignore guide alignment
-   -samples &lt;n&gt;    Number of alignments to sample when building profiles
-   -states &lt;n&gt;     Limit number of states allowed in any single profile
+   -samples &lt;n&gt;    Number of sampled alignments per profile (default 100)
+   -states &lt;n&gt;     Limit max number of states per profile
    -seed &lt;n&gt;       Seed random number generator
 
 Guide alignment options:

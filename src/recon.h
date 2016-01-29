@@ -8,6 +8,9 @@
 #include "forward.h"
 #include "diagenv.h"
 
+#define DefaultProfileSamples 100
+#define DefaultMaxDistanceFromGuide 10
+
 class Reconstructor {
 public:
   string treeFilename, seqsFilename, modelFilename, guideFilename;

@@ -9,11 +9,11 @@
 #include "amino.h"
 
 Reconstructor::Reconstructor()
-  : profileSamples (100),
+  : profileSamples (DefaultProfileSamples),
     profileNodeLimit (0),
     includeBestTraceInProfile (true),
     rndSeed (ForwardMatrix::random_engine::default_seed),
-    maxDistanceFromGuide (10)
+    maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
 { }
 
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
