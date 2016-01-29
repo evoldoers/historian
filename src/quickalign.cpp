@@ -32,10 +32,13 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
   const double gapExt = 1 / ( (pm.ins/gapProb) / pm.insExt + (1 - pm.ins/gapProb) / pm.delExt );
   const double noGapExt = 1 - gapExt;
 
+  noGap = log(noGapProb);
+  gapOpen = log(gapProb) + log(noGapExt);
+  gapExtend = log(gapExt);
+  
   m2i = log (gapProb);
   m2d = log (noGapProb * gapProb);
   m2m = log (noGapProb * noGapProb);
-  m2e = 0;
 
   i2i = log (gapExt);
   i2d = log (noGapExt * gapProb);
@@ -45,7 +48,7 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
   d2d = log (gapExt);
   d2m = log (noGapExt);
   d2e = d2m;
-
+  
   // fill
   const FastSeq& x (*px);
   const FastSeq& y (*py);
@@ -54,6 +57,7 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
   plog.initProgress ("Viterbi algorithm (%s vs %s)", x.name.c_str(), y.name.c_str());
 
   start = 0;
+  xEnd = yEnd = 0;
   for (SeqIdx j = 1; j <= yLen; ++j) {
 
     plog.logProgress (j / (double) yLen, "base %d/%d", j, yLen);
@@ -68,9 +72,8 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
 			   del(i-1,j-1) + d2m),
 		      ins(i-1,j-1) + i2m);
 
-      if (j == 1 && i == 1)
-	mat(i,j) = max (mat(i,j),
-			start);
+      mat(i,j) = max (mat(i,j),
+		      start + startGapScore(i,j));
 
       mat(i,j) += matchEmitScore(i,j);
 
@@ -81,11 +84,12 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
 			   del(i-1,j) + d2d),
 		      mat(i-1,j) + m2d);
 
-      if (j == yLen && i == xLen)
-	end = max (max (max (end,
-			     mat(i,j) + m2e),
-			ins(i,j) + i2e),
-		   del(i,j) + d2e);
+      const LogProb ijEnd = mat(i,j) + endGapScore(i,j);
+      if (ijEnd > end) {
+	xEnd = i;
+	yEnd = j;
+	end = ijEnd;
+      }
     }
   }
 
@@ -142,9 +146,14 @@ void QuickAlignMatrix::updateMax (double& currentMax, State& currentMaxIdx, doub
 
 AlignPath QuickAlignMatrix::alignPath() const {
   Require (resultIsFinite(), "Can't do Viterbi traceback if final score is -infinity");
-  AlignPath path;
-  SeqIdx i = xLen, j = yLen;
+  SeqIdx i = xEnd, j = yEnd;
   State state = Match;
+  Assert (i > 0 && j > 0, "Traceback error at (%lu,%lu,End)", i, j);
+  AlignPath path;
+  path[0] = vector<bool> (xLen - xEnd, true);
+  path[1] = vector<bool> (xLen - xEnd, false);
+  path[0].insert (path[0].end(), yLen - yEnd, false);
+  path[1].insert (path[1].end(), yLen - yEnd, true);
   while (state != Start) {
     LogThisAt(9, "Traceback: i=" << i << " j=" << j << " state=" << stateToString(state) << " score=" << cellScore(i,j,state) << endl);
     LogProb srcSc = -numeric_limits<double>::infinity();
@@ -159,9 +168,8 @@ AlignPath QuickAlignMatrix::alignPath() const {
       updateMax (srcSc, state, mat(i,j) + m2m + emitSc, Match);
       updateMax (srcSc, state, ins(i,j) + i2m + emitSc, Insert);
       updateMax (srcSc, state, del(i,j) + d2m + emitSc, Delete);
-      if (j == 0 && i == 0)
-	updateMax (srcSc, state, emitSc, Start);
-      Assert (srcSc == mat(i+1,j+1), "Traceback error");
+      updateMax (srcSc, state, start + startGapScore(i+1,j+1) + emitSc, Start);
+      Assert (srcSc == mat(i+1,j+1), "Traceback error at (%lu,%lu,Match)", i+1, j+1);
       break;
 
     case Insert:
@@ -170,7 +178,7 @@ AlignPath QuickAlignMatrix::alignPath() const {
       path[1].insert (path[1].begin(), true);
       updateMax (srcSc, state, mat(i,j) + m2i, Match);
       updateMax (srcSc, state, ins(i,j) + i2i, Insert);
-      Assert (srcSc == ins(i,j+1), "Traceback error");
+      Assert (srcSc == ins(i,j+1), "Traceback error at (%lu,%lu,Insert)", i, j+1);
       break;
 
     case Delete:
@@ -180,7 +188,7 @@ AlignPath QuickAlignMatrix::alignPath() const {
       updateMax (srcSc, state, mat(i,j) + m2d, Match);
       updateMax (srcSc, state, ins(i,j) + i2d, Insert);
       updateMax (srcSc, state, del(i,j) + d2d, Delete);
-      Assert (srcSc == del(i+1,j), "Traceback error");
+      Assert (srcSc == del(i+1,j), "Traceback error at (%lu,%lu,Delete)", i+1, j);
       break;
 
     default:
@@ -188,6 +196,13 @@ AlignPath QuickAlignMatrix::alignPath() const {
       break;
     }
   }
+  path[0].insert (path[0].begin(), i, true);
+  path[1].insert (path[1].begin(), i, false);
+  path[0].insert (path[0].begin(), j, false);
+  path[1].insert (path[1].begin(), j, true);
+  LogThisAt(8,"Traceback alignment has " << plural(alignPathColumns(path),"column") << endl);  // checks alignment is flush
+  Assert (alignPathResiduesInRow (path[0]) == xLen, "Traceback error: x row has %lu steps, expected %lu", alignPathResiduesInRow (path[0]), xLen);
+  Assert (alignPathResiduesInRow (path[1]) == yLen, "Traceback error: y row has %lu steps, expected %lu", alignPathResiduesInRow (path[1]), yLen);
   return path;
 }
 

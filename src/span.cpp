@@ -32,7 +32,7 @@ void AlignGraph::Partition::merge (const AlignGraph::Edge& e) {
   }
 }
 
-AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, ForwardMatrix::random_engine& generator)
+AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, const DiagEnvParams& diagEnvParams, ForwardMatrix::random_engine& generator)
   : seqs (seqs),
     model (model),
     time (time),
@@ -55,7 +55,11 @@ AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, con
     } while (src == dest || edgePath[src].find(dest) != edgePath[src].end());
 
     DiagonalEnvelope env (seqs[src], seqs[dest]);
-    env.initFull();
+    if (diagEnvParams.sparse) {
+      KmerIndex yKmerIndex (seqs[dest], model.alphabet, diagEnvParams.kmerLen);
+      env.initSparse (yKmerIndex, diagEnvParams.bandSize, diagEnvParams.kmerThreshold, ForwardMatrix::cellSize(), diagEnvParams.effectiveMaxSize());
+    } else
+      env.initFull();
 
     QuickAlignMatrix mx (env, model, time);
     edgePath[src][dest] = mx.alignPath (src, dest);

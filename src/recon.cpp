@@ -110,7 +110,7 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
     }
   }
   
-  return false;
+  return diagEnvParams.parseDiagEnvParams (argvec);
 }
 
 Alignment Reconstructor::loadFilesAndReconstruct() {
@@ -120,20 +120,26 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   generator.seed (rndSeed);
 
   if (modelFilename.size()) {
+    LogThisAt(1,"Loading model from " << modelFilename << endl);
     ifstream modelFile (modelFilename);
     ParsedJson pj (modelFile);
     model.read (pj.value);
-  } else
+  } else {
+    LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
+  }
 
   if (seqsFilename.size()) {
+    LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
     seqs = readFastSeqs (seqsFilename.c_str());
-    AlignGraph ag (seqs, model, 1, generator);
+    LogThisAt(1,"Building guide alignment" << endl);
+    AlignGraph ag (seqs, model, 1, diagEnvParams, generator);
     Alignment align = ag.mstAlign();
     guide = align.path;
     gapped = align.gapped();
 
   } else {
+    LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
     gapped = readFastSeqs (guideFilename.c_str());
     const Alignment align (gapped);
     guide = align.path;
@@ -141,9 +147,11 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   }
 
   if (treeFilename.size()) {
+    LogThisAt(1,"Loading tree from " << treeFilename << endl);
     ifstream treeFile (treeFilename);
     tree.parse (JsonUtil::readStringFromStream (treeFile));
   } else {
+    LogThisAt(1,"Building neighbor-joining tree" << endl);
     auto dist = model.distanceMatrix (gapped);
     tree.buildByNeighborJoining (gapped, dist);
   }
@@ -224,6 +232,7 @@ void Reconstructor::buildIndices() {
 }
 
 Alignment Reconstructor::reconstruct() {
+  LogThisAt(1,"Starting reconstruction on " << tree.nodes() << "-node tree" << endl);
   gsl_vector* eqm = model.getEqmProb();
 
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();

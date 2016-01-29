@@ -2,6 +2,7 @@
 #define DIAG_ENV_INCLUDED
 
 #include <map>
+#include <deque>
 #include "fastseq.h"
 #include "util.h"
 
@@ -12,10 +13,22 @@ using namespace std;
 #define DEFAULT_KMER_LENGTH 6
 
 // The number of kmer matches above which a diagonal is selected for a band
-#define DEFAULT_KMER_THRESHOLD 14
+// Setting this to -1 indicates that threshold should be chosen to fill available memory
+// #define DEFAULT_KMER_THRESHOLD 14
+#define DEFAULT_KMER_THRESHOLD -1
 
 // Default band size
 #define DEFAULT_BAND_SIZE 64
+
+struct DiagEnvParams {
+  bool sparse, autoMemSize;
+  int kmerLen, kmerThreshold, bandSize;
+  size_t maxSize;
+
+  DiagEnvParams();
+  bool parseDiagEnvParams (deque<string>& argvec);
+  size_t effectiveMaxSize() const;
+};
 
 // uncomment to add extra guards to storage indexing
 // #define USE_DIAGONAL_ENVELOPE_GUARDS

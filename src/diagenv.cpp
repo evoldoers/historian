@@ -4,9 +4,91 @@
 #include <cmath>
 #include "diagenv.h"
 #include "logger.h"
+#include "memsize.h"
 
 // require at least this ratio of sequenceLength/(kmerLen + kmerThreshold) for sparse envelope
 #define MIN_KMERS_FOR_SPARSE_ENVELOPE 2
+
+DiagEnvParams::DiagEnvParams()
+  : sparse(true),
+    autoMemSize(true),
+    kmerLen(DEFAULT_KMER_LENGTH),
+    kmerThreshold(DEFAULT_KMER_THRESHOLD),
+    maxSize(0),
+    bandSize(DEFAULT_BAND_SIZE)
+{ }
+
+bool DiagEnvParams::parseDiagEnvParams (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-kmatchband") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const char* val = argvec[1].c_str();
+      bandSize = atoi (val);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-kmatch") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const char* val = argvec[1].c_str();
+      kmerLen = atoi (val);
+      Require (kmerLen >= 5 && kmerLen <= 32, "%s out of range (%d). Try 5 to 32", arg.c_str(), kmerLen);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-kmatchn") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const char* val = argvec[1].c_str();
+      kmerThreshold = atoi (val);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-kmatchmb") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const char* val = argvec[1].c_str();
+      maxSize = atoi(val) << 20;
+      if (maxSize == 0) {
+	maxSize = getMemorySize();
+	Require (maxSize > 0, "Can't figure out available system memory; you will need to specify a size");
+      }
+      kmerThreshold = -1;
+      autoMemSize = false;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-kmatchmax") {
+      maxSize = getMemorySize();
+      Require (maxSize > 0, "Can't figure out available system memory; you will need to specify a size");
+      kmerThreshold = -1;
+      autoMemSize = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-kmatchoff") {
+      sparse = false;
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+size_t DiagEnvParams::effectiveMaxSize() const {
+  size_t ms = 0;
+  if (autoMemSize) {
+    ms = getMemorySize();
+    Require (ms > 0, "Can't figure out available system memory; you will need to specify a size");
+  }
+  else
+    ms = maxSize;
+  LogThisAt(9,"Effective memory available is " << ms << " bytes" << endl);
+  return ms;
+}
 
 void DiagonalEnvelope::initFull() {
   LogThisAt(5, "Initializing full " << xLen << "*" << yLen << " envelope (no kmer-matching heuristic)" << endl);
@@ -23,6 +105,12 @@ void DiagonalEnvelope::initSparse (const KmerIndex& yKmerIndex, unsigned int ban
   if (kmerThreshold >= 0) {
     const SeqIdx minLenForSparse = MIN_KMERS_FOR_SPARSE_ENVELOPE * (kmerLen + kmerThreshold);
     if (px->length() < minLenForSparse || py->length() < minLenForSparse) {
+      initFull();
+      return;
+    }
+  } else {  // kmerThreshold < 0, implies we should use available memory
+    LogThisAt(9,"Required memory for full DP is " << xLen << "*" << yLen << "*" << cellSize << " = " << xLen * yLen * cellSize << " bytes" << endl);
+    if (xLen * yLen * cellSize < maxSize) {
       initFull();
       return;
     }
@@ -46,7 +134,7 @@ void DiagonalEnvelope::initSparse (const KmerIndex& yKmerIndex, unsigned int ban
   if (LoggingThisAt(7)) {
     LogStream (7, "Distribution of " << kmerLen << "-mer matches per diagonal for " << px->name << " vs " << py->name << ':' << endl);
     for (const auto& countDistribElt : countDistrib)
-      LogStream (7, plural(countDistribElt.second.size(),"diagonal") << " have " << plural(countDistribElt.first,"match","matches") << endl);
+      LogStream (7, plural(countDistribElt.second.size(),"diagonal") << " with " << plural(countDistribElt.first,"match","matches") << endl);
   }
 
   set<int> diags, storageDiags;

@@ -109,6 +109,8 @@ public:
   static string ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 
   static random_engine newRNG();
+
+  static size_t cellSize() { return sizeof(XYCell); }
   
 private:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {

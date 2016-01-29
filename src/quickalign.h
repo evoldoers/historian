@@ -11,7 +11,7 @@ public:
   const DiagonalEnvelope* penv;
   const FastSeq *px, *py;
   vguard<AlphTok> xTok, yTok;
-  SeqIdx xLen, yLen;
+  SeqIdx xLen, yLen, xEnd, yEnd;
   vguard<LogProb> cell;
   LogProb start, end, result;
   static double dummy;
@@ -19,7 +19,8 @@ public:
   const RateModel& model;
   const double time;
   vguard<vguard<LogProb> > submat;  // log odds-ratio
-  LogProb m2m, m2i, m2d, m2e, i2i, i2m, i2d, i2e, d2d, d2m, d2e;
+  LogProb m2m, m2i, m2d, i2i, i2m, i2d, i2e, d2d, d2m, d2e;
+  LogProb gapOpen, gapExtend, noGap;
   
   QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel& model, double time);
   inline LogProb& getCell (SeqIdx i, SeqIdx j, unsigned int offset) {
@@ -54,6 +55,16 @@ public:
 
 protected:
   static void updateMax (LogProb& currentMax, State& currentMaxIdx, double candidateMax, State candidateMaxIdx);
+
+  inline LogProb startGapScore (SeqIdx i, SeqIdx j) const {
+    return (i == 1 ? noGap : (gapOpen + (i-2)*gapExtend))
+      + (j == 1 ? noGap : (gapOpen + (j-2)*gapExtend));
+  }
+
+  inline LogProb endGapScore (SeqIdx i, SeqIdx j) const {
+    return (i == xLen ? noGap : (gapOpen + (xLen-i-2)*gapExtend))
+      + (j == yLen ? noGap : (gapOpen + (yLen-j-2)*gapExtend));
+  }
 };
 
 

@@ -6,6 +6,7 @@
 #include "alignpath.h"
 #include "model.h"
 #include "forward.h"
+#include "diagenv.h"
 
 class Reconstructor {
 public:
@@ -18,6 +19,8 @@ public:
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
 
+  DiagEnvParams diagEnvParams;
+  
   RateModel model;
   Tree tree;
   vguard<FastSeq> seqs, gapped;

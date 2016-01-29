@@ -30,7 +30,7 @@ struct AlignGraph {
   vguard<priority_queue<Edge> > edges;
   vguard<map<AlignRowIndex,AlignPath> > edgePath;
   
-  AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, ForwardMatrix::random_engine& generator);
+  AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, const DiagEnvParams& diagEnvParams, ForwardMatrix::random_engine& generator);
   list<AlignPath> minSpanTree();
   AlignPath mstPath();
   Alignment mstAlign();

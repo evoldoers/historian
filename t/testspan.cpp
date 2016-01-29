@@ -4,6 +4,7 @@
 #include "../src/jsonutil.h"
 #include "../src/span.h"
 #include "../src/logger.h"
+#include "../src/diagenv.h"
 
 int main (int argc, char **argv) {
   if (argc != 4) {
@@ -24,7 +25,8 @@ int main (int argc, char **argv) {
   //  logger.setVerbose(6);
 
   ForwardMatrix::random_engine generator = ForwardMatrix::newRNG();
-  AlignGraph ag (seqs, rates, time, generator);
+  DiagEnvParams dep;
+  AlignGraph ag (seqs, rates, time, dep, generator);
   vguard<FastSeq> gapped = ag.mstGapped();
   writeFastaSeqs (cout, gapped);
   
