@@ -1,5 +1,13 @@
 # Indel Historian
-Reconstruction of phylogenetic insertion-deletion histories
+Reconstruction of phylogenetic insertion-deletion histories using the method of
+Westesson, Lunter, Paten & Holmes, as described in the following papers:
+
+Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics
+PLoS One, DOI: 10.1371/journal.pone.0034572
+http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572
+
+Phylogenetic automata, pruning, and multiple alignment
+http://arxiv.org/abs/1103.4347
 
 <pre><code>
 Usage: historian {align,help,version} [options]
