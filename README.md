@@ -2,6 +2,7 @@
 Reconstruction of phylogenetic insertion-deletion histories using the transducer method
 ([PLoS One](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); [arXiv](http://arxiv.org/abs/1103.4347)).
 
+<pre><code>
 Reconstruction:
 
   historian align seqs.fa [-tree tree.nh] [-model model.json] &gt;alignment.fa
