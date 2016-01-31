@@ -2,6 +2,7 @@
 #define FORWARD_INCLUDED
 
 #include <random>
+#include <queue>
 #include <list>
 #include "pairhmm.h"
 #include "profile.h"
@@ -132,6 +133,7 @@ public:
   // traceback
   Path sampleTrace (random_engine& generator);
   Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
+  Path bestTrace (const CellCoords& end);
   AlignPath bestAlignPath();
 
   // profile construction
@@ -150,7 +152,25 @@ private:
   AlignPath traceAlignPath (const Path& path) const;
 
   map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
+};
 
+class BackwardMatrix : public DPMatrix {
+public:
+  struct CellPostProb : CellCoords {
+    LogProb logPostProb;
+    bool operator< (const CellPostProb& cpp) const
+    { return logPostProb < cpp.logPostProb; }
+  };
+  priority_queue<CellPostProb> bestCells;
+  
+  BackwardMatrix (const ForwardMatrix& fwd, double minPostProb);
+
+  // traceback
+  Path bestTrace (const CellCoords& start);
+
+private:
+  map<CellCoords,LogProb> destCells (const CellCoords& srcCell);
+  map<CellCoords,LogProb> destTransitions (const CellCoords& srcCell);
 };
 
 #endif /* FORWARD_INCLUDED */

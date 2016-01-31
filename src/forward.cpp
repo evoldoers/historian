@@ -239,11 +239,14 @@ ForwardMatrix::Path ForwardMatrix::sampleTrace (random_engine& generator) {
 
 ForwardMatrix::Path ForwardMatrix::bestTrace() {
   Assert (lpEnd > -numeric_limits<double>::infinity(), "Forward likelihood is zero; traceback fail");
+  return bestTrace (endCell);
+}
 
+ForwardMatrix::Path ForwardMatrix::bestTrace (const CellCoords& end) {
   Path path;
-  path.push_back (endCell);
+  path.push_back (end);
 
-  map<CellCoords,LogProb> clp = sourceCells (endCell);
+  map<CellCoords,LogProb> clp = sourceCells (end);
   CellCoords current;
   while (true) {
     current = bestCell (clp);
