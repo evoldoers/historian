@@ -6,8 +6,8 @@
 #include "pairhmm.h"
 #include "profile.h"
 
-class ForwardMatrix {
-private:
+class DPMatrix {
+protected:
   struct XYCell {
     LogProb lp[PairHMM::TotalStates];
     XYCell() {
@@ -36,11 +36,6 @@ public:
     bool operator== (const CellCoords& c) const
     { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
   };
-  struct EffectiveTransition {
-    LogProb lpPath, lpBestAlignPath;
-    AlignPath bestAlignPath;
-    EffectiveTransition();
-  };
 
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;
@@ -48,16 +43,15 @@ public:
   const Profile& x, y;
   const Profile subx, suby;
   const PairHMM& hmm;
-  const AlignRowIndex parentRowIndex;
   const AlphTok alphSize;
   const ProfileStateIndex xSize, ySize;
   const CellCoords startCell, endCell;
   LogProb lpEnd;
-  const GuideAlignmentEnvelope envelope;
+  const GuideAlignmentEnvelope& envelope;
   vguard<int> xClosestLeafPos, yClosestLeafPos;
   int maxDistance;
 
-  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env);
+  DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, const GuideAlignmentEnvelope& env);
 
   // cell accessors
   inline XYCell& xyCell (ProfileStateIndex xpos, ProfileStateIndex ypos) { return cellStorage[xpos][ypos]; }
@@ -79,17 +73,9 @@ public:
   inline LogProb& cell (const CellCoords& c) { return cell(c.xpos,c.ypos,c.state); }
   inline const LogProb cell (const CellCoords& c) const { return cell(c.xpos,c.ypos,c.state); }
 
-  // traceback
-  Path sampleTrace (random_engine& generator);
-  Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
-  AlignPath bestAlignPath();
-
-  // profile construction
-  enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
-  Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
-  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
-  Profile bestProfile (EliminationStrategy strategy = KeepHubsAndAbsorbers);
-
+  inline LogProb& lpStart() { return cell(0,0,PairHMM::IMM); }
+  inline const LogProb lpStart() const { return cell(0,0,PairHMM::IMM); }
+  
   // helpers
 public:
   static inline LogProb logInnerProduct (const vguard<LogProb>::const_iterator& begin1,
@@ -112,7 +98,7 @@ public:
 
   static size_t cellSize() { return sizeof(XYCell); }
   
-private:
+protected:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
     const vguard<LogProb>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
     const vguard<LogProb>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
@@ -127,6 +113,34 @@ private:
 
   bool isAbsorbing (const CellCoords& c) const;
   
+  CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
+  static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
+};
+
+class ForwardMatrix : public DPMatrix {
+public:
+  const AlignRowIndex parentRowIndex;
+
+  struct EffectiveTransition {
+    LogProb lpPath, lpBestAlignPath;
+    AlignPath bestAlignPath;
+    EffectiveTransition();
+  };
+  
+  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env);
+
+  // traceback
+  Path sampleTrace (random_engine& generator);
+  Path bestTrace();  // not quite Viterbi (takes max's rather than sampling through the Forward matrix)
+  AlignPath bestAlignPath();
+
+  // profile construction
+  enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
+  Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
+  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
+  Profile bestProfile (EliminationStrategy strategy = KeepHubsAndAbsorbers);
+
+private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
   LogProb eliminatedLogProbInsert (const CellCoords& cell) const;
@@ -137,8 +151,6 @@ private:
 
   map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
 
-  CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
-  static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
 };
 
 #endif /* FORWARD_INCLUDED */

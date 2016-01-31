@@ -2,11 +2,10 @@
 #include "util.h"
 #include "logger.h"
 
-ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env)
+DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, const GuideAlignmentEnvelope& env)
   : x(x),
     y(y),
     hmm(hmm),
-    parentRowIndex(parentRowIndex),
     alphSize ((AlphTok) hmm.alphabetSize()),
     xSize (x.size()),
     ySize (y.size()),
@@ -41,8 +40,13 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     insy[j] = logInnerProduct (hmm.logr.logInsProb, y.state[j].lpAbsorb);
     rootsuby[j] = logInnerProduct (hmm.logRoot, suby.state[j].lpAbsorb);
   }
+}
 
-  cell(0,0,PairHMM::IMM) = 0;
+ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env)
+  : DPMatrix (x, y, hmm, env),
+    parentRowIndex (parentRowIndex)
+{
+  lpStart() = 0;
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
     const ProfileState& xState = x.state[i];
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
@@ -181,7 +185,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
   LogThisAt(6,"Forward log-likelihood is " << lpEnd << endl);
 }
 
-ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const {
+DPMatrix::CellCoords DPMatrix::sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const {
   double ptot = 0, lpmax = -numeric_limits<double>::infinity();
   for (auto& iter : cellLogProb)
     lpmax = max (lpmax, iter.second);
@@ -201,7 +205,7 @@ ForwardMatrix::CellCoords ForwardMatrix::sampleCell (const map<CellCoords,LogPro
   return CellCoords();
 }
 
-ForwardMatrix::CellCoords ForwardMatrix::bestCell (const map<CellCoords,LogProb>& cellLogProb) {
+DPMatrix::CellCoords DPMatrix::bestCell (const map<CellCoords,LogProb>& cellLogProb) {
   CellCoords best;
   double pBest = -numeric_limits<double>::infinity();
   for (auto& iter : cellLogProb)
@@ -331,15 +335,15 @@ map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const C
   return clp;
 }
 
-ForwardMatrix::random_engine ForwardMatrix::newRNG() {
+DPMatrix::random_engine DPMatrix::newRNG() {
   return random_engine();
 }
 
-string ForwardMatrix::cellName (const CellCoords& c) const {
+string DPMatrix::cellName (const CellCoords& c) const {
   return string("(") + hmm.stateName(c.state,c.xpos==0,c.ypos==0) + "," + x.state[c.xpos].name + "," + y.state[c.ypos].name + ")";
 }
 
-bool ForwardMatrix::isAbsorbing (const CellCoords& c) const {
+bool DPMatrix::isAbsorbing (const CellCoords& c) const {
   return (c.state == PairHMM::IMM && !x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
     || (c.state == PairHMM::IMD && !x.state[c.xpos].isNull())
     || (c.state == PairHMM::IDM && !y.state[c.ypos].isNull());
@@ -588,6 +592,6 @@ Profile ForwardMatrix::bestProfile (EliminationStrategy strategy) {
   return makeProfile (profCells, strategy);
 }
 
-string ForwardMatrix::ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
+string DPMatrix::ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
   return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
 }
