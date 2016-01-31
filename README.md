@@ -21,15 +21,8 @@ File options:
 Reconstruction options:
    -band &lt;n&gt;       Size of band around guide alignment (default 10)
    -noband         Turn off band, ignore guide alignment
-   -minpost &lt;p&gt;    Choose profile states deterministically (default .1)
-   -samples &lt;n&gt;    Sample profile states randomly
+   -minpost &lt;p&gt;    Posterior probability threshold for profile states (default .1)
    -states &lt;n&gt;     Limit max number of states per profile
-
-Note -minpost and -samples select different profile construction strategies.
- -minpost (the default) deterministically includes all states above a given
-  posterior probability threshold, along with paths required to reach them.
- -samples randomly samples state paths from the posterior distribution.
-Both strategies are subject to the state limit imposed by -states.
 
 Guide alignment options:
    -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
