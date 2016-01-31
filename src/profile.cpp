@@ -29,7 +29,10 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
     t.src = pos;
     t.dest = pos + 1;
     t.lpTrans = 0;
-    state[pos].out.push_back (pos);
+    if (pos == dsq.size())
+      state[pos].nullOut.push_back (pos);
+    else
+      state[pos].absorbOut.push_back (pos);
     state[pos+1].in.push_back (pos);
     if (pos < dsq.size()) {
       state[pos+1].name = string(1,seq.seq[pos]) + to_string(pos+1);
@@ -121,10 +124,14 @@ void Profile::writeJson (ostream& out) const {
       out << " ]," << endl;
     }
     out << "   \"trans\": [";
-    for (size_t nt = 0; nt < state[s].out.size(); ++nt) {
-      const ProfileTransition& tr = trans[state[s].out[nt]];
-      if (nt > 0)
+    set<ProfileTransitionIndex> s_out (state[s].nullOut.begin(), state[s].nullOut.end());
+    s_out.insert (state[s].absorbOut.begin(), state[s].absorbOut.end());
+    bool first_t = true;
+    for (auto ti : s_out) {
+      const ProfileTransition& tr = trans[ti];
+      if (!first_t)
 	out << ",\n             ";     
+      first_t = false;
       out << " { \"to\": " << tr.dest << ",";
       out << " \"lpTrans\": " << JsonUtil::toString (tr.lpTrans);
       if (tr.alignPath.size())

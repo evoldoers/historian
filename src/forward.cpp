@@ -537,7 +537,8 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
   for (const auto profStateIter : profStateIndex) {
     const CellCoords& cell = profStateIter.first;
     const ProfileStateIndex srcIdx = profStateIter.second;
-    vguard<ProfileTransitionIndex>& srcOut = prof.state[srcIdx].out;
+    vguard<ProfileTransitionIndex>& srcNullOut = prof.state[srcIdx].nullOut;
+    vguard<ProfileTransitionIndex>& srcAbsorbOut = prof.state[srcIdx].absorbOut;
     for (const auto effTransIter : effTrans[cell]) {
       const ProfileStateIndex destIdx = effTransIter.first;
       const EffectiveTransition& srcDestEffTrans = effTransIter.second;
@@ -549,7 +550,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
       trans.lpTrans = srcDestEffTrans.lpPath;
       trans.alignPath = srcDestEffTrans.bestAlignPath;
       prof.trans.push_back (trans);
-      srcOut.push_back (transIdx);
+      (prof.state[destIdx].isNull() ? srcNullOut : srcAbsorbOut).push_back (transIdx);
       destIn.push_back (transIdx);
     }
   }
@@ -597,4 +598,123 @@ Profile ForwardMatrix::bestProfile (EliminationStrategy strategy) {
 
 string DPMatrix::ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
   return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
+}
+
+BackwardMatrix::BackwardMatrix (const ForwardMatrix& fwd, double minPostProb)
+  : DPMatrix (fwd.x, fwd.y, fwd.hmm, fwd.envelope)
+{
+  lpEnd = 0;
+  // transitions into EEE
+  for (auto xt : x.end().in) {
+    const ProfileTransition& xTrans = x.trans[xt];
+    for (auto yt : y.end().in) {
+      const ProfileTransition& yTrans = y.trans[yt];
+      if (envelope.inRange (xClosestLeafPos[xTrans.src], yClosestLeafPos[yTrans.src])) {
+	XYCell& src = xyCell(xTrans.src,yTrans.src);
+      
+	src(PairHMM::IMM) = xTrans.lpTrans + yTrans.lpTrans + hmm.imm_eee;
+	src(PairHMM::IMD) = xTrans.lpTrans + yTrans.lpTrans + hmm.imd_eee;
+	src(PairHMM::IDM) = xTrans.lpTrans + yTrans.lpTrans + hmm.idm_eee;
+	src(PairHMM::IMI) = xTrans.lpTrans + yTrans.lpTrans + hmm.imi_eee;
+	src(PairHMM::IIW) = xTrans.lpTrans + yTrans.lpTrans + hmm.iiw_eee;
+      }
+    }
+  }
+
+  const LogProb fwdEnd = fwd.lpEnd;
+  const LogProb lppThreshold = log(minPostProb);
+  const auto states = hmm.states();
+  for (int i = xSize - 2; i >= 0; --i) {
+    const ProfileState& xState = x.state[i];
+    for (int j = ySize - 2; j >= 0; --j) {
+      const ProfileState& yState = y.state[j];
+
+      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+
+	XYCell& src = xyCell(i,j);
+	double& imm = src(PairHMM::IMM);
+	double& imd = src(PairHMM::IMD);
+	double& idm = src(PairHMM::IDM);
+	double& imi = src(PairHMM::IMI);
+	double& iiw = src(PairHMM::IIW);
+
+	// xy-absorbing transitions into IMM
+	for (auto xt : xState.absorbOut) {
+	  const ProfileTransition& xTrans = x.trans[xt];
+	  for (auto yt : yState.absorbOut) {
+	    const ProfileTransition& yTrans = y.trans[yt];
+	    const LogProb dest_imm = xTrans.lpTrans + yTrans.lpTrans + computeLogProbAbsorb(xTrans.dest,yTrans.dest) + cell(xTrans.dest,yTrans.dest,PairHMM::IMM);
+	    
+	    log_accum_exp (imm, hmm.imm_imm + dest_imm);
+	    log_accum_exp (imd, hmm.imd_imm + dest_imm);
+	    log_accum_exp (idm, hmm.idm_imm + dest_imm);
+	    log_accum_exp (imi, hmm.imi_imm + dest_imm);
+	    log_accum_exp (iiw, hmm.iiw_imm + dest_imm);
+	  }
+	}
+
+	// x-absorbing transitions into IMD, IIW
+	for (auto xt : xState.absorbOut) {
+	  const ProfileTransition& xTrans = x.trans[xt];
+	  const XYCell& dest = xyCell(xTrans.dest,j);
+	  const LogProb dest_imd = xTrans.lpTrans + rootsubx[xTrans.dest] + dest(PairHMM::IMD);
+	  const LogProb dest_iiw = xTrans.lpTrans + insx[xTrans.dest] + dest(PairHMM::IIW);
+
+	  log_accum_exp (imm, hmm.imm_imd + dest_imd);
+	  log_accum_exp (imd, hmm.imd_imd + dest_imd);
+	  log_accum_exp (idm, hmm.idm_imd + dest_imd);
+	  log_accum_exp (imi, hmm.imi_imd + dest_imd);
+
+	  log_accum_exp (imm, hmm.imm_iiw + dest_iiw);
+	  log_accum_exp (imi, hmm.imi_iiw + dest_iiw);
+	  log_accum_exp (iiw, hmm.iiw_iiw + dest_iiw);
+	}
+
+	// y-absorbing transitions into IDM, IMI
+	for (auto yt : yState.absorbOut) {
+	  const ProfileTransition& yTrans = y.trans[yt];
+	  const XYCell& dest = xyCell(i,yTrans.dest);
+	  const LogProb dest_idm = yTrans.lpTrans + rootsuby[yTrans.dest] + dest(PairHMM::IDM);
+	  const LogProb dest_imi = yTrans.lpTrans + insy[yTrans.dest] + dest(PairHMM::IMI);
+
+	  log_accum_exp (imm, hmm.imm_idm + dest_idm);
+	  log_accum_exp (imd, hmm.imd_idm + dest_idm);
+	  log_accum_exp (idm, hmm.idm_idm + dest_idm);
+	  log_accum_exp (iiw, hmm.iiw_idm + dest_idm);
+
+	  log_accum_exp (imm, hmm.imm_imi + dest_imi);
+	  log_accum_exp (imi, hmm.imi_imi + dest_imi);
+	}
+
+	// x-nonabsorbing transitions in IMD, IIW, IMM
+	if (!yState.isNull())
+	  for (auto xt : xState.nullOut) {
+	    const ProfileTransition& xTrans = x.trans[xt];
+	    const XYCell& dest = xyCell(xTrans.dest,j);
+	    log_accum_exp (imd, xTrans.lpTrans + dest(PairHMM::IMD));
+	    log_accum_exp (iiw, xTrans.lpTrans + dest(PairHMM::IIW));
+	    log_accum_exp (imm, xTrans.lpTrans + dest(PairHMM::IMM));
+	  }
+	
+	// y-nonabsorbing transitions in IDM, IMI, IMM
+	for (auto yt : yState.nullOut) {
+	  const ProfileTransition& yTrans = y.trans[yt];
+	  const XYCell& dest = xyCell(i,yTrans.dest);
+	  log_accum_exp (idm, yTrans.lpTrans + dest(PairHMM::IDM));
+	  log_accum_exp (imi, yTrans.lpTrans + dest(PairHMM::IMI));
+	  log_accum_exp (imm, yTrans.lpTrans + dest(PairHMM::IMM));
+	}
+
+	// track cells above posterior probability threshold
+	const XYCell& fwdSrc = fwd.xyCell(i,j);
+	for (auto s : states) {
+	  const LogProb lpp = src(s) + fwdSrc(s) - fwdEnd;
+	  if (lpp >= lppThreshold)
+	    bestCells.push (CellPostProb (i, j, s, lpp));
+	}
+      }
+    }
+  }
+
+  LogThisAt(6,"Backward log-likelihood is " << lpStart() << endl);
 }

@@ -19,7 +19,7 @@ struct ProfileTransition {
 struct ProfileState {
   string name;  // for debugging only
   map<string,string> meta;  // for debugging only
-  vguard<ProfileTransitionIndex> in, out;
+  vguard<ProfileTransitionIndex> in, nullOut, absorbOut;
   vguard<LogProb> lpAbsorb;
   AlignPath alignPath;
   map<AlignRowIndex,SeqIdx> seqCoords;

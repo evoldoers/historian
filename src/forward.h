@@ -38,6 +38,8 @@ public:
     { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
   };
 
+  enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
+
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;
 
@@ -137,7 +139,6 @@ public:
   AlignPath bestAlignPath();
 
   // profile construction
-  enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
   Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
   Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
   Profile bestProfile (EliminationStrategy strategy = KeepHubsAndAbsorbers);
@@ -158,6 +159,9 @@ class BackwardMatrix : public DPMatrix {
 public:
   struct CellPostProb : CellCoords {
     LogProb logPostProb;
+    CellPostProb (ProfileStateIndex xpos, ProfileStateIndex ypos, PairHMM::State state, LogProb lpp)
+      : CellCoords(xpos,ypos,state), logPostProb(lpp)
+    { }
     bool operator< (const CellPostProb& cpp) const
     { return logPostProb < cpp.logPostProb; }
   };
@@ -165,12 +169,14 @@ public:
   
   BackwardMatrix (const ForwardMatrix& fwd, double minPostProb);
 
-  // traceback
+  // traceforward
   Path bestTrace (const CellCoords& start);
+
+  // profile construction
+  Profile buildProfile (size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers);  // maxCells=0 to unlimit
 
 private:
   map<CellCoords,LogProb> destCells (const CellCoords& srcCell);
-  map<CellCoords,LogProb> destTransitions (const CellCoords& srcCell);
 };
 
 #endif /* FORWARD_INCLUDED */
