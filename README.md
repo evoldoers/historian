@@ -26,9 +26,9 @@ Reconstruction options:
    -states &lt;n&gt;     Limit max number of states per profile
 
 Note -minpost and -samples imply different profile construction strategies.
--minpost (the default) deterministically includes all states above a given
-posterior probability threshold, along with states required to reach them.
--samples randomly samples profile paths from the posterior distribution.
+ -minpost (the default) deterministically includes all states above a given
+  posterior probability threshold, along with states required to reach them.
+ -samples randomly samples profile paths from the posterior distribution.
 Both strategies are subject to the state limit imposed by -states.
 
 Guide alignment options:
