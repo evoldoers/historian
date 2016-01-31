@@ -151,11 +151,11 @@ testquickalign: bin/testquickalign
 	$(TEST) bin/testquickalign data/PF16593.pair.fa data/amino.json 1 data/testquickalign.out.fa
 
 testhist: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) align -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -guide data/PF16593.testspan.fa data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -seqs data/PF16593.fa -tree data/PF16593.nhx data/PF16593.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx data/PF16593.historian.fa
 
 testgp120:
 	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh

@@ -36,6 +36,10 @@ bool OptParser::parseUnknown() {
       // test stack trace
       Abort ("abort triggered");
 
+    } else if (arg == "-h" || arg == "--help" || arg == "-help") {
+      cout << text;
+      exit (EXIT_SUCCESS);
+
     } else {
       if (arg[0] == '-' || implicitSwitches.empty()) {
 	cerr << text << "Unknown option: " << arg << endl;

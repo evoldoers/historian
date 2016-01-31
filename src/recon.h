@@ -9,6 +9,7 @@
 #include "diagenv.h"
 
 #define DefaultProfileSamples 100
+#define DefaultProfilePostProb .1
 #define DefaultMaxDistanceFromGuide 10
 
 class Reconstructor {
@@ -17,8 +18,9 @@ public:
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
-  bool includeBestTraceInProfile;
-
+  bool includeBestTraceInProfile, usePosteriorsForProfile;
+  double minPostProb;
+  
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
 

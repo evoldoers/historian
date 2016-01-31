@@ -21,9 +21,15 @@ File options:
 Reconstruction options:
    -band &lt;n&gt;       Size of band around guide alignment (default 10)
    -noband         Turn off band, ignore guide alignment
-   -samples &lt;n&gt;    Number of sampled alignments per profile (default 100)
+   -minpost &lt;p&gt;    Posterior probability threshold for profile (default .1)
+   -samples &lt;n&gt;    Number of sampled alignments per profile
    -states &lt;n&gt;     Limit max number of states per profile
-   -seed &lt;n&gt;       Seed random number generator
+
+Note -minpost and -samples imply different profile construction strategies.
+-minpost (the default) deterministically includes all states above a given
+posterior probability threshold, along with states required to reach them.
+-samples randomly samples profile paths from the posterior distribution.
+Both strategies are subject to the state limit imposed by -states.
 
 Guide alignment options:
    -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
@@ -38,14 +44,16 @@ General options:
                    Various levels of logging (-nocolor for monochrome)
    -V, --version   Print GNU-style version info
    -h, --help      Print help message
+   -seed &lt;n&gt;       Seed random number generator
 
 The method is that of phylogenetic transducers, as described in:
  Westesson, Lunter, Paten & Holmes (2012).
- Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics
+ Accurate Reconstruction of Insertion-Deletion Histories by
+ Statistical Phylogenetics.
  PLoS One, DOI: 10.1371/journal.pone.0034572
  http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572
 
-See also:
+A longer, tutorial-style introduction is available here:
  Phylogenetic automata, pruning, and multiple alignment
  http://arxiv.org/abs/1103.4347
 </code></pre>

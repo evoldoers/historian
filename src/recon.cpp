@@ -13,7 +13,9 @@ Reconstructor::Reconstructor()
     profileNodeLimit (0),
     includeBestTraceInProfile (true),
     rndSeed (ForwardMatrix::random_engine::default_seed),
-    maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
+    maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
+    usePosteriorsForProfile (true),
+    minPostProb (DefaultProfilePostProb)
 { }
 
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
@@ -94,8 +96,17 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       profileSamples = atoi (argvec[1].c_str());
       argvec.pop_front();
       argvec.pop_front();
+      usePosteriorsForProfile = false;
       return true;
 
+    } else if (arg == "-minpost") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      minPostProb = atof (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      usePosteriorsForProfile = true;
+      return true;
+      
     } else if (arg == "-states") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       profileNodeLimit = atoi (argvec[1].c_str());
@@ -178,8 +189,12 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   }
 
   if (guideSaveFilename.size()) {
-    ofstream guideFile (guideSaveFilename);
-    writeFastaSeqs (guideFile, gapped);
+    if (gapped.empty())
+      Warn("No guide alignment to save");
+    else {
+      ofstream guideFile (guideSaveFilename);
+      writeFastaSeqs (guideFile, gapped);
+    }
   }
 
   if (treeSaveFilename.size()) {
@@ -269,11 +284,14 @@ Alignment Reconstructor::reconstruct() {
       if (node == tree.root()) {
 	path = forward.bestAlignPath();
 	nodeProf = forward.bestProfile();
+      } else if (usePosteriorsForProfile) {
+	BackwardMatrix backward (forward, minPostProb);
+	nodeProf = backward.buildProfile (profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers);
       } else
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
 
       const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(eqm), NULL);
-      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", sampled profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
+      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
       
       if (node == tree.root()) {
 	lpFinalFwd = forward.lpEnd;

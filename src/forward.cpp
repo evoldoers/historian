@@ -208,6 +208,7 @@ DPMatrix::CellCoords DPMatrix::sampleCell (const map<CellCoords,LogProb>& cellLo
 DPMatrix::CellCoords DPMatrix::bestCell (const map<CellCoords,LogProb>& cellLogProb) {
   CellCoords best;
   double pBest = -numeric_limits<double>::infinity();
+  Assert (!cellLogProb.empty(), "%s traceback failure", __func__);
   for (auto& iter : cellLogProb)
     if (iter.second > pBest) {
       pBest = iter.second;
@@ -752,31 +753,44 @@ map<DPMatrix::CellCoords,LogProb> BackwardMatrix::destCells (const CellCoords& s
   if (!yState.isNull() && (srcCell.state == PairHMM::IMD || srcCell.state == PairHMM::IIW || srcCell.state == PairHMM::IMM))
     for (auto xt : xState.nullOut) {
       const ProfileTransition& xTrans = x.trans[xt];
-      clp[CellCoords(xTrans.dest,srcCell.ypos,srcCell.state)] = xTrans.lpTrans;
+      if (xTrans.dest != xSize - 1)
+	clp[CellCoords(xTrans.dest,srcCell.ypos,srcCell.state)] = xTrans.lpTrans;
     }      
 
   // y-nonabsorbing transitions in IDM, IMI, IMM
   if (srcCell.state == PairHMM::IDM || srcCell.state == PairHMM::IMI || srcCell.state == PairHMM::IMM)
     for (auto yt : yState.nullOut) {
       const ProfileTransition& yTrans = y.trans[yt];
-      clp[CellCoords(srcCell.xpos,yTrans.dest,srcCell.state)] = yTrans.lpTrans;
+      if (yTrans.dest != ySize - 1)
+	clp[CellCoords(srcCell.xpos,yTrans.dest,srcCell.state)] = yTrans.lpTrans;
     }
 
   // add in destination cell scores
   for (auto& c_lp : clp)
     c_lp.second += cell (c_lp.first);
 
+  // add in transitions to EEE
+  for (auto xt : xState.nullOut) {
+    const ProfileTransition& xTrans = x.trans[xt];
+    if (xTrans.dest == xSize - 1)
+      for (auto yt : yState.nullOut) {
+	const ProfileTransition& yTrans = y.trans[yt];
+	if (yTrans.dest == ySize - 1)
+	  clp[CellCoords(xSize-1,ySize-1,PairHMM::EEE)] = xTrans.lpTrans + yTrans.lpTrans + hmm.lpTrans(srcCell.state,PairHMM::EEE);
+      }
+  }
+  
   return clp;
 }
 
 BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
   Path path;
 
-  CellCoords current;
+  CellCoords current = traceStart;
   do {
     map<CellCoords,LogProb> clp = destCells (current);
     current = bestCell (clp);
-    LogThisAt(6,__func__ << " traceback at " << cellName(current) << " score " << cell(current) << endl);
+    LogThisAt(6,__func__ << " traceforward at " << cellName(current) << " score " << cell(current) << endl);
     path.push_back (current);
   } while (current.xpos < xSize - 1 && current.ypos < ySize - 1);
 
@@ -786,27 +800,38 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
 
 Profile BackwardMatrix::buildProfile (size_t maxCells, EliminationStrategy strategy) {
   set<CellCoords> cells;
-  while ((maxCells == 0 || cells.size() < maxCells) && !bestCells.empty()) {
-    const CellCoords& best = bestCells.top();
-    if (cells.count (best))
-      bestCells.pop();
-    else {
-      const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);
-      list<CellCoords> newCells;
-      for (const auto& cell : fwdTrace)
-	if (cells.count (cell))
+  if (bestCells.empty()) {
+    const list<CellCoords> fwdBestTrace = fwd.bestTrace();
+    cells.insert (fwdBestTrace.begin(), fwdBestTrace.end());
+  } else
+    while ((maxCells == 0 || cells.size() < maxCells) && !bestCells.empty()) {
+      const CellCoords& best = bestCells.top();
+      if (cells.count (best))
+	bestCells.pop();
+      else {
+	LogThisAt(5,"Starting traceback/forward from " << cellName(best) << endl);
+	const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);
+	list<CellCoords> newCells;
+	for (auto cellIter = fwdTrace.rbegin(); cellIter != fwdTrace.rend(); ++cellIter)
+	  if (cells.count (*cellIter))
+	    break;
+	  else
+	    newCells.push_back (*cellIter);
+	for (const auto& cell : backTrace)
+	  if (cells.count (cell))
+	    break;
+	  else
+	    newCells.push_back (cell);
+	if (maxCells > 0 && cells.size() > 0 && cells.size() + newCells.size() > maxCells)
 	  break;
-	else
-	  newCells.push_back (cell);
-      for (const auto& cell : backTrace)
-	if (cells.count (cell))
-	  break;
-	else
-	  newCells.push_back (cell);
-      if (maxCells > 0 && cells.size() + newCells.size() > maxCells)
-	break;
-      cells.insert (newCells.begin(), newCells.end());
+	if (LoggingThisAt(6)) {
+	  LogThisAt(6,"Adding the following cells to profile:");
+	  for (const auto& c : newCells)
+	    LogThisAt(6," " << cellName(c));
+	  LogThisAt(6,endl);
+	}
+	cells.insert (newCells.begin(), newCells.end());
+      }
     }
-  }
   return fwd.makeProfile (cells, strategy);
 }

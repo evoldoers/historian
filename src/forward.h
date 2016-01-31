@@ -50,7 +50,7 @@ public:
   const ProfileStateIndex xSize, ySize;
   const CellCoords startCell, endCell;
   LogProb lpEnd;
-  const GuideAlignmentEnvelope& envelope;
+  const GuideAlignmentEnvelope envelope;
   vguard<int> xClosestLeafPos, yClosestLeafPos;
   int maxDistance;
 
