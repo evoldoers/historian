@@ -786,7 +786,7 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
 
 Profile BackwardMatrix::buildProfile (size_t maxCells, EliminationStrategy strategy) {
   set<CellCoords> cells;
-  while (cells.size() < maxCells && !bestCells.empty()) {
+  while ((maxCells == 0 || cells.size() < maxCells) && !bestCells.empty()) {
     const CellCoords& best = bestCells.top();
     if (cells.count (best))
       bestCells.pop();
@@ -803,7 +803,7 @@ Profile BackwardMatrix::buildProfile (size_t maxCells, EliminationStrategy strat
 	  break;
 	else
 	  newCells.push_back (cell);
-      if (cells.size() + newCells.size() > maxCells)
+      if (maxCells > 0 && cells.size() + newCells.size() > maxCells)
 	break;
       cells.insert (newCells.begin(), newCells.end());
     }
