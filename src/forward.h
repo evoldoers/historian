@@ -166,14 +166,15 @@ public:
     { return logPostProb < cpp.logPostProb; }
   };
   priority_queue<CellPostProb> bestCells;
+  ForwardMatrix& fwd;
   
-  BackwardMatrix (const ForwardMatrix& fwd, double minPostProb);
+  BackwardMatrix (ForwardMatrix& fwd, double minPostProb);
 
   // traceforward
   Path bestTrace (const CellCoords& start);
 
   // profile construction
-  Profile buildProfile (size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers);  // maxCells=0 to unlimit
+  Profile buildProfile (size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers);  // maxCells=0 to unlimit
 
 private:
   map<CellCoords,LogProb> destCells (const CellCoords& srcCell);

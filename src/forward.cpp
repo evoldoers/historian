@@ -266,14 +266,14 @@ AlignPath ForwardMatrix::bestAlignPath() {
   return traceAlignPath (trace);
 }
 
-map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
+map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& destCell) {
   map<CellCoords,LogProb> sc = sourceTransitions (destCell);
   for (auto& c_lp : sc)
     c_lp.second += cell (c_lp.first);
   return sc;
 }
 
-map<ForwardMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCoords& destCell) {
+map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCoords& destCell) {
   map<CellCoords,LogProb> clp;
   const ProfileState& xState = x.state[destCell.xpos];
   const ProfileState& yState = y.state[destCell.ypos];
@@ -600,8 +600,9 @@ string DPMatrix::ancestorName (const string& lChildName, double lTime, const str
   return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
 }
 
-BackwardMatrix::BackwardMatrix (const ForwardMatrix& fwd, double minPostProb)
-  : DPMatrix (fwd.x, fwd.y, fwd.hmm, fwd.envelope)
+BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
+  : DPMatrix (fwd.x, fwd.y, fwd.hmm, fwd.envelope),
+    fwd (fwd)
 {
   lpEnd = 0;
   // transitions into EEE
@@ -717,4 +718,95 @@ BackwardMatrix::BackwardMatrix (const ForwardMatrix& fwd, double minPostProb)
   }
 
   LogThisAt(6,"Backward log-likelihood is " << lpStart() << endl);
+}
+
+map<DPMatrix::CellCoords,LogProb> BackwardMatrix::destCells (const CellCoords& srcCell) {
+  map<CellCoords,LogProb> clp;
+  const ProfileState& xState = x.state[srcCell.xpos];
+  const ProfileState& yState = y.state[srcCell.ypos];
+  
+  // xy-absorbing transitions into IMM
+  for (auto xt : xState.absorbOut) {
+    const ProfileTransition& xTrans = x.trans[xt];
+    for (auto yt : yState.absorbOut) {
+      const ProfileTransition& yTrans = y.trans[yt];
+      clp[CellCoords(xTrans.dest,yTrans.dest,PairHMM::IMM)] = hmm.lpTrans(srcCell.state,PairHMM::IMM) + xTrans.lpTrans + yTrans.lpTrans + computeLogProbAbsorb(xTrans.dest,yTrans.dest);
+    }
+  }
+
+  // x-absorbing transitions into IMD, IIW
+  for (auto xt : xState.absorbOut) {
+    const ProfileTransition& xTrans = x.trans[xt];
+    clp[CellCoords(xTrans.dest,srcCell.ypos,PairHMM::IMD)] = hmm.lpTrans(srcCell.state,PairHMM::IMD) + xTrans.lpTrans + rootsubx[xTrans.dest];
+    clp[CellCoords(xTrans.dest,srcCell.ypos,PairHMM::IIW)] = hmm.lpTrans(srcCell.state,PairHMM::IIW) + xTrans.lpTrans + insx[xTrans.dest];
+  }
+
+  // y-absorbing transitions into IDM, IMI
+  for (auto yt : yState.absorbOut) {
+    const ProfileTransition& yTrans = y.trans[yt];
+    clp[CellCoords(srcCell.xpos,yTrans.dest,PairHMM::IDM)] = hmm.lpTrans(srcCell.state,PairHMM::IDM) + yTrans.lpTrans + rootsuby[yTrans.dest];
+    clp[CellCoords(srcCell.xpos,yTrans.dest,PairHMM::IMI)] = hmm.lpTrans(srcCell.state,PairHMM::IMI) + yTrans.lpTrans + insy[yTrans.dest];
+  }
+
+  // x-nonabsorbing transitions in IMD, IIW, IMM
+  if (!yState.isNull() && (srcCell.state == PairHMM::IMD || srcCell.state == PairHMM::IIW || srcCell.state == PairHMM::IMM))
+    for (auto xt : xState.nullOut) {
+      const ProfileTransition& xTrans = x.trans[xt];
+      clp[CellCoords(xTrans.dest,srcCell.ypos,srcCell.state)] = xTrans.lpTrans;
+    }      
+
+  // y-nonabsorbing transitions in IDM, IMI, IMM
+  if (srcCell.state == PairHMM::IDM || srcCell.state == PairHMM::IMI || srcCell.state == PairHMM::IMM)
+    for (auto yt : yState.nullOut) {
+      const ProfileTransition& yTrans = y.trans[yt];
+      clp[CellCoords(srcCell.xpos,yTrans.dest,srcCell.state)] = yTrans.lpTrans;
+    }
+
+  // add in destination cell scores
+  for (auto& c_lp : clp)
+    c_lp.second += cell (c_lp.first);
+
+  return clp;
+}
+
+BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
+  Path path;
+
+  CellCoords current;
+  do {
+    map<CellCoords,LogProb> clp = destCells (current);
+    current = bestCell (clp);
+    LogThisAt(6,__func__ << " traceback at " << cellName(current) << " score " << cell(current) << endl);
+    path.push_back (current);
+  } while (current.xpos < xSize - 1 && current.ypos < ySize - 1);
+
+  path.push_back (endCell);
+  return path;
+}
+
+Profile BackwardMatrix::buildProfile (size_t maxCells, EliminationStrategy strategy) {
+  set<CellCoords> cells;
+  while (cells.size() < maxCells && !bestCells.empty()) {
+    const CellCoords& best = bestCells.top();
+    if (cells.count (best))
+      bestCells.pop();
+    else {
+      const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);
+      list<CellCoords> newCells;
+      for (const auto& cell : fwdTrace)
+	if (cells.count (cell))
+	  break;
+	else
+	  newCells.push_back (cell);
+      for (const auto& cell : backTrace)
+	if (cells.count (cell))
+	  break;
+	else
+	  newCells.push_back (cell);
+      if (cells.size() + newCells.size() > maxCells)
+	break;
+      cells.insert (newCells.begin(), newCells.end());
+    }
+  }
+  return fwd.makeProfile (cells, strategy);
 }
