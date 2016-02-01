@@ -104,6 +104,7 @@ testlogsumexp: bin/testlogsumexp
 
 testmatexp: bin/testmatexp
 	$(TEST) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
+	$(TEST) bin/testmatexp -eigen data/testrates.json 1 data/testrates.probs.json
 
 testrateio: bin/testrateio
 	$(TEST) bin/testrateio data/testrates.json data/testrates.out.json

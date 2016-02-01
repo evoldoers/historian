@@ -11,6 +11,30 @@
 #include "fastseq.h"
 #include "alignpath.h"
 
+class EigenModel {
+public:
+  const RateModel& model;
+
+  gsl_vector_complex *eval;
+  gsl_matrix_complex *evec;  // right eigenvectors
+  gsl_matrix_complex *evecInv;  // left eigenvectors
+
+  EigenModel (const RateModel& model);
+  ~EigenModel();
+
+  gsl_matrix* getSubProb (double t) const;
+
+  gsl_matrix_complex* eigenSubCount (double t) const;
+  void accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
+  
+private:
+  vguard<gsl_complex> ev, ev_t, exp_ev_t;
+  void compute_exp_ev_t (double t);
+  
+  EigenModel (const EigenModel&) = delete;
+  EigenModel& operator= (const EigenModel&) = delete;
+};
+
 class AlignColSumProduct {
 public:
   const RateModel& model;
@@ -20,10 +44,8 @@ public:
   vguard<LogProb> logInsProb;
   vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][parentState][nodeState]
 
-  gsl_vector_complex *eval;
-  gsl_matrix_complex *evec;  // right eigenvectors
-  gsl_matrix_complex *evecInv;  // left eigenvectors
-  vguard<gsl_matrix_complex*> branchEigenSub;
+  EigenModel eigen;
+  vguard<gsl_matrix_complex*> branchEigenSubCount;
 
   AlignColIndex col;
   vguard<AlignRowIndex> ungappedRows;
