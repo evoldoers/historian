@@ -259,11 +259,10 @@ LogProbModel::LogProbModel (const ProbModel& pm)
   : logInsProb (pm.alphabetSize()),
     logSubProb (pm.alphabetSize(), vguard<LogProb> (pm.alphabetSize()))
 {
-  for (AlphTok i = 0; i < pm.alphabetSize(); ++i) {
-    logInsProb[i] = log (gsl_vector_get (pm.insVec, i));
+  logInsProb = log_gsl_vector (pm.insVec);
+  for (AlphTok i = 0; i < pm.alphabetSize(); ++i)
     for (AlphTok j = 0; j < pm.alphabetSize(); ++j)
       logSubProb[i][j] = log (gsl_matrix_get (pm.subMat, i, j));
-  }
 }
 
 double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterations) const {

@@ -68,7 +68,7 @@ LogProb Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const cha
   vector<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
   lpCumAbs[0] = 0;
   for (ProfileStateIndex pos = 1; pos < state.size(); ++pos) {
-    const LogProb lpAbs = state[pos].isNull() ? 0 : ForwardMatrix::logInnerProduct (input, state[pos].lpAbsorb);
+    const LogProb lpAbs = state[pos].isNull() ? 0 : logInnerProduct (input, state[pos].lpAbsorb);
     for (auto ti : state[pos].in) {
       const ProfileTransition& t = trans[ti];
       log_accum_exp (lpCumAbs[pos], lpCumAbs[t.src] + t.lpTrans + lpAbs);

@@ -31,15 +31,17 @@ DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, cons
       yClosestLeafPos[j] = y.state[j].seqCoords.at(env.row2);
   }
 
-  for (ProfileStateIndex i = 1; i < xSize - 1; ++i) {
-    insx[i] = logInnerProduct (hmm.logl.logInsProb, x.state[i].lpAbsorb);
-    rootsubx[i] = logInnerProduct (hmm.logRoot, subx.state[i].lpAbsorb);
-  }
+  for (ProfileStateIndex i = 1; i < xSize - 1; ++i)
+    if (!x.state[i].isNull()) {
+      insx[i] = logInnerProduct (hmm.logl.logInsProb, x.state[i].lpAbsorb);
+      rootsubx[i] = logInnerProduct (hmm.logRoot, subx.state[i].lpAbsorb);
+    }
 
-  for (ProfileStateIndex j = 1; j < ySize - 1; ++j) {
-    insy[j] = logInnerProduct (hmm.logr.logInsProb, y.state[j].lpAbsorb);
-    rootsuby[j] = logInnerProduct (hmm.logRoot, suby.state[j].lpAbsorb);
-  }
+  for (ProfileStateIndex j = 1; j < ySize - 1; ++j)
+    if (!y.state[j].isNull()) {
+      insy[j] = logInnerProduct (hmm.logr.logInsProb, y.state[j].lpAbsorb);
+      rootsuby[j] = logInnerProduct (hmm.logRoot, suby.state[j].lpAbsorb);
+    }
 }
 
 ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env)

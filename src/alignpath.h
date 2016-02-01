@@ -20,12 +20,14 @@ AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2);  // length
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const AlignPath& a3);
 
 struct Alignment {
+  static const char gapChar, wildcardChar;
   vguard<FastSeq> ungapped;
   AlignPath path;
   Alignment (const vguard<FastSeq>& gapped);
   Alignment (const vguard<FastSeq>& ungapped, const AlignPath& path);
   vguard<FastSeq> gapped() const;
-  static bool isGap (char c) { return c == '-' || c == '.'; }
+  static inline bool isGap (char c) { return c == '-' || c == '.'; }
+  static inline bool isWildcard (char c) { return c == '*'; }
 };
 
 struct GuideAlignmentEnvelope {

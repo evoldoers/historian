@@ -14,7 +14,7 @@ class AlignColSumProduct {
 public:
   const RateModel& model;
   const Tree& tree;
-  const vguard<FastSeq>& gapped;
+  const vguard<FastSeq>& gapped;  // tree node index must match alignment row index
 
   vguard<LogProb> logInsProb;
   vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][src][dest]
@@ -24,21 +24,23 @@ public:
   gsl_matrix_complex *evecTrans;  // left eigenvectors
 
   AlignColIndex col;
-  vguard<SeqIdx> seqPos;
   vguard<AlignRowIndex> ungappedRows;
 
   // F_n(x_n): variable->function, tip->root messages
   // E_n(x_p): function->variable, tip->root messages
   // G_n(x_n): function->variable, root->tip messages
   // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
-  vguard<LogProb> logE, logF, logG;
-
+  vguard<vguard<LogProb> > logE, logF, logG;
+  LogProb logLike;  // marginal likelihood, all unobserved states summed out
+  
   AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped);
   ~AlignColSumProduct();
 
   bool alignmentDone() const;
   void nextColumn();
 
+  inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gapped[row].seq[col]); }
+  inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gapped[row].seq[col]); }
   inline bool columnEmpty() const { return ungappedRows.empty(); }
   inline AlignRowIndex root() const { return ungappedRows.back(); }
 

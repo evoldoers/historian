@@ -2,6 +2,9 @@
 #include "util.h"
 #include "logger.h"
 
+const char Alignment::gapChar = '-';
+const char Alignment::wildcardChar = '*';
+
 // map used by alignPathMerge
 struct AlignSeqMap {
   typedef size_t AlignNum;

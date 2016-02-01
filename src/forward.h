@@ -81,19 +81,6 @@ public:
   
   // helpers
 public:
-  static inline LogProb logInnerProduct (const vguard<LogProb>::const_iterator& begin1,
-					 const vguard<LogProb>::const_iterator& begin2,
-					 const vguard<LogProb>::const_iterator& end2) {
-    LogProb lip = -numeric_limits<double>::infinity();
-    for (vguard<LogProb>::const_iterator iter1 = begin1, iter2 = begin2; iter2 != end2; ++iter1, ++iter2)
-      lip = log_sum_exp (lip, *iter1 + *iter2);
-    return lip;
-  }
-
-  static inline LogProb logInnerProduct (const vguard<LogProb>& v1, const vguard<LogProb>& v2) {
-    return logInnerProduct (v1.begin(), v2.begin(), v2.end());
-  }
-
   string cellName (const CellCoords& cell) const;
   static string ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 
