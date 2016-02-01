@@ -14,8 +14,7 @@ class AlignColSumProduct {
 public:
   const RateModel& model;
   const Tree& tree;
-  const vguard<FastSeq>& seq;
-  const AlignPath& path;
+  const vguard<FastSeq>& gapped;
 
   vguard<LogProb> logInsProb;
   vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][src][dest]
@@ -25,7 +24,7 @@ public:
   gsl_matrix_complex *evecTrans;  // left eigenvectors
 
   AlignColIndex col;
-  map<AlignRowIndex,SeqIdx> seqPos;
+  vguard<SeqIdx> seqPos;
   vguard<AlignRowIndex> ungappedRows;
 
   // F_n(x_n): variable->function, tip->root messages
@@ -34,7 +33,7 @@ public:
   // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
   vguard<LogProb> logE, logF, logG;
 
-  AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& seq, const AlignPath& path);
+  AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped);
   ~AlignColSumProduct();
 
   bool alignmentDone() const;
