@@ -31,6 +31,7 @@ struct Tree {
   bool isLeaf (TreeNodeIndex node) const;
   size_t nChildren (TreeNodeIndex node) const;
   TreeNodeIndex getChild (TreeNodeIndex node, size_t childNum) const;
+  TreeNodeIndex getSibling (TreeNodeIndex node) const;
 
   void parse (const string& nhx);
   

@@ -77,6 +77,13 @@ TreeNodeIndex Tree::getChild (TreeNodeIndex n, size_t childNum) const {
   return node[n].child[childNum];
 }
 
+TreeNodeIndex Tree::getSibling (TreeNodeIndex node) const {
+  const TreeNodeIndex parent = parentNode(node);
+  Assert (parent >= 0, "Attempt to find sibling of root node");
+  Assert (nChildren(parent) == 2, "Attempt to find sibling in non-binary tree");
+  return getChild(parent,0) == node ? getChild(parent,1) : getChild(parent,0);
+}
+
 void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
   // check that there are more than 2 nodes
   Assert (nodeName.size() >= 2, "Fewer than 2 nodes; can't make a binary tree");

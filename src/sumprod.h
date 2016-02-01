@@ -2,6 +2,7 @@
 #define SUMPROD_INCLUDED
 
 #include <gsl/gsl_matrix_complex_double.h>
+#include <gsl/gsl_vector_complex_double.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_vector.h>
 
@@ -17,11 +18,12 @@ public:
   const vguard<FastSeq>& gapped;  // tree node index must match alignment row index
 
   vguard<LogProb> logInsProb;
-  vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][src][dest]
+  vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][parentState][nodeState]
 
   gsl_vector_complex *eval;
   gsl_matrix_complex *evec;  // right eigenvectors
-  gsl_matrix_complex *evecTrans;  // left eigenvectors
+  gsl_matrix_complex *evecInv;  // left eigenvectors
+  vguard<gsl_matrix_complex*> branchEigenSub;
 
   AlignColIndex col;
   vguard<AlignRowIndex> ungappedRows;
@@ -31,7 +33,7 @@ public:
   // G_n(x_n): function->variable, root->tip messages
   // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
   vguard<vguard<LogProb> > logE, logF, logG;
-  LogProb logLike;  // marginal likelihood, all unobserved states summed out
+  LogProb colLogLike;  // marginal likelihood, all unobserved states summed out
   
   AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped);
   ~AlignColSumProduct();
@@ -47,12 +49,12 @@ public:
   void fillUp();  // E, F
   void fillDown();  // G
 
-  LogProb logColumnProb() const;
   vguard<LogProb> logNodePostProb (AlignRowIndex node) const;
+  LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
   AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
 
   void accumulateCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const;
-  gsl_matrix* getSubCounts (gsl_matrix_complex* eigenCounts) const;
+  gsl_matrix* getSubCounts (gsl_matrix_complex* eigenCounts) const;  // wait times on diagonal
 
 private:
   void initColumn();  // populates ungappedRows
