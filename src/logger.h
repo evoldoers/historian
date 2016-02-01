@@ -85,7 +85,8 @@ extern Logger logger;
 
 
 /* progress logging */
-struct ProgressLogger {
+class ProgressLogger {
+public:
   std::chrono::system_clock::time_point startTime;
   double lastElapsedSeconds, reportInterval;
   char* msg;
@@ -96,6 +97,9 @@ struct ProgressLogger {
   ~ProgressLogger();
   void initProgress (const char* desc, ...);
   void logProgress (double completedFraction, const char* desc, ...);
+private:
+  ProgressLogger (const ProgressLogger&) = delete;
+  ProgressLogger& operator= (const ProgressLogger&) = delete;
 };
 
 #define ProgressLog(PLOG,V) ProgressLogger PLOG (V, __func__, __FILE__, __LINE__)

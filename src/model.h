@@ -44,13 +44,17 @@ struct RateModel : AlphabetOwner {
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
 };
 
-struct ProbModel : AlphabetOwner {
+class ProbModel : public AlphabetOwner {
+public:
   double t, ins, del, insExt, delExt;
   gsl_vector* insVec;
   gsl_matrix* subMat;
   ProbModel (const RateModel& model, double t);
   ~ProbModel();
   void write (ostream& out) const;
+private:
+  ProbModel (const ProbModel&) = delete;
+  ProbModel& operator= (const ProbModel&) = delete;
 };
 
 struct LogProbModel {

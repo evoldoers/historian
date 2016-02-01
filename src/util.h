@@ -52,6 +52,8 @@ std::string pipeToString (const char* command, int* status = NULL);
 class TempFile {
 private:
   static std::string makeNewPath (std::string basePath, bool usePid);
+  TempFile (const TempFile&) = delete;
+  TempFile& operator= (const TempFile&) = delete;
 public:
   static const std::string dir;  /* /tmp */
   static unsigned int count;
@@ -66,7 +68,11 @@ public:
 };
 
 /* temp directory */
-struct TempDir {
+class TempDir {
+private:
+  TempDir (const TempDir&) = delete;
+  TempDir& operator= (const TempDir&) = delete;
+public:
   std::string fullPath;
   bool cleanup;
   TempDir (const char* filenamePrefix = DefaultTempDirPrefix);  // by default, creates tempdir in cwd

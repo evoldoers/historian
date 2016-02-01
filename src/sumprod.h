@@ -55,6 +55,9 @@ public:
 
 private:
   void initColumn();  // populates ungappedRows
+
+  AlignColSumProduct (const AlignColSumProduct&) = delete;
+  AlignColSumProduct& operator= (const AlignColSumProduct&) = delete;
 };
 
 #endif /* SUMPROD_INCLUDED */

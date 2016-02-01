@@ -35,6 +35,7 @@ struct JsonMap {
 class ParsedJson : public JsonMap {
 private:
   ParsedJson (const ParsedJson&) = delete;
+  ParsedJson& operator= (const ParsedJson&) = delete;
 public:
   string str;
   char *buf, *endPtr;
