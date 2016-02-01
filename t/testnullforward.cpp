@@ -19,7 +19,7 @@ int main (int argc, char **argv) {
 
   ProbModel xprobs (rates, atof (argv[2]));
   ProbModel yprobs (rates, atof (argv[argc > 3 ? 3 : 2]));
-  gsl_vector* eqm = rates.getEqmProb();
+  gsl_vector* eqm = rates.insProb;
   PairHMM hmm (xprobs, yprobs, eqm);
 
   FastSeq x, y;

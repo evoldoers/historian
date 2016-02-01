@@ -55,8 +55,42 @@ gsl_vector* AlphabetOwner::newAlphabetVector() const {
 }
 
 RateModel::RateModel()
-  : subRate(NULL)
+  : subRate(NULL),
+    insProb(NULL)
 { }
+
+RateModel::RateModel (const RateModel& model)
+  : subRate(NULL),
+    insProb(NULL)
+{
+  *this = model;
+}
+
+RateModel::~RateModel()
+{
+  if (subRate)
+    gsl_matrix_free (subRate);
+  if (insProb)
+    gsl_vector_free (insProb);
+}
+
+RateModel& RateModel::operator= (const RateModel& model) {
+  if (subRate)
+    gsl_matrix_free (subRate);
+  if (insProb)
+    gsl_vector_free (insProb);
+
+  ((AlphabetOwner&)*this) = model;
+  insRate = model.insRate;
+  delRate = model.delRate;
+  insExtProb = model.insExtProb;
+  delExtProb = model.delExtProb;
+  insProb = model.newAlphabetVector();
+  subRate = model.newAlphabetMatrix();
+  CheckGsl (gsl_vector_memcpy (insProb, model.insProb));
+  CheckGsl (gsl_matrix_memcpy (subRate, model.subRate));
+  return *this;
+}
 
 void RateModel::read (const JsonValue& json) {
   Assert (subRate == NULL, "RateModel already initialized");
@@ -86,6 +120,20 @@ void RateModel::read (const JsonValue& json) {
     }
   }
 
+  if (jm.contains("rootprob")) {
+    const JsonMap insVec = jm.getObject ("rootprob");
+    insProb = newAlphabetVector();
+    gsl_vector_set_zero (insProb);
+
+    for (auto ci : alphabet) {
+      AlphTok i = (AlphTok) tokenize (ci);
+      const string si (1, ci);
+      if (insVec.contains (si))
+	gsl_vector_set (insProb, i, insVec.getNumber(si));
+    }
+  } else
+    insProb = getEqmProb();
+
   insRate = jm.getNumber("insrate");
   insExtProb = jm.getNumber("insextprob");
   delRate = jm.getNumber("delrate");
@@ -99,13 +147,20 @@ void RateModel::write (ostream& out) const {
   out << " \"insextprob\": " << insExtProb << "," << endl;
   out << " \"delrate\": " << delRate << "," << endl;
   out << " \"delextprob\": " << delExtProb << "," << endl;
-  out << " \"subrate\": {" << endl;
+  out << " \"rootprob\":" << endl;
+  out << " {";
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    out << (i>0 ? "," : "") << "\n  \"" << alphabet[i] << "\": " << gsl_vector_get(insProb,i);
+  out << endl;
+  out << " }," << endl;
+  out << " \"subrate\":" << endl;
+  out << " {" << endl;
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << "  \"" << alphabet[i] << "\": {" << endl;
+    out << "  \"" << alphabet[i] << "\": {";
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
-	out << "   \"" << alphabet[j] << "\": " << gsl_matrix_get(subRate,i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? ",\n" : "");
-    out << endl << "  }" << (i < alphabetSize() - 1 ? "," : "") << endl;
+	out << " \"" << alphabet[j] << "\": " << gsl_matrix_get(subRate,i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
+    out << " }" << (i < alphabetSize() - 1 ? "," : "") << endl;
   }
   out << " }" << endl;
   out << "}" << endl;
@@ -167,9 +222,11 @@ ProbModel::ProbModel (const RateModel& model, double t)
     del (1 - exp (-model.delRate * t)),
     insExt (model.insExtProb),
     delExt (model.delExtProb),
-    insVec (model.getEqmProb()),
+    insVec (model.newAlphabetVector()),
     subMat (model.getSubProb (t))
-{ }
+{
+  CheckGsl (gsl_vector_memcpy (insVec, model.insProb));
+}
 
 ProbModel::~ProbModel() {
   gsl_matrix_free (subMat);

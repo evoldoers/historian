@@ -259,7 +259,7 @@ void Reconstructor::buildIndices() {
 
 Alignment Reconstructor::reconstruct() {
   LogThisAt(1,"Starting reconstruction on " << tree.nodes() << "-node tree" << endl);
-  gsl_vector* eqm = model.getEqmProb();
+  gsl_vector* rootProb = model.insProb;
 
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
   AlignPath path;
@@ -274,7 +274,7 @@ Alignment Reconstructor::reconstruct() {
       const Profile& rProf = prof[rChildNode];
       ProbModel lProbs (model, tree.branchLength(lChildNode));
       ProbModel rProbs (model, tree.branchLength(rChildNode));
-      PairHMM hmm (lProbs, rProbs, eqm);
+      PairHMM hmm (lProbs, rProbs, rootProb);
 
       LogThisAt(2,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
@@ -290,7 +290,7 @@ Alignment Reconstructor::reconstruct() {
       } else
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
 
-      const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(eqm), NULL);
+      const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
       LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
       
       if (node == tree.root()) {
@@ -303,7 +303,6 @@ Alignment Reconstructor::reconstruct() {
   }
 
   LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << ", final alignment log-likelihood is " << lpFinalTrace << endl);
-  gsl_vector_free (eqm);
 
   vguard<FastSeq> ungapped (tree.nodes());
   for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {

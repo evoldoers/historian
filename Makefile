@@ -107,6 +107,7 @@ testmatexp: bin/testmatexp
 
 testrateio: bin/testrateio
 	$(TEST) bin/testrateio data/testrates.json data/testrates.out.json
+	$(TEST) bin/testrateio data/testrates.out.json data/testrates.out.json
 
 testmerge: bin/testmerge
 	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa

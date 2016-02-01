@@ -36,7 +36,7 @@ int main (int argc, char **argv) {
 
   ProbModel xprobs (rates, atof (argv[5]));
   ProbModel yprobs (rates, atof (argv[argc > 6 ? 6 : 5]));
-  gsl_vector* eqm = rates.getEqmProb();
+  gsl_vector* eqm = rates.insProb;
   PairHMM hmm (xprobs, yprobs, eqm);
 
   Profile xprof (rates.alphabet, seqs[0], 1);

@@ -21,7 +21,7 @@ int main (int argc, char **argv) {
 
   ProbModel xprobs (rates, atof (argv[3]));
   ProbModel yprobs (rates, atof (argv[argc > 4 ? 4 : 3]));
-  gsl_vector* eqm = rates.getEqmProb();
+  gsl_vector* eqm = rates.insProb;
   PairHMM hmm (xprobs, yprobs, eqm);
 
   Profile xprof (rates.alphabet, seqs[0], 1);

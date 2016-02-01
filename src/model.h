@@ -26,9 +26,15 @@ struct AlphabetOwner {
 
 struct RateModel : AlphabetOwner {
   double insRate, delRate, insExtProb, delExtProb;
+  gsl_vector* insProb;
   gsl_matrix* subRate;
 
   RateModel();
+  RateModel(const RateModel& model);
+  ~RateModel();
+
+  RateModel& operator= (const RateModel& model);
+  
   void read (const JsonValue& json);
   void write (ostream& out) const;
   gsl_vector* getEqmProb() const;
