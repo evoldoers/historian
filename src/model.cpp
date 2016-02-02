@@ -364,3 +364,32 @@ double DistanceMatrixParams::tML (int maxIterations) const {
 
   return t;
 }
+
+
+void RateModel::writeSubCounts (ostream& out, const gsl_vector* rootCounts, const gsl_matrix* subCountsAndWaitTimes, size_t indent) {
+  const string ind (indent, ' ');
+  out << ind << "{" << endl;
+  out << ind << " \"root\":" << endl;
+  out << ind << " {";
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << gsl_vector_get(rootCounts,i);
+  out << endl << ind << " }," << endl;
+  out << ind << " \"sub\":" << endl;
+  out << ind << " {";
+  for (AlphTok i = 0; i < alphabetSize(); ++i) {
+    out << (i == 0 ? "" : ",") << endl << ind << "  \"" << alphabet[i] << "\": {";
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (i != j)
+	out << (j == (i == 0 ? 1 : 0) ? "" : ",") << " " << "\"" << alphabet[j] << "\": " << gsl_matrix_get(subCountsAndWaitTimes,i,j);
+    out << " }";
+  }
+  out << endl;
+  out << ind << " }," << endl;
+  out << ind << " \"wait\":" << endl;
+  out << ind << " {";
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << gsl_matrix_get(subCountsAndWaitTimes,i,i);
+  out << endl;
+  out << ind << " }" << endl;
+  out << ind << "}" << endl;
+}

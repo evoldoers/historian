@@ -23,7 +23,6 @@ int main (int argc, char **argv) {
   ProbModel probs (rates, t);
   if (useEigen) {
     //    logger.setVerbose(8);
-    cerr << "Using eigendecomposition to compute matrix exponential" << endl;
     EigenModel eigen (rates);
     gsl_matrix_free (probs.subMat);
     probs.subMat = eigen.getSubProb (t);
