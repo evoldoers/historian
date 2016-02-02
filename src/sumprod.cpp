@@ -100,6 +100,7 @@ void EigenModel::compute_exp_ev_t (double t) {
 }
 
 void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
+  const double p_ab = gsl_matrix_get (sub, a, b);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
       gsl_complex c = gsl_complex_rect (0, 0);
@@ -121,7 +122,7 @@ void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double 
 			      ck));
       }
       Assert (GSL_IMAG(c) == 0, "Count has imaginary part: c=(%g,%g)", GSL_REAL(c), GSL_IMAG(c));
-      *(gsl_matrix_ptr (count, i, j)) += GSL_REAL(c) * weight;
+      *(gsl_matrix_ptr (count, i, j)) += GSL_REAL(c) * weight / p_ab;
     }
 }
 
