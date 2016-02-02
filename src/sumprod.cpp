@@ -8,7 +8,10 @@
 #include "util.h"
 #include "logger.h"
 
-#define GSL_COMPLEX_EPSILON 1e-6
+#define SUMPROD_EPSILON 1e-6
+#define SUMPROD_NEAR_EQ(X,Y) (gsl_fcmp (X, Y, SUMPROD_EPSILON) == 0)
+#define SUMPROD_NEAR_EQ_COMPLEX(X,Y) (SUMPROD_NEAR_EQ(GSL_REAL(X),GSL_REAL(Y)) && SUMPROD_NEAR_EQ(GSL_IMAG(X),GSL_IMAG(Y)))
+#define SUMPROD_NEAR_REAL(X) SUMPROD_NEAR_EQ(GSL_IMAG(X),0)
 
 string complexMatrixToString (const gsl_matrix_complex* mx);
 string complexVectorToString (const gsl_vector_complex* v);
@@ -70,7 +73,7 @@ gsl_matrix* EigenModel::getSubProb (double t) const {
 	   gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
 					     gsl_matrix_complex_get (evecInv, k, j)),
 			    exp_ev_t[k]));
-      Assert (GSL_IMAG(p) == 0, "Probability has imaginary part: p=(%g,%g)", GSL_REAL(p), GSL_IMAG(p));
+      Assert (SUMPROD_NEAR_REAL(p), "Probability has imaginary part: p=(%g,%g)", GSL_REAL(p), GSL_IMAG(p));
       gsl_matrix_set (sub, i, j, min (1., max (0., GSL_REAL(p))));
     }
   return sub;
@@ -89,9 +92,9 @@ void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double 
 	    (ck,
 	     gsl_complex_mul
 	     (gsl_complex_mul
-	      (gsl_matrix_complex_get (eSubCount, k, l),
+	      (gsl_matrix_complex_get (evec, j, l),
 	       gsl_matrix_complex_get (evecInv, l, b)),
-	      gsl_matrix_complex_get (evec, j, l)));
+	      gsl_matrix_complex_get (eSubCount, k, l)));
 	c = gsl_complex_add (c,
 			     gsl_complex_mul
 			     (gsl_complex_mul
@@ -99,7 +102,7 @@ void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double 
 			       gsl_matrix_complex_get (evecInv, k, i)),
 			      ck));
       }
-      Assert (GSL_IMAG(c) == 0, "Count has imaginary part: c=(%g,%g)", GSL_REAL(c), GSL_IMAG(c));
+      Assert (SUMPROD_NEAR_REAL(c), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c), GSL_IMAG(c));
       *(gsl_matrix_ptr (count, i, j)) += max (0., (i == j ? 1 : r_ij) * GSL_REAL(c) * weight / p_ab);
     }
 }
@@ -109,9 +112,7 @@ gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
   ((EigenModel&) *this).compute_exp_ev_t (t);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      const bool ev_eq =
-	gsl_fcmp (GSL_REAL(ev[i]), GSL_REAL(ev[j]), GSL_COMPLEX_EPSILON) == 0
-	&& gsl_fcmp (GSL_IMAG(ev[i]), GSL_IMAG(ev[j]), GSL_COMPLEX_EPSILON) == 0;
+      const bool ev_eq = SUMPROD_NEAR_EQ_COMPLEX (ev[i], ev[j]);
       gsl_matrix_complex_set
 	(esub, i, j,
 	 ev_eq
