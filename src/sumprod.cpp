@@ -375,6 +375,7 @@ void AlignColSumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matr
 }
 
 gsl_matrix* AlignColSumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
+  LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
   gsl_matrix* counts = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
