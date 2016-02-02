@@ -167,9 +167,6 @@ testnumsubcount: bin/testnumsubcount
 	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T C G 1 4 data/testnumsubcount3.out
 	$(TEST) bin/testnumsubcount data/testrates.json A T A T 1 data/testnumsubcount4.out
 
-testaligncount: bin/testaligncount
-	bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
-
 testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
@@ -179,6 +176,12 @@ testhist: bin/$(MAIN)
 
 testgp120:
 	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
+
+testaligncount: bin/testaligncount
+	bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
+
+testsumprod: bin/testsumprod
+	bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
 
 # Rules for building files in the repository
 # For updating README.md

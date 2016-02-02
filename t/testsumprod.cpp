@@ -1,0 +1,50 @@
+#include <iostream>
+#include <fstream>
+#include <string.h>
+#include "../src/model.h"
+#include "../src/jsonutil.h"
+#include "../src/sumprod.h"
+#include "../src/logger.h"
+
+int main (int argc, char **argv) {
+  if (argc != 4) {
+    cout << "Usage: " << argv[0] << " <model> <alignment> <tree>\n";
+    exit (EXIT_FAILURE);
+  }
+  
+  RateModel rates;
+  ifstream in (argv[1]);
+  ParsedJson pj (in);
+  rates.read (pj.value);
+
+  const vguard<FastSeq> gapped = readFastSeqs (argv[2]);
+
+  ifstream treeStream (argv[3]);
+  Tree tree (JsonUtil::readStringFromStream (treeStream));
+
+  //  logger.setVerbose (8);
+  
+  AlignColSumProduct sp (rates, tree, gapped);
+
+  while (!sp.alignmentDone()) {
+    sp.fillUp();
+    sp.fillDown();
+
+    cout << "Column #" << sp.col << endl;
+    for (auto node : sp.ungappedRows)
+      if (node != sp.root()) {
+	const TreeNodeIndex parent = tree.parentNode(node);
+	for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
+	  for (AlphTok b = 0; b < rates.alphabetSize(); ++b)
+	    cout << "P( " << tree.seqName(parent) << " = " << rates.alphabet[a] << " , " << tree.seqName(node) << " = " << rates.alphabet[b] << " ) = " << exp (sp.logBranchPostProb (node, a, b)) << endl;
+      }
+    vguard<LogProb> lnpp = sp.logNodePostProb (sp.root());
+    for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
+      cout << "P( " << tree.seqName(sp.root()) << " = " << rates.alphabet[a] << " ) = " << exp (lnpp[a]) << endl;
+    cout << endl;
+    
+    sp.nextColumn();
+  }
+
+  exit (EXIT_SUCCESS);
+}

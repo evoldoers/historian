@@ -36,7 +36,10 @@ int main (int argc, char **argv) {
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
     colSumProd.fillDown();
-    colSumProd.accumulateEigenCounts (root, eigenCount);
+    if (useEigen)
+      colSumProd.accumulateEigenCounts (root, eigenCount);
+    else
+      colSumProd.accumulateSubCounts (root, count);
     colSumProd.nextColumn();
   }
 
