@@ -302,7 +302,7 @@ AlphTok AlignColSumProduct::maxPostState (AlignRowIndex node) const {
 
 void AlignColSumProduct::accumulateRootCounts (gsl_vector* rootCounts) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    *(gsl_vector_ptr(rootCounts,i)) += exp (logF[root()][i] - colLogLike);
+    *(gsl_vector_ptr(rootCounts,i)) += exp (logInsProb[i] + logF[root()][i] - colLogLike);
 }
 
 void AlignColSumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCounts) const {
