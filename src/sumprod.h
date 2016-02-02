@@ -23,10 +23,12 @@ public:
   ~EigenModel();
 
   gsl_matrix_complex* eigenSubCount (double t) const;
-  void accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
+  double getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
+  void accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
 
   // for testing purposes...
-  gsl_matrix* getSubProb (double t) const;
+  double getSubProb (double t, AlphTok i, AlphTok j) const;
+  gsl_matrix* getSubProbMatrix (double t) const;
   gsl_matrix_complex* getRateMatrix() const;
   gsl_matrix_complex* evecInv_evec() const;
 

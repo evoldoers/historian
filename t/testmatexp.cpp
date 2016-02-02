@@ -25,7 +25,7 @@ int main (int argc, char **argv) {
     //    logger.setVerbose(8);
     EigenModel eigen (rates);
     gsl_matrix_free (probs.subMat);
-    probs.subMat = eigen.getSubProb (t);
+    probs.subMat = eigen.getSubProbMatrix (t);
   }
   probs.write (cout);
   

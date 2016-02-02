@@ -95,50 +95,56 @@ gsl_matrix_complex* EigenModel::evecInv_evec() const {
   return e;
 }
 
-gsl_matrix* EigenModel::getSubProb (double t) const {
+double EigenModel::getSubProb (double t, AlphTok i, AlphTok j) const {
+  gsl_complex p = gsl_complex_rect (0, 0);
+  for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+    p = gsl_complex_add
+      (p,
+       gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
+					 gsl_matrix_complex_get (evecInv, k, j)),
+			exp_ev_t[k]));
+  Assert (SUMPROD_NEAR_REAL(p), "Probability has imaginary part: p=(%g,%g)", GSL_REAL(p), GSL_IMAG(p));
+  return min (1., max (0., GSL_REAL(p)));
+}
+
+gsl_matrix* EigenModel::getSubProbMatrix (double t) const {
   gsl_matrix* sub = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
   ((EigenModel&) *this).compute_exp_ev_t (t);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      gsl_complex p = gsl_complex_rect (0, 0);
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-	p = gsl_complex_add
-	  (p,
-	   gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
-					     gsl_matrix_complex_get (evecInv, k, j)),
-			    exp_ev_t[k]));
-      Assert (SUMPROD_NEAR_REAL(p), "Probability has imaginary part: p=(%g,%g)", GSL_REAL(p), GSL_IMAG(p));
-      gsl_matrix_set (sub, i, j, min (1., max (0., GSL_REAL(p))));
-    }
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+      gsl_matrix_set (sub, i, j, getSubProb (t, i, j));
   return sub;
 }
 
-void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
+double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
   const double p_ab = gsl_matrix_get (sub, a, b);
+  const double r_ij = gsl_matrix_get (model.subRate, i, j);
+  gsl_complex c_ij = gsl_complex_rect (0, 0);
+  for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+    gsl_complex c_ijk = gsl_complex_rect (0, 0);
+    for (AlphTok l = 0; l < model.alphabetSize(); ++l)
+      c_ijk = gsl_complex_add
+	(c_ijk,
+	 gsl_complex_mul
+	 (gsl_complex_mul
+	  (gsl_matrix_complex_get (evec, j, l),
+	   gsl_matrix_complex_get (evecInv, l, b)),
+	  gsl_matrix_complex_get (eSubCount, k, l)));
+    c_ij = gsl_complex_add (c_ij,
+			    gsl_complex_mul
+			    (gsl_complex_mul
+			     (gsl_matrix_complex_get (evec, a, k),
+			      gsl_matrix_complex_get (evecInv, k, i)),
+			     c_ijk));
+  }
+  Assert (SUMPROD_NEAR_REAL(c_ij), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c_ij), GSL_IMAG(c_ij));
+  return max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) / p_ab);
+}
+
+void EigenModel::accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      const double r_ij = gsl_matrix_get (model.subRate, i, j);
-      gsl_complex c_ij = gsl_complex_rect (0, 0);
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
-	gsl_complex c_ijk = gsl_complex_rect (0, 0);
-	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
-	  c_ijk = gsl_complex_add
-	    (c_ijk,
-	     gsl_complex_mul
-	     (gsl_complex_mul
-	      (gsl_matrix_complex_get (evec, j, l),
-	       gsl_matrix_complex_get (evecInv, l, b)),
-	      gsl_matrix_complex_get (eSubCount, k, l)));
-	c_ij = gsl_complex_add (c_ij,
-				gsl_complex_mul
-				(gsl_complex_mul
-				 (gsl_matrix_complex_get (evec, a, k),
-				  gsl_matrix_complex_get (evecInv, k, i)),
-				 c_ijk));
-      }
-      Assert (SUMPROD_NEAR_REAL(c_ij), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c_ij), GSL_IMAG(c_ij));
-      *(gsl_matrix_ptr (count, i, j)) += max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) * weight / p_ab);
-    }
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+      *(gsl_matrix_ptr (count, i, j)) += getSubCount (a, b, i, j, sub, eSubCount) * weight;
 }
 
 gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {

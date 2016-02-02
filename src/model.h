@@ -37,8 +37,8 @@ struct RateModel : AlphabetOwner {
   
   void read (const JsonValue& json);
   void write (ostream& out) const;
-  gsl_vector* getEqmProb() const;
-  gsl_matrix* getSubProb (double t) const;
+  gsl_vector* getEqmProbVector() const;
+  gsl_matrix* getSubProbMatrix (double t) const;
 
   double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = 100) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;

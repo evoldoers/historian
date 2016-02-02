@@ -132,7 +132,7 @@ void RateModel::read (const JsonValue& json) {
 	gsl_vector_set (insProb, i, insVec.getNumber(si));
     }
   } else
-    insProb = getEqmProb();
+    insProb = getEqmProbVector();
 
   insRate = jm.getNumber("insrate");
   insExtProb = jm.getNumber("insextprob");
@@ -166,7 +166,7 @@ void RateModel::write (ostream& out) const {
   out << "}" << endl;
 }
 
-gsl_vector* RateModel::getEqmProb() const {
+gsl_vector* RateModel::getEqmProbVector() const {
   // find eqm via QR decomposition
   gsl_matrix* QR = gsl_matrix_alloc (alphabetSize() + 1, alphabetSize());
   for (AlphTok j = 0; j < alphabetSize(); ++j) {
@@ -205,7 +205,7 @@ gsl_vector* RateModel::getEqmProb() const {
   return eqm;
 }
 
-gsl_matrix* RateModel::getSubProb (double t) const {
+gsl_matrix* RateModel::getSubProbMatrix (double t) const {
   gsl_matrix* m = newAlphabetMatrix();
   gsl_matrix* rt = newAlphabetMatrix();
   CheckGsl (gsl_matrix_memcpy (rt, subRate));
@@ -223,7 +223,7 @@ ProbModel::ProbModel (const RateModel& model, double t)
     insExt (model.insExtProb),
     delExt (model.delExtProb),
     insVec (model.newAlphabetVector()),
-    subMat (model.getSubProb (t))
+    subMat (model.getSubProbMatrix (t))
 {
   CheckGsl (gsl_vector_memcpy (insVec, model.insProb));
 }
@@ -300,7 +300,7 @@ vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gapped
 
 double distanceMatrixNegLogLike (double t, void *params) {
   const DistanceMatrixParams& dmp = *(const DistanceMatrixParams*) params;
-  gsl_matrix* sub = dmp.model.getSubProb (t);
+  gsl_matrix* sub = dmp.model.getSubProbMatrix (t);
   double ll = 0;
   for (auto& pc : dmp.pairCount)
     ll += log (gsl_matrix_get(sub,pc.first.first,pc.first.second)) * (double) pc.second;

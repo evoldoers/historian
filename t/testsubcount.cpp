@@ -25,11 +25,11 @@ int main (int argc, char **argv) {
   
   EigenModel eigen (rates);
 
-  gsl_matrix *sub = eigen.getSubProb(t);
+  gsl_matrix *sub = eigen.getSubProbMatrix(t);
   gsl_matrix_complex *esub = eigen.eigenSubCount(t);
   gsl_matrix *count = gsl_matrix_calloc (rates.alphabetSize(), rates.alphabetSize());
 
-  eigen.accumSubCount (count, src, dest, 1, sub, esub);
+  eigen.accumSubCounts (count, src, dest, 1, sub, esub);
 
   gsl_matrix_free (sub);
   gsl_matrix_complex_free (esub);
