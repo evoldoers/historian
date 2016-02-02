@@ -65,7 +65,7 @@ void EigenModel::compute_exp_ev_t (double t) {
     ev_t[i] = gsl_complex_mul_real (ev[i], t);
     exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
   }
-  LogThisAt(8,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
+  LogThisAt(9,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
 }
 
 gsl_matrix_complex* EigenModel::getRateMatrix() const {
@@ -324,52 +324,73 @@ void AlignColSumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matr
 
   vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
   vguard<gsl_complex> Ubasis (model.alphabetSize()), Dbasis (model.alphabetSize());
+  vguard<LogProb> logD (model.alphabetSize());
   for (auto node : ungappedRows)
     if (node != root()) {
       const TreeNodeIndex parent = tree.parentNode(node);
       const TreeNodeIndex sibling = tree.getSibling(node);
       const vguard<LogProb>& logU = logF[node];
-      vguard<LogProb> logD (model.alphabetSize());
       for (AlphTok i = 0; i < model.alphabetSize(); ++i)
 	logD[i] = logG[parent][i] + logE[sibling][i];
-      const LogProb minLogU = *min_element (logU.begin(), logU.end());
-      const LogProb minLogD = *min_element (logD.begin(), logD.end());
-      const double norm = exp (colLogLike - minLogU - minLogD);
-      // U[k] = exp(logU[k]-minLogU); Ubasis[i] = sum_k U[k] * evecInv[i][k]
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-	U[k] = exp (logU[k] - minLogU);
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	gsl_complex Ubasis_i = gsl_complex_rect (0, 0);
-	for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-	  Ubasis_i = gsl_complex_add
-	    (Ubasis_i,
-	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv, i, k),
-				   U[k]));
+      const LogProb maxLogU = *max_element (logU.begin(), logU.end());
+      const LogProb maxLogD = *max_element (logD.begin(), logD.end());
+      const double norm = exp (colLogLike - maxLogU - maxLogD);
+
+      // U[b] = exp(logU[b]-maxLogU); Ubasis[l] = sum_b U[b] * evecInv[l][b]
+      for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+	U[b] = exp (logU[b] - maxLogU);
+
+      for (AlphTok l = 0; l < model.alphabetSize(); ++l) {
+	Ubasis[l] = gsl_complex_rect (0, 0);
+	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+	  Ubasis[l] = gsl_complex_add
+	    (Ubasis[l],
+	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv, l, b),
+				   U[b]));
       }
-      // D[k] = exp(logD[k]-minLogD); Dbasis[i] = sum_k D[k] * evec[k][i]
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-	D[k] = exp (logD[k] - minLogD);
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	gsl_complex Dbasis_i = gsl_complex_rect (0, 0);
-	for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-	  Dbasis_i = gsl_complex_add
-	    (Dbasis_i,
-	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec, k, i),
-				   D[k]));
+
+      // D[a] = exp(logD[a]-maxLogD); Dbasis[k] = sum_a D[a] * evec[a][k]
+      for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+	D[a] = exp (logD[a] - maxLogD);
+
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+	Dbasis[k] = gsl_complex_rect (0, 0);
+	for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+	  Dbasis[k] = gsl_complex_add
+	    (Dbasis[k],
+	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec, a, k),
+				   D[a]));
       }
-      // eigenCounts[i][j] += Dbasis[i] * eigenSub[i][j] * Ubasis[j] / norm
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+
+      // R = evec * evals * evecInv
+      // exp(RT) = evec * exp(evals T) * evecInv
+      // count(i,j|a,b,T) = Q / exp(RT)_ab
+      // where...
+      // Q = \sum_a \sum_b \int_{t=0}^T D_a exp(Rt)_ai R_ij exp(R(T-t))_jb U_b dt
+      //   = \sum_a \sum_b \int_{t=0}^T D_a (\sum_k evec_ak exp(eval_k t) evecInv_ki) R_ij (\sum_l evec_jl exp(eval_l (T-t)) evecInv_lb) U_b dt
+      //   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b \int_{t=0}^T exp(eval_k t) exp(eval_l (T-t)) dt
+      //   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b eigenSubCount(k,l,T)
+      //   = R_ij \sum_k evecInv_ki \sum_l evec_jl (\sum_a D_a evec_ak) (\sum_b U_b evecInv_lb) eigenSubCount(k,l,T)
+      //   = R_ij \sum_k evecInv_ki \sum_l evec_jl Dbasis_k Ubasis_l eigenSubCount(k,l,T)
+
+      // check U & D
+      for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+	  LogThisAt(8,"Column #" << col << ": P( " << tree.seqName(parent) << " = " << model.alphabet[a] << " , " << tree.seqName(node) << " = " << model.alphabet[b] << " ) = " << U[b]*D[a]*eigen.getSubProb(tree.branchLength(node),a,b)/norm << endl);
+
+      // eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
 	  gsl_matrix_complex_set
-	    (eigenCounts, i, j,
+	    (eigenCounts, k, l,
 	     gsl_complex_add
-	     (gsl_matrix_complex_get (eigenCounts, i, j),
+	     (gsl_matrix_complex_get (eigenCounts, k, l),
 	      gsl_complex_div_real
 	      (gsl_complex_mul
-	       (Dbasis[i],
+	       (Dbasis[k],
 		gsl_complex_mul
-		(gsl_matrix_complex_get (branchEigenSubCount[node], i, j),
-		 Ubasis[j])),
+		(gsl_matrix_complex_get (branchEigenSubCount[node], k, l),
+		 Ubasis[l])),
 	       norm)));
     }
 }

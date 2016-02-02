@@ -96,7 +96,7 @@ obj/%.o: t/%.cpp
 
 TEST = @perl/testexpect.pl
 
-test: testlogsumexp testseqio testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testquickalign testspan testtreeio testsubcount testnumsubcount testhist
+test: testlogsumexp testseqio testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testquickalign testspan testtreeio testsubcount testnumsubcount testaligncount testsumprod testhist
 
 testlogsumexp: bin/testlogsumexp
 	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
@@ -167,6 +167,13 @@ testnumsubcount: bin/testnumsubcount
 	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T C G 1 4 data/testnumsubcount3.out
 	$(TEST) bin/testnumsubcount data/testrates.json A T A T 1 data/testnumsubcount4.out
 
+testaligncount: bin/testaligncount
+	$(TEST) bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testaligncount.out
+	$(TEST) bin/testaligncount -eigen data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testaligncount.out
+
+testsumprod: bin/testsumprod
+	$(TEST) bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testsumprod.out
+
 testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
@@ -176,12 +183,6 @@ testhist: bin/$(MAIN)
 
 testgp120:
 	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
-
-testaligncount: bin/testaligncount
-	bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
-
-testsumprod: bin/testsumprod
-	bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
 
 # Rules for building files in the repository
 # For updating README.md

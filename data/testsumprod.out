@@ -1,0 +1,38 @@
+Column #0
+P( root = A , seq1 = A ) = 0.00810002
+P( root = A , seq1 = C ) = 0
+P( root = A , seq1 = G ) = 0
+P( root = A , seq1 = T ) = 0
+P( root = C , seq1 = A ) = 0.00329497
+P( root = C , seq1 = C ) = 0
+P( root = C , seq1 = G ) = 0
+P( root = C , seq1 = T ) = 0
+P( root = G , seq1 = A ) = 0.00329497
+P( root = G , seq1 = C ) = 0
+P( root = G , seq1 = G ) = 0
+P( root = G , seq1 = T ) = 0
+P( root = T , seq1 = A ) = 0.98531
+P( root = T , seq1 = C ) = 0
+P( root = T , seq1 = G ) = 0
+P( root = T , seq1 = T ) = 0
+P( root = A , seq2 = A ) = 0
+P( root = A , seq2 = C ) = 0
+P( root = A , seq2 = G ) = 0
+P( root = A , seq2 = T ) = 0.00810002
+P( root = C , seq2 = A ) = 0
+P( root = C , seq2 = C ) = 0
+P( root = C , seq2 = G ) = 0
+P( root = C , seq2 = T ) = 0.00329497
+P( root = G , seq2 = A ) = 0
+P( root = G , seq2 = C ) = 0
+P( root = G , seq2 = G ) = 0
+P( root = G , seq2 = T ) = 0.00329497
+P( root = T , seq2 = A ) = 0
+P( root = T , seq2 = C ) = 0
+P( root = T , seq2 = G ) = 0
+P( root = T , seq2 = T ) = 0.98531
+P( root = A ) = 0.00810002
+P( root = C ) = 0.00329497
+P( root = G ) = 0.00329497
+P( root = T ) = 0.98531
+
