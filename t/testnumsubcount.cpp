@@ -6,9 +6,14 @@
 #include "../src/sumprod.h"
 #include "../src/logger.h"
 
+double jcProb (double lambda, double t, int i, int j) {
+  const double e = exp(-lambda*t);
+  return i == j ? (e + (1 - e) / 4) : ((1 - e) / 4);
+}
+
 int main (int argc, char **argv) {
-  if (argc != 7) {
-    cout << "Usage: " << argv[0] << " <modelfile> <a> <b> <i> <j> <time>\n";
+  if (argc != 7 && argc != 8) {
+    cout << "Usage: " << argv[0] << " <modelfile> <a> <b> <i> <j> <time> [<lambda>]\n";
     exit (EXIT_FAILURE);
   }
 
@@ -23,7 +28,7 @@ int main (int argc, char **argv) {
   const AlphTok j = rates.tokenize (argv[5][0]);
   const double T = atof (argv[6]);
 
-  logger.setVerbose (8);
+  //  logger.setVerbose (8);
   
   EigenModel eigen (rates);
 
@@ -32,16 +37,43 @@ int main (int argc, char **argv) {
 
   const double count = eigen.getSubCount (a, b, i, j, sub, esub);
 
-  const double nSteps = 1e6;
-  const double tStep = 1 / nSteps;
+  const double nSteps = 1e5;
+  const double tStep = T / nSteps;
   double numCount = 0;
-  for (double t = tStep; t < T; t += tStep)
+  for (double t = 0; t < T; t += tStep)
     numCount += eigen.getSubProb(t,a,i) * eigen.getSubProb(T-t-tStep,j,b);
-  numCount *= gsl_matrix_get (sub, i, j) * tStep / eigen.getSubProb(T,a,b);
+  numCount *= gsl_matrix_get (rates.subRate, i, j) * tStep / eigen.getSubProb(T,a,b);
 
   cout << "Eigenvector method: " << count << endl;
   cout << "Numerical integration: " << numCount << endl;
+
+  if (argc == 8) {
+    Assert (i != j, "Need i!=j for exact Jukes-Cantor test");
+    
+    const double lambda = atof (argv[7]);
+    if (a != i && j != b && a != b) {
+      const double jcCount = (lambda/16) * (T + (2/lambda)*(exp(-lambda*T)-1) + T*exp(-lambda*T)) / (1 - exp(-lambda*T));
   
+      cout << "Jukes-Cantor (lambda=" << lambda << "): " << jcCount << endl;
+    }
+
+    double jcNumCount = 0;
+    for (double t = 0; t < T; t += tStep)
+      jcNumCount += jcProb(lambda,t,a,i) * (lambda/4) * tStep * jcProb(lambda,T-t,j,b);
+    jcNumCount /= jcProb(lambda,T,a,b);
+    cout << "Jukes-Cantor numerical (lambda=" << lambda << "): " << jcNumCount << endl;
+
+    cout << "Rate(i->j): " << gsl_matrix_get (rates.subRate, i, j) << endl;
+
+    cout << "Eigen: P(a->i|T/3): " << eigen.getSubProb(T/3,a,i) << endl;
+    cout << "Eigen: P(j->b|2T/3): " << eigen.getSubProb(2*T/3,j,b) << endl;
+    cout << "Eigen: P(a->b|T): " << eigen.getSubProb(T,a,b) << endl;
+    
+    cout << "JC exact: P(a->i|T/3): " << jcProb(lambda,T/3,a,i) << endl;
+    cout << "JC exact: P(j->b|2T/3): " << jcProb(lambda,2*T/3,j,b) << endl;
+    cout << "JC exact: P(a->b|T): " << jcProb(lambda,T,a,b) << endl;
+  }
+
   gsl_matrix_free (sub);
   gsl_matrix_complex_free (esub);
   

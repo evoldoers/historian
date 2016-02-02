@@ -1,0 +1,10 @@
+Eigenvector method: 0.990083
+Numerical integration: 0.990094
+Jukes-Cantor numerical (lambda=4): 0.990093
+Rate(i->j): 1
+Eigen: P(a->i|T/3): 0.990066
+Eigen: P(j->b|2T/3): 0.980264
+Eigen: P(a->b|T): 0.00980264
+JC exact: P(a->i|T/3): 0.990066
+JC exact: P(j->b|2T/3): 0.980264
+JC exact: P(a->b|T): 0.00980264

@@ -35,6 +35,7 @@ public:
 private:
   vguard<gsl_complex> ev, ev_t, exp_ev_t;
   void compute_exp_ev_t (double t);
+  double getSubProbInner (double t, AlphTok i, AlphTok j) const;
   
   EigenModel (const EigenModel&) = delete;
   EigenModel& operator= (const EigenModel&) = delete;

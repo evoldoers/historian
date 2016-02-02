@@ -27,9 +27,13 @@ EigenModel::EigenModel (const RateModel& model)
     ev_t (model.alphabetSize()),
     exp_ev_t (model.alphabetSize())
 {
+  gsl_matrix *R = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
+  gsl_matrix_memcpy (R, model.subRate);
+  
   gsl_eigen_nonsymmv_workspace *workspace = gsl_eigen_nonsymmv_alloc (model.alphabetSize());
-  CheckGsl (gsl_eigen_nonsymmv (model.subRate, eval, evec, workspace));
+  CheckGsl (gsl_eigen_nonsymmv (R, eval, evec, workspace));
   gsl_eigen_nonsymmv_free (workspace);
+  gsl_matrix_free (R);
 
   gsl_matrix_complex *LU = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
   gsl_permutation *perm = gsl_permutation_alloc (model.alphabetSize());
@@ -96,6 +100,11 @@ gsl_matrix_complex* EigenModel::evecInv_evec() const {
 }
 
 double EigenModel::getSubProb (double t, AlphTok i, AlphTok j) const {
+  ((EigenModel&) *this).compute_exp_ev_t (t);
+  return getSubProbInner (t, i, j);
+}
+
+double EigenModel::getSubProbInner (double t, AlphTok i, AlphTok j) const {
   gsl_complex p = gsl_complex_rect (0, 0);
   for (AlphTok k = 0; k < model.alphabetSize(); ++k)
     p = gsl_complex_add
@@ -112,7 +121,7 @@ gsl_matrix* EigenModel::getSubProbMatrix (double t) const {
   ((EigenModel&) *this).compute_exp_ev_t (t);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-      gsl_matrix_set (sub, i, j, getSubProb (t, i, j));
+      gsl_matrix_set (sub, i, j, getSubProbInner (t, i, j));
   return sub;
 }
 
