@@ -13,6 +13,7 @@
 #define SUMPROD_NEAR_EQ_COMPLEX(X,Y) (SUMPROD_NEAR_EQ(GSL_REAL(X),GSL_REAL(Y)) && SUMPROD_NEAR_EQ(GSL_IMAG(X),GSL_IMAG(Y)))
 #define SUMPROD_NEAR_REAL(X) SUMPROD_NEAR_EQ(GSL_IMAG(X),0)
 
+string tempComplexMatrixToString (gsl_matrix_complex* mx);
 string complexMatrixToString (const gsl_matrix_complex* mx);
 string complexVectorToString (const gsl_vector_complex* v);
 string complexVectorToString (const vector<gsl_complex>& v);
@@ -43,8 +44,10 @@ EigenModel::EigenModel (const RateModel& model)
     ev[i] = gsl_vector_complex_get (eval, i);
 
   LogThisAt(8,"Eigenvalues:" << complexVectorToString(ev) << endl
-	    << "Right eigenvector matrix:" << endl << complexMatrixToString(evec)
-	    << "Left eigenvector matrix:" << endl << complexMatrixToString(evecInv));
+	    << "Right eigenvector matrix, V:" << endl << complexMatrixToString(evec)
+	    << "Left eigenvector matrix, V^{-1}:" << endl << complexMatrixToString(evecInv)
+	    << "Product V^{-1} * V:" << endl << tempComplexMatrixToString (evecInv_evec())
+	    << "Reconstituted rate matrix:" << endl << tempComplexMatrixToString (getRateMatrix()));
 }
 
 EigenModel::~EigenModel() {
@@ -59,6 +62,37 @@ void EigenModel::compute_exp_ev_t (double t) {
     exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
   }
   LogThisAt(8,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
+}
+
+gsl_matrix_complex* EigenModel::getRateMatrix() const {
+  gsl_matrix_complex* r = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex rij = gsl_complex_rect (0, 0);
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+	rij = gsl_complex_add
+	  (rij,
+	   gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
+					     gsl_matrix_complex_get (evecInv, k, j)),
+			    ev[k]));
+      gsl_matrix_complex_set (r, i, j, rij);
+    }
+  return r;
+}
+
+gsl_matrix_complex* EigenModel::evecInv_evec() const {
+  gsl_matrix_complex* e = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex eij = gsl_complex_rect (0, 0);
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+	eij = gsl_complex_add
+	  (eij,
+	   gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
+			    gsl_matrix_complex_get (evecInv, k, j)));
+      gsl_matrix_complex_set (e, i, j, eij);
+    }
+  return e;
 }
 
 gsl_matrix* EigenModel::getSubProb (double t) const {
@@ -84,26 +118,26 @@ void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double 
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
       const double r_ij = gsl_matrix_get (model.subRate, i, j);
-      gsl_complex c = gsl_complex_rect (0, 0);
+      gsl_complex c_ij = gsl_complex_rect (0, 0);
       for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
-	gsl_complex ck = gsl_complex_rect (0, 0);
+	gsl_complex c_ijk = gsl_complex_rect (0, 0);
 	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
-	  ck = gsl_complex_add
-	    (ck,
+	  c_ijk = gsl_complex_add
+	    (c_ijk,
 	     gsl_complex_mul
 	     (gsl_complex_mul
 	      (gsl_matrix_complex_get (evec, j, l),
 	       gsl_matrix_complex_get (evecInv, l, b)),
 	      gsl_matrix_complex_get (eSubCount, k, l)));
-	c = gsl_complex_add (c,
-			     gsl_complex_mul
-			     (gsl_complex_mul
-			      (gsl_matrix_complex_get (evec, a, k),
-			       gsl_matrix_complex_get (evecInv, k, i)),
-			      ck));
+	c_ij = gsl_complex_add (c_ij,
+				gsl_complex_mul
+				(gsl_complex_mul
+				 (gsl_matrix_complex_get (evec, a, k),
+				  gsl_matrix_complex_get (evecInv, k, i)),
+				 c_ijk));
       }
-      Assert (SUMPROD_NEAR_REAL(c), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c), GSL_IMAG(c));
-      *(gsl_matrix_ptr (count, i, j)) += max (0., (i == j ? 1 : r_ij) * GSL_REAL(c) * weight / p_ab);
+      Assert (SUMPROD_NEAR_REAL(c_ij), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c_ij), GSL_IMAG(c_ij));
+      *(gsl_matrix_ptr (count, i, j)) += max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) * weight / p_ab);
     }
 }
 
@@ -112,7 +146,7 @@ gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
   ((EigenModel&) *this).compute_exp_ev_t (t);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      const bool ev_eq = SUMPROD_NEAR_EQ_COMPLEX (ev[i], ev[j]);
+      const bool ev_eq = i == j || SUMPROD_NEAR_EQ_COMPLEX (ev[i], ev[j]);
       gsl_matrix_complex_set
 	(esub, i, j,
 	 ev_eq
@@ -329,6 +363,12 @@ gsl_matrix* AlignColSumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) c
 	gsl_matrix_set (counts, i, j, GSL_REAL(c) * gsl_matrix_get (model.subRate, i, j));
     }
   return counts;
+}
+
+string tempComplexMatrixToString (gsl_matrix_complex* mx) {
+  const string s = complexMatrixToString (mx);
+  gsl_matrix_complex_free (mx);
+  return s;
 }
 
 string complexMatrixToString (const gsl_matrix_complex* mx) {

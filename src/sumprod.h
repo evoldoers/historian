@@ -22,11 +22,14 @@ public:
   EigenModel (const RateModel& model);
   ~EigenModel();
 
-  gsl_matrix* getSubProb (double t) const;
-
   gsl_matrix_complex* eigenSubCount (double t) const;
   void accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
-  
+
+  // for testing purposes...
+  gsl_matrix* getSubProb (double t) const;
+  gsl_matrix_complex* getRateMatrix() const;
+  gsl_matrix_complex* evecInv_evec() const;
+
 private:
   vguard<gsl_complex> ev, ev_t, exp_ev_t;
   void compute_exp_ev_t (double t);
