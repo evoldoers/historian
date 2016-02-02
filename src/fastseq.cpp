@@ -61,7 +61,9 @@ void FastSeq::writeFasta (ostream& out) const {
   if (comment.size())
     out << ' ' << comment;
   out << endl;
-  out << seq << endl;
+  const size_t width = 50;
+  for (size_t i = 0; i < seq.size(); i += width)
+    out << seq.substr(i,width) << endl;
 }
 
 void FastSeq::writeFastq (ostream& out) const {

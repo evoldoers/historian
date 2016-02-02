@@ -214,7 +214,7 @@ void AlignColSumProduct::initColumn() {
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
     if (!isGap(r)) {
       ungappedRows.push_back (r);
-      Assert (isWild(r) || ungappedKids[r] == 0, "Internal node sequences must be wildcards (%c)", Alignment::gapChar);
+      Assert (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), column %u (%c): internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), col, gapped[r].seq[col], Alignment::wildcardChar);
       const TreeNodeIndex rp = tree.parentNode(r);
       if (rp < 0 || isGap(rp))
 	roots.push_back (r);
@@ -230,7 +230,8 @@ bool AlignColSumProduct::alignmentDone() const {
 
 void AlignColSumProduct::nextColumn() {
   ++col;
-  initColumn();
+  if (!alignmentDone())
+    initColumn();
 }
 
 void AlignColSumProduct::fillUp() {

@@ -96,11 +96,15 @@ obj/%.o: t/%.cpp
 
 TEST = @perl/testexpect.pl
 
-test: testlogsumexp testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testquickalign testspan testtreeio testsubcount testnumsubcount testhist
+test: testlogsumexp testseqio testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testquickalign testspan testtreeio testsubcount testnumsubcount testhist
 
 testlogsumexp: bin/testlogsumexp
 	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
 	$(TEST) bin/testlogsumexp -fast data/logsumexp.txt 2> /dev/null
+
+testseqio: bin/testseqio
+	$(TEST) bin/testseqio data/testaligncount.fa data/testaligncount.fa
+	$(TEST) bin/testseqio data/gp120.fa data/gp120.fa
 
 testmatexp: bin/testmatexp
 	$(TEST) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
@@ -162,6 +166,9 @@ testnumsubcount: bin/testnumsubcount
 	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T A T 1 4 data/testnumsubcount2.out
 	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T C G 1 4 data/testnumsubcount3.out
 	$(TEST) bin/testnumsubcount data/testrates.json A T A T 1 data/testnumsubcount4.out
+
+testaligncount: bin/testaligncount
+	bin/testaligncount data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
 
 testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
