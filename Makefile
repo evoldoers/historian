@@ -168,7 +168,7 @@ testnumsubcount: bin/testnumsubcount
 	$(TEST) bin/testnumsubcount data/testrates.json A T A T 1 data/testnumsubcount4.out
 
 testaligncount: bin/testaligncount
-	bin/testaligncount data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
+	bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh
 
 testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa

@@ -23,8 +23,8 @@ public:
   ~EigenModel();
 
   gsl_matrix_complex* eigenSubCount (double t) const;
-  double getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
-  void accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount);
+  double getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
+  void accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
 
   // for testing purposes...
   double getSubProb (double t, AlphTok i, AlphTok j) const;
@@ -81,12 +81,16 @@ public:
   LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
   AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
 
-  void accumulateCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const;
+  void accumulateEigenCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const;
   gsl_matrix* getSubCounts (gsl_matrix_complex* eigenCounts) const;  // wait times on diagonal
+
+  // for testing
+  void accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCounts) const;
 
 private:
   void initColumn();  // populates ungappedRows
-
+  void accumulateRootCounts (gsl_vector* rootCounts) const;
+  
   AlignColSumProduct (const AlignColSumProduct&) = delete;
   AlignColSumProduct& operator= (const AlignColSumProduct&) = delete;
 };

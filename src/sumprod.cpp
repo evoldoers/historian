@@ -125,7 +125,7 @@ gsl_matrix* EigenModel::getSubProbMatrix (double t) const {
   return sub;
 }
 
-double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
+double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
   const double p_ab = gsl_matrix_get (sub, a, b);
   const double r_ij = gsl_matrix_get (model.subRate, i, j);
   gsl_complex c_ij = gsl_complex_rect (0, 0);
@@ -150,7 +150,7 @@ double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, cons
   return max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) / p_ab);
 }
 
-void EigenModel::accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
+void EigenModel::accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j)
       *(gsl_matrix_ptr (count, i, j)) += getSubCount (a, b, i, j, sub, eSubCount) * weight;
@@ -300,9 +300,27 @@ AlphTok AlignColSumProduct::maxPostState (AlignRowIndex node) const {
   return (AlphTok) (max_element(lpp.begin(),lpp.end()) - lpp.begin());
 }
 
-void AlignColSumProduct::accumulateCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const {
+void AlignColSumProduct::accumulateRootCounts (gsl_vector* rootCounts) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     *(gsl_vector_ptr(rootCounts,i)) += exp (logF[root()][i] - colLogLike);
+}
+
+void AlignColSumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCounts) const {
+  accumulateRootCounts (rootCounts);
+
+  for (auto node : ungappedRows)
+    if (node != root()) {
+      const TreeNodeIndex parent = tree.parentNode(node);
+      gsl_matrix* submat = eigen.getSubProbMatrix (tree.branchLength(node));
+      for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+	  eigen.accumSubCounts (subCounts, a, b, exp (logBranchPostProb (node, a, b)), submat, branchEigenSubCount[node]);
+      gsl_matrix_free (submat);
+    }
+}
+
+void AlignColSumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const {
+  accumulateRootCounts (rootCounts);
 
   vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
   vguard<gsl_complex> Ubasis (model.alphabetSize()), Dbasis (model.alphabetSize());
