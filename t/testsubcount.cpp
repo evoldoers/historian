@@ -21,6 +21,8 @@ int main (int argc, char **argv) {
   const AlphTok dest = rates.tokenize (argv[3][0]);
   const double t = atof (argv[4]);
 
+  logger.setVerbose (8);
+  
   EigenModel eigen (rates);
 
   gsl_matrix *sub = eigen.getSubProb(t);

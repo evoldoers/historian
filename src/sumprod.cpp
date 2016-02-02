@@ -2,9 +2,13 @@
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_complex_math.h>
+#include <gsl/gsl_math.h>
+
 #include "sumprod.h"
 #include "util.h"
 #include "logger.h"
+
+#define GSL_COMPLEX_EPSILON 1e-6
 
 EigenModel::EigenModel (const RateModel& model)
   : model (model),
@@ -97,12 +101,19 @@ void EigenModel::compute_exp_ev_t (double t) {
     ev_t[i] = gsl_complex_mul_real (ev[i], t);
     exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
   }
+  if (LoggingThisAt(8)) {
+    LogThisAt(8,"exp(eigenvalue*" << t << "):");
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      LogThisAt(8," (" << GSL_REAL(exp_ev_t[i]) << "," << GSL_IMAG(exp_ev_t[i]) << ")");
+    LogThisAt(8,endl);
+  }
 }
 
 void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) {
   const double p_ab = gsl_matrix_get (sub, a, b);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      const double r_ij = gsl_matrix_get (model.subRate, i, j);
       gsl_complex c = gsl_complex_rect (0, 0);
       for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
 	gsl_complex ck = gsl_complex_rect (0, 0);
@@ -122,7 +133,7 @@ void EigenModel::accumSubCount (gsl_matrix* count, AlphTok a, AlphTok b, double 
 			      ck));
       }
       Assert (GSL_IMAG(c) == 0, "Count has imaginary part: c=(%g,%g)", GSL_REAL(c), GSL_IMAG(c));
-      *(gsl_matrix_ptr (count, i, j)) += GSL_REAL(c) * weight / p_ab;
+      *(gsl_matrix_ptr (count, i, j)) += max (0., (i == j ? 1 : r_ij) * GSL_REAL(c) * weight / p_ab);
     }
 }
 
@@ -130,13 +141,27 @@ gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
   gsl_matrix_complex* esub = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
   ((EigenModel&) *this).compute_exp_ev_t (t);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      const bool ev_eq =
+	gsl_fcmp (GSL_REAL(ev[i]), GSL_REAL(ev[j]), GSL_COMPLEX_EPSILON) == 0
+	&& gsl_fcmp (GSL_IMAG(ev[i]), GSL_IMAG(ev[j]), GSL_COMPLEX_EPSILON) == 0;
       gsl_matrix_complex_set
 	(esub, i, j,
-	 GSL_COMPLEX_EQ (ev[i], ev[j])
+	 ev_eq
 	 ? gsl_complex_mul_real (exp_ev_t[i], t)
 	 : gsl_complex_div (gsl_complex_sub (exp_ev_t[i], exp_ev_t[j]),
 			    gsl_complex_sub (ev[i], ev[j])));
+    }
+
+  LogThisAt(8,endl << "Eigensubstitution matrix at time t=" << t << ":" << endl);
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex cij = gsl_matrix_complex_get (esub, i, j);
+      LogThisAt(8," (" << GSL_REAL(cij) << "," << GSL_IMAG(cij) << ")");
+    }
+    LogThisAt(8,endl);
+  }
+
   return esub;
 }
 
