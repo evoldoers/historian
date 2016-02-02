@@ -203,3 +203,18 @@ void Tree::buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vgua
     nodeName.push_back (s.name);
   return buildByNeighborJoining (nodeName, distanceMatrix);
 }
+
+string Tree::seqName (TreeNodeIndex n) const {
+  string s = nodeName(n);
+  if (s.size() == 0) {
+    vguard<string> cs;
+    for (auto c : node[n].child)
+      cs.push_back (seqName(c) + ':' + to_string(branchLength(c)));
+    s = "(" + join(cs,",") + ")";
+  }
+  return s;
+}
+
+string Tree::pairParentName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
+  return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
+}

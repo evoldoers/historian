@@ -232,7 +232,7 @@ void Reconstructor::buildIndices() {
       closestLeaf.push_back (node);
       closestLeafDistance.push_back (0);
 
-      rowName.push_back (tree.nodeName(node));
+      rowName.push_back (tree.seqName(node));
 
     } else {
       int cl = -1;
@@ -248,10 +248,7 @@ void Reconstructor::buildIndices() {
       closestLeaf.push_back (cl);
       closestLeafDistance.push_back (dcl);
 
-      string n = tree.nodeName(node);
-      if (n.size() == 0)
-	n = ForwardMatrix::ancestorName (rowName[tree.getChild(node,0)], tree.branchLength(tree.getChild(node,0)), rowName[tree.getChild(node,1)], tree.branchLength(tree.getChild(node,1)));
-      rowName.push_back (n);
+      rowName.push_back (tree.seqName(node));
     }
 
   guide = reorderedGuide;

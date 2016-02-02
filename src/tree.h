@@ -23,7 +23,7 @@ struct Tree {
   Tree() { }
   Tree (const string& nhx);
 
-  string nodeName (TreeNodeIndex node) const;
+  string nodeName (TreeNodeIndex node) const;  // returns empty string if node is unnamed
   TreeBranchLength branchLength (TreeNodeIndex node) const;
   TreeNodeIndex nodes() const;
   TreeNodeIndex root() const;
@@ -34,13 +34,16 @@ struct Tree {
   TreeNodeIndex getSibling (TreeNodeIndex node) const;
 
   void parse (const string& nhx);
-  
-  string nodeToString (TreeNodeIndex n) const;  // omits trailing ";"
-  string toString (TreeNodeIndex root) const;
+
+  string nodeToString (TreeNodeIndex n) const;  // Newick format, without trailing ";"
+  string toString (TreeNodeIndex root) const;  // Newick format, with trailing ";"
   string toString() const;
 
   void buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
   void buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
+
+  string seqName (TreeNodeIndex node) const;  // guaranteed nonempty
+  static string pairParentName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 };
 
 #endif /* TREE_INCLUDED */

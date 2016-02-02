@@ -1,6 +1,7 @@
 #include "forward.h"
 #include "util.h"
 #include "logger.h"
+#include "tree.h"
 
 DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, const GuideAlignmentEnvelope& env)
   : x(x),
@@ -447,7 +448,7 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
 
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy) {
   Profile prof (alphSize);
-  prof.name = ancestorName (x.name, hmm.l.t, y.name, hmm.r.t);
+  prof.name = Tree::pairParentName (x.name, hmm.l.t, y.name, hmm.r.t);
   prof.meta["node"] = to_string(parentRowIndex);
 
   Assert (cells.find (startCell) != cells.end(), "Missing SSS");
@@ -597,10 +598,6 @@ Profile ForwardMatrix::bestProfile (EliminationStrategy strategy) {
   const Path best = bestTrace();
   const set<CellCoords> profCells (best.begin(), best.end());
   return makeProfile (profCells, strategy);
-}
-
-string DPMatrix::ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
-  return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
 }
 
 BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
