@@ -41,11 +41,10 @@ private:
   EigenModel& operator= (const EigenModel&) = delete;
 };
 
-class AlignColSumProduct {
+class SumProduct {
 public:
   const RateModel& model;
   const Tree& tree;
-  const vguard<FastSeq>& gapped;  // tree node index must match alignment row index
 
   vguard<LogProb> logInsProb;
   vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][parentState][nodeState]
@@ -53,7 +52,7 @@ public:
   EigenModel eigen;
   vguard<gsl_matrix_complex*> branchEigenSubCount;
 
-  AlignColIndex col;
+  vguard<char> gappedCol;
   vguard<AlignRowIndex> ungappedRows;
 
   // F_n(x_n): variable->function, tip->root messages
@@ -63,14 +62,13 @@ public:
   vguard<vguard<LogProb> > logE, logF, logG;
   LogProb colLogLike;  // marginal likelihood, all unobserved states summed out
   
-  AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped);
-  ~AlignColSumProduct();
+  SumProduct (const RateModel& model, const Tree& tree);
+  ~SumProduct();
 
-  bool alignmentDone() const;
-  void nextColumn();
+  void initColumn (const map<AlignRowIndex,char>& seq);
 
-  inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gapped[row].seq[col]); }
-  inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gapped[row].seq[col]); }
+  inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gappedCol[row]); }
+  inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gappedCol[row]); }
   inline bool columnEmpty() const { return ungappedRows.empty(); }
   inline AlignRowIndex root() const { return ungappedRows.back(); }
 
@@ -91,8 +89,22 @@ private:
   void initColumn();  // populates ungappedRows
   void accumulateRootCounts (gsl_vector* rootCounts) const;
   
-  AlignColSumProduct (const AlignColSumProduct&) = delete;
-  AlignColSumProduct& operator= (const AlignColSumProduct&) = delete;
+  SumProduct (const SumProduct&) = delete;
+  SumProduct& operator= (const SumProduct&) = delete;
+};
+
+class AlignColSumProduct : public SumProduct {
+public:
+  const vguard<FastSeq>& gapped;  // tree node index must match alignment row index
+  AlignColIndex col;
+  
+  AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped);
+
+  bool alignmentDone() const;
+  void nextColumn();
+
+private:
+  void initAlignColumn();  // populates ungappedRows
 };
 
 #endif /* SUMPROD_INCLUDED */

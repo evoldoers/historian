@@ -175,46 +175,48 @@ gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
   return esub;
 }
 
-AlignColSumProduct::AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped)
+SumProduct::SumProduct (const RateModel& model, const Tree& tree)
   : model (model),
     tree (tree),
-    gapped (gapped),
+    gappedCol (tree.nodes()),
     eigen (model),
     logInsProb (log_gsl_vector (model.insProb)),
     branchLogSubProb (tree.nodes()),
     branchEigenSubCount (tree.nodes()),
-    col (0),
     logE (tree.nodes(), vguard<LogProb> (model.alphabetSize())),
     logF (tree.nodes(), vguard<LogProb> (model.alphabetSize())),
     logG (tree.nodes(), vguard<LogProb> (model.alphabetSize()))
 {
-  Require (tree.nodes() == gapped.size(), "Every tree node must have an alignment row");
-
-  for (AlignRowIndex r = 0; r < gapped.size() - 1; ++r) {
+  for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r) {
     ProbModel pm (model, tree.branchLength(r));
     LogProbModel lpm (pm);
     branchLogSubProb[r].swap (lpm.logSubProb);
   }
 
-  initColumn();
-  
-  for (AlignRowIndex r = 0; r < gapped.size() - 1; ++r)
+  for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r)
     branchEigenSubCount[r] = eigen.eigenSubCount (tree.branchLength(r));
 }
 
-AlignColSumProduct::~AlignColSumProduct() {
+SumProduct::~SumProduct() {
   for (auto m : branchEigenSubCount)
     gsl_matrix_complex_free (m);
 }
 
-void AlignColSumProduct::initColumn() {
+void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
   ungappedRows.clear();
+  gappedCol = vguard<char> (tree.nodes(), Alignment::gapChar);
   vguard<int> ungappedKids (tree.nodes(), 0);
   vguard<TreeNodeIndex> roots;
+  map<size_t,SeqIdx> pos;
+  for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
+    if (seq.find(r) != seq.end()) {
+      gappedCol[r] = seq.at(r);
+      ungappedRows.push_back(r);
+    }
+  
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
     if (!isGap(r)) {
-      ungappedRows.push_back (r);
-      Assert (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), column %u (%c): internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), col, gapped[r].seq[col], Alignment::wildcardChar);
+      Assert (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
       const TreeNodeIndex rp = tree.parentNode(r);
       if (rp < 0 || isGap(rp))
 	roots.push_back (r);
@@ -224,17 +226,7 @@ void AlignColSumProduct::initColumn() {
   Assert (roots.size() == 1, "Multiple root nodes");
 }
 
-bool AlignColSumProduct::alignmentDone() const {
-  return col >= gapped.front().length();
-}
-
-void AlignColSumProduct::nextColumn() {
-  ++col;
-  if (!alignmentDone())
-    initColumn();
-}
-
-void AlignColSumProduct::fillUp() {
+void SumProduct::fillUp() {
   colLogLike = -numeric_limits<double>::infinity();
   for (auto r : ungappedRows) {
     if (isWild(r))
@@ -247,7 +239,7 @@ void AlignColSumProduct::fillUp() {
     else {
       for (AlphTok i = 0; i < model.alphabetSize(); ++i)
 	logF[r][i] = -numeric_limits<double>::infinity();
-      logF[r][model.tokenize(gapped[r].seq[col])] = 0;
+      logF[r][model.tokenize(gappedCol[r])] = 0;
     }
 
     if (r == root())
@@ -264,7 +256,7 @@ void AlignColSumProduct::fillUp() {
   }
 }
 
-void AlignColSumProduct::fillDown() {
+void SumProduct::fillDown() {
   if (!columnEmpty()) {
     vector<AlignRowIndex>::const_reverse_iterator iter = ungappedRows.rbegin();
     logG[*iter] = logInsProb;
@@ -282,30 +274,30 @@ void AlignColSumProduct::fillDown() {
   }
 }
 
-vguard<LogProb> AlignColSumProduct::logNodePostProb (AlignRowIndex node) const {
+vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   vguard<LogProb> lpp (model.alphabetSize());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     lpp[i] = logF[node][i] + logG[node][i] - colLogLike;
   return lpp;
 }
 
-LogProb AlignColSumProduct::logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const {
+LogProb SumProduct::logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const {
   const TreeNodeIndex parent = tree.parentNode(node);
   const TreeNodeIndex sibling = tree.getSibling(node);
   return logG[parent][parentState] + branchLogSubProb[node][parentState][nodeState] + logF[node][nodeState] + logE[sibling][parentState] - colLogLike;
 }
 
-AlphTok AlignColSumProduct::maxPostState (AlignRowIndex node) const {
+AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
   const auto lpp = logNodePostProb (node);
   return (AlphTok) (max_element(lpp.begin(),lpp.end()) - lpp.begin());
 }
 
-void AlignColSumProduct::accumulateRootCounts (gsl_vector* rootCounts) const {
+void SumProduct::accumulateRootCounts (gsl_vector* rootCounts) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     *(gsl_vector_ptr(rootCounts,i)) += exp (logInsProb[i] + logF[root()][i] - colLogLike);
 }
 
-void AlignColSumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCounts) const {
+void SumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCounts) const {
   accumulateRootCounts (rootCounts);
 
   for (auto node : ungappedRows)
@@ -319,7 +311,7 @@ void AlignColSumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix
     }
 }
 
-void AlignColSumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const {
+void SumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const {
   accumulateRootCounts (rootCounts);
 
   vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
@@ -376,7 +368,7 @@ void AlignColSumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matr
       // check U & D
       for (AlphTok a = 0; a < model.alphabetSize(); ++a)
 	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
-	  LogThisAt(8,"Column #" << col << ": P( " << tree.seqName(parent) << " = " << model.alphabet[a] << " , " << tree.seqName(node) << " = " << model.alphabet[b] << " ) = " << U[b]*D[a]*eigen.getSubProb(tree.branchLength(node),a,b)/norm << endl);
+	  LogThisAt(8,"P( " << tree.seqName(parent) << " = " << model.alphabet[a] << " , " << tree.seqName(node) << " = " << model.alphabet[b] << " ) = " << U[b]*D[a]*eigen.getSubProb(tree.branchLength(node),a,b)/norm << endl);
 
       // eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
       for (AlphTok k = 0; k < model.alphabetSize(); ++k)
@@ -395,7 +387,7 @@ void AlignColSumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matr
     }
 }
 
-gsl_matrix* AlignColSumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
+gsl_matrix* SumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
   LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
   gsl_matrix* counts = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
@@ -457,4 +449,31 @@ string complexVectorToString (const vector<gsl_complex>& v) {
   }
   s << endl;
   return s.str();
+}
+
+AlignColSumProduct::AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped)
+  : SumProduct (model, tree),
+    gapped (gapped),
+    col (0)
+{
+  Require (tree.nodes() == gapped.size(), "Every tree node must have an alignment row");
+  initAlignColumn();
+}
+
+void AlignColSumProduct::initAlignColumn() {
+  map<AlignRowIndex,char> seq;
+  for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
+    if (!Alignment::isGap (gapped[r].seq[col]))
+      seq[r] = gapped[r].seq[col];
+  initColumn (seq);
+}
+
+bool AlignColSumProduct::alignmentDone() const {
+  return col >= gapped.front().length();
+}
+
+void AlignColSumProduct::nextColumn() {
+  ++col;
+  if (!alignmentDone())
+    initAlignColumn();
 }
