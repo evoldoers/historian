@@ -67,6 +67,8 @@ struct LogProbModel {
 
 struct IndelCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
+  IndelCounts& operator+= (const IndelCounts& c);
+  IndelCounts& operator*= (double w);
 };
 
 #endif /* MODEL_INCLUDED */
