@@ -394,6 +394,10 @@ void RateModel::writeSubCounts (ostream& out, const gsl_vector* rootCounts, cons
   out << ind << "}" << endl;
 }
 
+IndelCounts::IndelCounts()
+  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0)
+{ }
+
 IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
   ins += c.ins;
   del += c.del;
