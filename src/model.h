@@ -65,4 +65,8 @@ struct LogProbModel {
   LogProbModel (const ProbModel& pm);
 };
 
+struct IndelCounts {
+  double ins, del, insExt, delExt, matchTime, delTime;
+};
+
 #endif /* MODEL_INCLUDED */
