@@ -137,18 +137,18 @@ public:
   map<AlignRowIndex,char> getAlignmentColumn (const CellCoords& cell) const;
   void accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.) const;
   EventCounts getEventCounts (const CellCoords& cell, SumProduct& sumProd) const;
+  EventCounts transitionEventCounts (const CellCoords& src, const CellCoords& dest) const;
+
+  map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
 
 private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
-  map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
   LogProb eliminatedLogProbInsert (const CellCoords& cell) const;
 
   AlignPath cellAlignPath (const CellCoords& cell) const;
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
   AlignPath traceAlignPath (const Path& path) const;
   
-  EventCounts transitionEventCounts (const CellCoords& src, const CellCoords& dest) const;
-
   map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
 };
 
@@ -166,6 +166,12 @@ public:
   ForwardMatrix& fwd;
   
   BackwardMatrix (ForwardMatrix& fwd, double minPostProb);
+
+  // posterior probabilities & counts
+  double cellPostProb (const CellCoords& cell) const;
+  double transPostProb (const CellCoords& src, const CellCoords& dest) const;
+
+  EventCounts getCounts() const;
 
   // traceforward
   Path bestTrace (const CellCoords& start);

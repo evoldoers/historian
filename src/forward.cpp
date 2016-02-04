@@ -847,6 +847,42 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
   LogThisAt(6,"Backward log-likelihood is " << lpStart() << endl);
 }
 
+double BackwardMatrix::cellPostProb (const CellCoords& c) const {
+  return exp (fwd.cell(c) + cell(c) - fwd.lpEnd);
+}
+
+double BackwardMatrix::transPostProb (const CellCoords& src, const CellCoords& dest) const {
+  const auto srcTrans = fwd.sourceTransitions (dest);
+  if (srcTrans.find (src) != srcTrans.end())
+    return exp (fwd.cell(src) + srcTrans.at(src) + cell(dest) - fwd.lpEnd);
+  return 0;
+}
+
+EventCounts BackwardMatrix::getCounts() const {
+  EventCounts counts (hmm.alphabetSize());
+  const auto states = hmm.states();
+  for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
+    const ProfileState& xState = x.state[i];
+    for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
+      const ProfileState& yState = y.state[j];
+
+      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+	for (auto s : states) {
+	  const CellCoords dest (i, j, s);
+	  const LogProb lpDest = cell(dest);
+	  if (fwd.sumProd)
+	    fwd.accumulateEventCounts (counts, dest, *fwd.sumProd, exp (fwd.cell(dest) + lpDest - fwd.lpEnd));
+	  const auto srcTrans = fwd.sourceTransitions (dest);
+	  for (auto& src_lp : srcTrans)
+	    counts += fwd.transitionEventCounts (src_lp.first, dest) * exp (fwd.cell(src_lp.first) + src_lp.second + lpDest - fwd.lpEnd);
+	}
+      }
+    }
+  }
+
+  return counts;
+}
+
 map<DPMatrix::CellCoords,LogProb> BackwardMatrix::destCells (const CellCoords& srcCell) {
   map<CellCoords,LogProb> clp;
   const ProfileState& xState = x.state[srcCell.xpos];
