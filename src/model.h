@@ -65,13 +65,13 @@ struct LogProbModel {
   LogProbModel (const ProbModel& pm);
 };
 
-struct IndelCounts {
+struct EventCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
-  IndelCounts();
-  IndelCounts operator+ (const IndelCounts& c) const;
-  IndelCounts operator* (double w) const;
-  IndelCounts& operator+= (const IndelCounts& c);
-  IndelCounts& operator*= (double w);
+  EventCounts();
+  EventCounts operator+ (const EventCounts& c) const;
+  EventCounts operator* (double w) const;
+  EventCounts& operator+= (const EventCounts& c);
+  EventCounts& operator*= (double w);
 };
 
 #endif /* MODEL_INCLUDED */

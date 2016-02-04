@@ -394,11 +394,11 @@ void RateModel::writeSubCounts (ostream& out, const gsl_vector* rootCounts, cons
   out << ind << "}" << endl;
 }
 
-IndelCounts::IndelCounts()
+EventCounts::EventCounts()
   : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0)
 { }
 
-IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
+EventCounts& EventCounts::operator+= (const EventCounts& c) {
   ins += c.ins;
   del += c.del;
   insExt += c.insExt;
@@ -408,7 +408,7 @@ IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
   return *this;
 }
 
-IndelCounts& IndelCounts::operator*= (double w) {
+EventCounts& EventCounts::operator*= (double w) {
   ins *= w;
   del *= w;
   insExt *= w;
@@ -418,14 +418,14 @@ IndelCounts& IndelCounts::operator*= (double w) {
   return *this;
 }
 
-IndelCounts IndelCounts::operator+ (const IndelCounts& c) const {
-  IndelCounts result (*this);
+EventCounts EventCounts::operator+ (const EventCounts& c) const {
+  EventCounts result (*this);
   result += c;
   return result;
 }
 
-IndelCounts IndelCounts::operator* (double w) const {
-  IndelCounts result (*this);
+EventCounts EventCounts::operator* (double w) const {
+  EventCounts result (*this);
   result *= w;
   return result;
 }

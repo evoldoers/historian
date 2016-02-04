@@ -13,7 +13,7 @@ typedef size_t ProfileTransitionIndex;
 struct ProfileTransition {
   ProfileStateIndex src, dest;
   LogProb lpTrans;
-  IndelCounts indelCounts;
+  EventCounts counts;
   AlignPath alignPath;
   ProfileTransition();
   AlignPath bestAlignPath() const;

@@ -114,7 +114,7 @@ public:
   struct EffectiveTransition {
     LogProb lpPath, lpBestAlignPath;
     AlignPath bestAlignPath;
-    IndelCounts indelCounts;
+    EventCounts counts;
     EffectiveTransition();
   };
   
@@ -140,7 +140,7 @@ private:
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
   AlignPath traceAlignPath (const Path& path) const;
   
-  IndelCounts transitionIndelCounts (const CellCoords& src, const CellCoords& dest) const;
+  EventCounts transitionEventCounts (const CellCoords& src, const CellCoords& dest) const;
 
   map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
 };
