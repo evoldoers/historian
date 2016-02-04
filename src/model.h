@@ -43,7 +43,7 @@ struct RateModel : AlphabetOwner {
   double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = 100) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
 
-  void writeSubCounts (ostream& out, const gsl_vector* rootCounts, const gsl_matrix* subCountsAndWaitTimes, size_t indent = 0);
+  void writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent = 0);
 };
 
 class ProbModel : public AlphabetOwner {
@@ -67,6 +67,8 @@ struct LogProbModel {
 
 struct EventCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
+  vguard<double> rootCount;
+  vguard<vguard<double> > subCount;
   EventCounts();
   EventCounts operator+ (const EventCounts& c) const;
   EventCounts operator* (double w) const;

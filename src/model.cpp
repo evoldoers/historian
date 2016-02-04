@@ -366,13 +366,13 @@ double DistanceMatrixParams::tML (int maxIterations) const {
 }
 
 
-void RateModel::writeSubCounts (ostream& out, const gsl_vector* rootCounts, const gsl_matrix* subCountsAndWaitTimes, size_t indent) {
+void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) {
   const string ind (indent, ' ');
   out << ind << "{" << endl;
   out << ind << " \"root\":" << endl;
   out << ind << " {";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << gsl_vector_get(rootCounts,i);
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << rootCounts[i];
   out << endl << ind << " }," << endl;
   out << ind << " \"sub\":" << endl;
   out << ind << " {";
@@ -380,7 +380,7 @@ void RateModel::writeSubCounts (ostream& out, const gsl_vector* rootCounts, cons
     out << (i == 0 ? "" : ",") << endl << ind << "  \"" << alphabet[i] << "\": {";
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
-	out << (j == (i == 0 ? 1 : 0) ? "" : ",") << " " << "\"" << alphabet[j] << "\": " << gsl_matrix_get(subCountsAndWaitTimes,i,j);
+	out << (j == (i == 0 ? 1 : 0) ? "" : ",") << " " << "\"" << alphabet[j] << "\": " << subCountsAndWaitTimes[i][j];
     out << " }";
   }
   out << endl;
@@ -388,7 +388,7 @@ void RateModel::writeSubCounts (ostream& out, const gsl_vector* rootCounts, cons
   out << ind << " \"wait\":" << endl;
   out << ind << " {";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << gsl_matrix_get(subCountsAndWaitTimes,i,i);
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << subCountsAndWaitTimes[i][i];
   out << endl;
   out << ind << " }" << endl;
   out << ind << "}" << endl;
@@ -405,6 +405,24 @@ EventCounts& EventCounts::operator+= (const EventCounts& c) {
   delExt += c.delExt;
   matchTime += c.matchTime;
   delTime += c.delTime;
+
+  if (c.rootCount.size()) {
+    if (rootCount.size())
+      for (size_t n = 0; n < rootCount.size(); ++n)
+	rootCount[n] += c.rootCount.at(n);
+    else
+      rootCount = c.rootCount;
+  }
+
+  if (c.subCount.size()) {
+    if (subCount.size())
+      for (size_t i = 0; i < subCount.size(); ++i)
+	for (size_t j = 0; j < subCount[i].size(); ++j)
+	  subCount[i][j] += c.subCount.at(i).at(j);
+    else
+      subCount = c.subCount;
+  }
+
   return *this;
 }
 
@@ -415,6 +433,11 @@ EventCounts& EventCounts::operator*= (double w) {
   delExt *= w;
   matchTime *= w;
   delTime *= w;
+  for (auto& c : rootCount)
+    c *= w;
+  for (auto& sc : subCount)
+    for (auto& c : sc)
+      c *= w;
   return *this;
 }
 

@@ -150,10 +150,10 @@ double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, cons
   return max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) / p_ab);
 }
 
-void EigenModel::accumSubCounts (gsl_matrix* count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
+void EigenModel::accumSubCounts (vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-      *(gsl_matrix_ptr (count, i, j)) += getSubCount (a, b, i, j, sub, eSubCount) * weight;
+      count[i][j] += getSubCount (a, b, i, j, sub, eSubCount) * weight;
 }
 
 gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
@@ -292,12 +292,12 @@ AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
   return (AlphTok) (max_element(lpp.begin(),lpp.end()) - lpp.begin());
 }
 
-void SumProduct::accumulateRootCounts (gsl_vector* rootCounts) const {
+void SumProduct::accumulateRootCounts (vguard<double>& rootCounts) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    *(gsl_vector_ptr(rootCounts,i)) += exp (logInsProb[i] + logF[root()][i] - colLogLike);
+    rootCounts[i] += exp (logInsProb[i] + logF[root()][i] - colLogLike);
 }
 
-void SumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCounts) const {
+void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts) const {
   accumulateRootCounts (rootCounts);
 
   for (auto node : ungappedRows)
@@ -311,7 +311,7 @@ void SumProduct::accumulateSubCounts (gsl_vector* rootCounts, gsl_matrix* subCou
     }
 }
 
-void SumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matrix_complex* eigenCounts) const {
+void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, gsl_matrix_complex* eigenCounts) const {
   accumulateRootCounts (rootCounts);
 
   vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
@@ -387,9 +387,9 @@ void SumProduct::accumulateEigenCounts (gsl_vector* rootCounts, gsl_matrix_compl
     }
 }
 
-gsl_matrix* SumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
+vguard<vguard<double> > SumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
   LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
-  gsl_matrix* counts = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
+  vguard<vguard<double> > counts (model.alphabetSize(), vguard<double> (model.alphabetSize(), 0));
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
       gsl_complex c = gsl_complex_rect (0, 0);
@@ -405,10 +405,7 @@ gsl_matrix* SumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
 	   gsl_complex_mul (gsl_matrix_complex_get (eigen.evecInv, k, i),
 			    ck));
       }
-      if (i == j)
-	gsl_matrix_set (counts, i, j, GSL_REAL(c));
-      else
-	gsl_matrix_set (counts, i, j, GSL_REAL(c) * gsl_matrix_get (model.subRate, i, j));
+      counts[i][j] = GSL_REAL(c) * (i == j ? 1 : gsl_matrix_get (model.subRate, i, j));
     }
   return counts;
 }

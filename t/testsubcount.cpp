@@ -27,20 +27,17 @@ int main (int argc, char **argv) {
 
   gsl_matrix *sub = eigen.getSubProbMatrix(t);
   gsl_matrix_complex *esub = eigen.eigenSubCount(t);
-  gsl_matrix *count = gsl_matrix_calloc (rates.alphabetSize(), rates.alphabetSize());
+  vguard<vguard<double> > count (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0));
 
   eigen.accumSubCounts (count, src, dest, 1, sub, esub);
 
   gsl_matrix_free (sub);
   gsl_matrix_complex_free (esub);
 
-  gsl_vector *root = gsl_vector_calloc (rates.alphabetSize());
-  gsl_vector_set (root, src, 1);
+  vguard<double> root (rates.alphabetSize(), 0);
+  root[src] = 1;
 
   rates.writeSubCounts (cout, root, count);
-
-  gsl_matrix_free (count);
-  gsl_vector_free (root);
 
   exit (EXIT_SUCCESS);
 }

@@ -30,8 +30,8 @@ int main (int argc, char **argv) {
   AlignColSumProduct colSumProd (rates, tree, gapped);
 
   gsl_matrix_complex *eigenCount = gsl_matrix_complex_calloc (rates.alphabetSize(), rates.alphabetSize());
-  gsl_matrix *count = useEigen ? NULL : gsl_matrix_calloc (rates.alphabetSize(), rates.alphabetSize());
-  gsl_vector *root = gsl_vector_calloc (rates.alphabetSize());
+  vguard<vguard<double> > count (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0));
+  vguard<double> root (rates.alphabetSize(), 0);
 
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
@@ -48,8 +48,6 @@ int main (int argc, char **argv) {
   rates.writeSubCounts (cout, root, count);
 
   gsl_matrix_complex_free (eigenCount);
-  gsl_matrix_free (count);
-  gsl_vector_free (root);
 
   exit (EXIT_SUCCESS);
 }
