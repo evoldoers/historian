@@ -5,6 +5,7 @@
 #include "fastseq.h"
 #include "alignpath.h"
 #include "logsumexp.h"
+#include "model.h"
 
 typedef size_t ProfileStateIndex;
 typedef size_t ProfileTransitionIndex;
@@ -13,6 +14,7 @@ struct ProfileTransition {
   ProfileStateIndex src, dest;
   LogProb lpTrans;
   AlignPath alignPath;
+  IndelCounts indelCounts;
   ProfileTransition();
 };
 

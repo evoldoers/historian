@@ -432,6 +432,63 @@ AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellC
   return path;
 }
 
+IndelCounts ForwardMatrix::transitionIndelCounts (const CellCoords& src, const CellCoords& dest) const {
+  IndelCounts c;
+  if (src.xpos != dest.xpos)
+    c += x.getTrans(src.xpos,dest.xpos)->indelCounts;
+  if (src.ypos != dest.ypos)
+    c += y.getTrans(src.ypos,dest.ypos)->indelCounts;
+  const bool xNull = x.state[dest.xpos].isNull();
+  const bool yNull = y.state[dest.ypos].isNull();
+  switch (dest.state) {
+  case PairHMM::IMM:
+    if (!xNull && !yNull)
+      c.matchTime += hmm.l.t + hmm.r.t;
+    break;
+  case PairHMM::IMD:
+    if (!xNull) {
+      c.matchTime += hmm.l.t;
+      if (src.state == dest.state)
+	c.delExt += 1;
+      else {
+	c.del += 1;
+	c.delTime += hmm.r.t;
+      }
+    }
+    break;
+  case PairHMM::IIW:
+    if (!xNull) {
+      if (src.state == dest.state)
+	c.insExt += 1;
+      else
+	c.ins += 1;
+    }
+    break;
+  case PairHMM::IDM:
+    if (!yNull) {
+      c.matchTime += hmm.r.t;
+      if (src.state == dest.state)
+	c.delExt += 1;
+      else {
+	c.del += 1;
+	c.delTime += hmm.l.t;
+      }
+    }
+    break;
+  case PairHMM::IMI:
+    if (!yNull) {
+      if (src.state == dest.state)
+	c.insExt += 1;
+      else
+	c.ins += 1;
+    }
+    break;
+  default:
+    break;
+  }
+  return c;
+}
+
 AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
   AlignPath p;
   const vector<CellCoords> pv (path.begin(), path.end());
@@ -512,6 +569,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	EffectiveTransition& eff = effTrans[src][cellIdx];
 	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
 	eff.bestAlignPath = transitionAlignPath(src,cell);
+	eff.indelCounts = transitionIndelCounts(src,cell);
       }
     } else {
       // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
@@ -520,12 +578,18 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
+	const IndelCounts srcCellIndelCounts = transitionIndelCounts (src, cell);
 	auto& srcEffTrans = effTrans[src];
 	for (const auto cellEffTransIter : cellEffTrans) {
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
 	  const EffectiveTransition& cellDestEffTrans = cellEffTransIter.second;
 	  EffectiveTransition& srcDestEffTrans = srcEffTrans[destIdx];
-	  log_accum_exp (srcDestEffTrans.lpPath, srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath);
+	  const LogProb srcDestLogProbNewPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath;
+	  log_accum_exp (srcDestEffTrans.lpPath, srcDestLogProbNewPath);
+	  // update indel counts
+	  const double postProbNewPath = exp (srcDestLogProbNewPath - srcDestEffTrans.lpPath);
+	  srcDestEffTrans.indelCounts *= 1 - postProbNewPath;
+	  srcDestEffTrans.indelCounts += (srcCellIndelCounts + cellDestEffTrans.indelCounts) * postProbNewPath;
 	  // we also want to keep the best single alignment consistent w/this set of paths
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {

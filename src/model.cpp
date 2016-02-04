@@ -417,3 +417,15 @@ IndelCounts& IndelCounts::operator*= (double w) {
   delTime *= w;
   return *this;
 }
+
+IndelCounts IndelCounts::operator+ (const IndelCounts& c) const {
+  IndelCounts result (*this);
+  result += c;
+  return result;
+}
+
+IndelCounts IndelCounts::operator* (double w) const {
+  IndelCounts result (*this);
+  result *= w;
+  return result;
+}
