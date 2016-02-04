@@ -6,6 +6,7 @@
 #include <list>
 #include "pairhmm.h"
 #include "profile.h"
+#include "sumprod.h"
 
 class DPMatrix {
 protected:
@@ -38,7 +39,8 @@ public:
     { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
   };
 
-  enum EliminationStrategy { KeepAll, CollapseChains };
+  enum ProfilingStrategy { KeepAll = 0, CollapseChains = 1,
+			   DontCountEvents = 0, CountEvents = 2 };
 
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;
@@ -110,6 +112,7 @@ protected:
 class ForwardMatrix : public DPMatrix {
 public:
   const AlignRowIndex parentRowIndex;
+  SumProduct *sumProd;
 
   struct EffectiveTransition {
     LogProb lpPath, lpBestAlignPath;
@@ -118,7 +121,7 @@ public:
     EffectiveTransition();
   };
   
-  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env);
+  ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env, SumProduct* sumProd = NULL);
 
   // traceback
   Path sampleTrace (random_engine& generator);
@@ -127,9 +130,13 @@ public:
   AlignPath bestAlignPath();
 
   // profile construction
-  Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = CollapseChains);
-  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = CollapseChains, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
-  Profile bestProfile (EliminationStrategy strategy = CollapseChains);
+  Profile makeProfile (const set<CellCoords>& cells, ProfilingStrategy strategy = CollapseChains);
+  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
+  Profile bestProfile (ProfilingStrategy strategy = CollapseChains);
+
+  map<AlignRowIndex,char> getAlignmentColumn (const CellCoords& cell) const;
+  void accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.) const;
+  EventCounts getEventCounts (const CellCoords& cell, SumProduct& sumProd) const;
 
 private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
@@ -164,7 +171,7 @@ public:
   Path bestTrace (const CellCoords& start);
 
   // profile construction
-  Profile buildProfile (size_t maxCells = 0, EliminationStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
+  Profile buildProfile (size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
 
 private:
   map<CellCoords,LogProb> destCells (const CellCoords& srcCell);

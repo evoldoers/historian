@@ -12,7 +12,7 @@ int main (int argc, char **argv) {
   }
 
   const string strat (argv[1]);
-  ForwardMatrix::EliminationStrategy strategy;
+  ForwardMatrix::ProfilingStrategy strategy;
   if (strat == "-all") strategy = ForwardMatrix::KeepAll;
   else if (strat == "-hubs") strategy = ForwardMatrix::CollapseChains;
   else

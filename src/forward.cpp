@@ -2,6 +2,7 @@
 #include "util.h"
 #include "logger.h"
 #include "tree.h"
+#include "sumprod.h"
 
 DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, const GuideAlignmentEnvelope& env)
   : x(x),
@@ -45,9 +46,10 @@ DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, cons
     }
 }
 
-ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env)
+ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env, SumProduct* sumProd)
   : DPMatrix (x, y, hmm, env),
-    parentRowIndex (parentRowIndex)
+    parentRowIndex (parentRowIndex),
+    sumProd (sumProd)
 {
   lpStart() = 0;
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
@@ -503,7 +505,7 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
   return p;
 }
 
-Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy) {
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrategy strategy) {
   Profile prof (alphSize);
   prof.name = Tree::pairParentName (x.name, hmm.l.t, y.name, hmm.r.t);
   prof.meta["node"] = to_string(parentRowIndex);
@@ -524,8 +526,8 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
     if (isAbsorbing(c)
 	|| c == startCell
 	|| c == endCell
-	|| (strategy == CollapseChains && outgoingTransitionCount[c] > 1)
-	|| strategy == KeepAll) {
+	|| ((strategy & CollapseChains) != 0 && outgoingTransitionCount[c] > 1)
+	|| (strategy & CollapseChains) == 0) {
       // cell is to be retained
       profStateIndex[c] = prof.state.size();
       prof.state.push_back (ProfileState());
@@ -569,16 +571,21 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	EffectiveTransition& eff = effTrans[src][cellIdx];
 	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
 	eff.bestAlignPath = transitionAlignPath(src,cell);
-	eff.counts = transitionEventCounts(src,cell);
+	if (strategy & CountEvents)
+	  eff.counts = transitionEventCounts(src,cell);
       }
     } else {
       // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
       const auto& cellEffTrans = effTrans[cell];
       const AlignPath& cap = cellAlignPath (cell);
+      EventCounts cellEventCounts, srcCellEventCounts;
+      if ((strategy & CountEvents) != 0 && sumProd != NULL)
+	cellEventCounts = getEventCounts (cell, *sumProd);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
-	const EventCounts srcCellEventCounts = transitionEventCounts (src, cell);
+	if (strategy & CountEvents)
+	  srcCellEventCounts = transitionEventCounts (src, cell) + cellEventCounts;
 	auto& srcEffTrans = effTrans[src];
 	for (const auto cellEffTransIter : cellEffTrans) {
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
@@ -586,9 +593,11 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	  EffectiveTransition& srcDestEffTrans = srcEffTrans[destIdx];
 	  const LogProb lpPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath;
 	  log_accum_exp (srcDestEffTrans.lpPath, lpPath);
-	  const double ppPath = exp (lpPath - srcDestEffTrans.lpPath);
-	  srcDestEffTrans.counts *= 1 - ppPath;
-	  srcDestEffTrans.counts += (srcCellEventCounts + cellDestEffTrans.counts) * ppPath;
+	  if (strategy & CountEvents) {
+	    const double ppPath = exp (lpPath - srcDestEffTrans.lpPath);
+	    srcDestEffTrans.counts *= 1 - ppPath;
+	    srcDestEffTrans.counts += (srcCellEventCounts + cellDestEffTrans.counts) * ppPath;
+	  }
 	  // we also want to keep the best single alignment consistent w/this set of paths
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
@@ -616,7 +625,8 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
       trans.dest = destIdx;
       trans.lpTrans = srcDestEffTrans.lpPath;
       trans.alignPath = srcDestEffTrans.bestAlignPath;
-      trans.counts = srcDestEffTrans.counts;
+      if (strategy & CountEvents)
+	trans.counts = srcDestEffTrans.counts;
       prof.trans.push_back (trans);
       (prof.state[destIdx].isNull() ? srcNullOut : srcAbsorbOut).push_back (transIdx);
       destIn.push_back (transIdx);
@@ -629,7 +639,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
   return prof;
 }
 
-Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, EliminationStrategy strategy, bool includeBestTraceInProfile) {
+Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, ProfilingStrategy strategy, bool includeBestTraceInProfile) {
   map<CellCoords,size_t> cellCount;
 
   Require (includeBestTraceInProfile || profileSamples > 0, "Must allow at least one sample path in the profile");
@@ -661,10 +671,60 @@ Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSa
   return makeProfile (profCells, strategy);
 }
 
-Profile ForwardMatrix::bestProfile (EliminationStrategy strategy) {
+Profile ForwardMatrix::bestProfile (ProfilingStrategy strategy) {
   const Path best = bestTrace();
   const set<CellCoords> profCells (best.begin(), best.end());
   return makeProfile (profCells, strategy);
+}
+
+EventCounts ForwardMatrix::getEventCounts (const CellCoords& cell, SumProduct& sumProd) const {
+  EventCounts c (hmm.alphabetSize());
+  accumulateEventCounts (c, cell, sumProd);
+  return c;
+}
+
+void ForwardMatrix::accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight) const {
+  sumProd.initColumn (getAlignmentColumn (cell));
+  sumProd.fillUp();
+  sumProd.fillDown();
+  sumProd.accumulateSubCounts (counts.rootCount, counts.subCount, weight);
+}
+
+map<AlignRowIndex,char> ForwardMatrix::getAlignmentColumn (const CellCoords& cell) const {
+  map<AlignRowIndex,char> col;
+  switch (cell.state) {
+  case PairHMM::IMM:
+    if (!x.state[cell.xpos].isNull() && !y.state[cell.ypos].isNull()) {
+      col = x.alignColumn (cell.xpos);
+      const auto yCol = y.alignColumn (cell.ypos);
+      col.insert (yCol.begin(), yCol.end());
+      col[parentRowIndex] = Alignment::wildcardChar;
+    }
+    break;
+  case PairHMM::IMD:
+    if (!x.state[cell.xpos].isNull()) {
+      col = x.alignColumn (cell.xpos);
+      col[parentRowIndex] = Alignment::wildcardChar;
+    }
+    break;
+  case PairHMM::IDM:
+    if (!y.state[cell.ypos].isNull()) {
+      col = y.alignColumn (cell.ypos);
+      col[parentRowIndex] = Alignment::wildcardChar;
+    }
+    break;
+  case PairHMM::IIW:
+    if (!x.state[cell.xpos].isNull())
+      col = x.alignColumn (cell.xpos);
+    break;
+  case PairHMM::IMI:
+    if (!y.state[cell.ypos].isNull())
+      col = y.alignColumn (cell.ypos);
+    break;
+  default:
+    break;
+  }
+  return col;
 }
 
 BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
@@ -864,7 +924,7 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
   return path;
 }
 
-Profile BackwardMatrix::buildProfile (size_t maxCells, EliminationStrategy strategy) {
+Profile BackwardMatrix::buildProfile (size_t maxCells, ProfilingStrategy strategy) {
   set<CellCoords> cells;
   if (bestCells.empty()) {
     const list<CellCoords> fwdBestTrace = fwd.bestTrace();

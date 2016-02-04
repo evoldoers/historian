@@ -69,7 +69,7 @@ struct EventCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
   vguard<double> rootCount;
   vguard<vguard<double> > subCount;
-  EventCounts();
+  EventCounts (size_t alphabetSize = 0);
   EventCounts operator+ (const EventCounts& c) const;
   EventCounts operator* (double w) const;
   EventCounts& operator+= (const EventCounts& c);

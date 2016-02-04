@@ -394,8 +394,10 @@ void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, 
   out << ind << "}" << endl;
 }
 
-EventCounts::EventCounts()
-  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0)
+EventCounts::EventCounts (size_t alphabetSize)
+  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0),
+    rootCount (alphabetSize, 0),
+    subCount (alphabetSize, vguard<double> (alphabetSize, 0))
 { }
 
 EventCounts& EventCounts::operator+= (const EventCounts& c) {

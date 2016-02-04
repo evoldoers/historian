@@ -292,13 +292,13 @@ AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
   return (AlphTok) (max_element(lpp.begin(),lpp.end()) - lpp.begin());
 }
 
-void SumProduct::accumulateRootCounts (vguard<double>& rootCounts) const {
+void SumProduct::accumulateRootCounts (vguard<double>& rootCounts, double weight) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    rootCounts[i] += exp (logInsProb[i] + logF[root()][i] - colLogLike);
+    rootCounts[i] += weight * exp (logInsProb[i] + logF[root()][i] - colLogLike);
 }
 
-void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts) const {
-  accumulateRootCounts (rootCounts);
+void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight) const {
+  accumulateRootCounts (rootCounts, weight);
 
   for (auto node : ungappedRows)
     if (node != root()) {
@@ -306,7 +306,7 @@ void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<
       gsl_matrix* submat = eigen.getSubProbMatrix (tree.branchLength(node));
       for (AlphTok a = 0; a < model.alphabetSize(); ++a)
 	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
-	  eigen.accumSubCounts (subCounts, a, b, exp (logBranchPostProb (node, a, b)), submat, branchEigenSubCount[node]);
+	  eigen.accumSubCounts (subCounts, a, b, weight * exp (logBranchPostProb (node, a, b)), submat, branchEigenSubCount[node]);
       gsl_matrix_free (submat);
     }
 }

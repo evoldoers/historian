@@ -82,12 +82,11 @@ public:
   void accumulateEigenCounts (vguard<double>& rootCounts, gsl_matrix_complex* eigenCounts) const;
   vguard<vguard<double> > getSubCounts (gsl_matrix_complex* eigenCounts) const;  // wait times on diagonal
 
-  // for testing
-  void accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts) const;
+  void accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight = 1) const;
 
 private:
   void initColumn();  // populates ungappedRows
-  void accumulateRootCounts (vguard<double>& rootCounts) const;
+  void accumulateRootCounts (vguard<double>& rootCounts, double weight = 1) const;
   
   SumProduct (const SumProduct&) = delete;
   SumProduct& operator= (const SumProduct&) = delete;
