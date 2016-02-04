@@ -65,6 +65,14 @@ const ProfileTransition* Profile::getTrans (ProfileStateIndex src, ProfileStateI
   return NULL;
 }
 
+map<AlignRowIndex,char> Profile::alignColumn (ProfileStateIndex s) const {
+  map<AlignRowIndex,char> col;
+  for (auto& row_pos : state[s].seqCoords)
+    if (state[s].alignPath.count(row_pos.first) && state[s].alignPath.at(row_pos.first).front())
+      col[row_pos.first] = seq.at(row_pos.first).at(row_pos.second - 1);
+  return col;
+}
+
 LogProb Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag) {
   vector<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
   lpCumAbs[0] = 0;
