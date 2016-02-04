@@ -7,15 +7,14 @@
 
 int main (int argc, char **argv) {
   if (argc != 6 && argc != 7) {
-    cout << "Usage: " << argv[0] << " [-all|-hubs|-absorbers] [-best|-matrix|<numberofpaths>] <sequences> <modelfile> <xtime> [<ytime>]\n";
+    cout << "Usage: " << argv[0] << " [-all|-hubs] [-best|-matrix|<numberofpaths>] <sequences> <modelfile> <xtime> [<ytime>]\n";
     exit (EXIT_FAILURE);
   }
 
   const string strat (argv[1]);
   ForwardMatrix::EliminationStrategy strategy;
   if (strat == "-all") strategy = ForwardMatrix::KeepAll;
-  else if (strat == "-hubs") strategy = ForwardMatrix::KeepHubsAndAbsorbers;
-  else if (strat == "-absorbers") strategy = ForwardMatrix::KeepAbsorbers;
+  else if (strat == "-hubs") strategy = ForwardMatrix::CollapseChains;
   else
     Abort ("Unknown strategy: %s", argv[1]);
 

@@ -38,7 +38,7 @@ public:
     { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
   };
 
-  enum EliminationStrategy { KeepAll, KeepHubsAndAbsorbers, KeepAbsorbers };
+  enum EliminationStrategy { KeepAll, CollapseChains };
 
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;
@@ -127,9 +127,9 @@ public:
   AlignPath bestAlignPath();
 
   // profile construction
-  Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = KeepHubsAndAbsorbers);
-  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
-  Profile bestProfile (EliminationStrategy strategy = KeepHubsAndAbsorbers);
+  Profile makeProfile (const set<CellCoords>& cells, EliminationStrategy strategy = CollapseChains);
+  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, EliminationStrategy strategy = CollapseChains, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
+  Profile bestProfile (EliminationStrategy strategy = CollapseChains);
 
 private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
@@ -139,7 +139,7 @@ private:
   AlignPath cellAlignPath (const CellCoords& cell) const;
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
   AlignPath traceAlignPath (const Path& path) const;
-
+  
   IndelCounts transitionIndelCounts (const CellCoords& src, const CellCoords& dest) const;
 
   map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
@@ -164,7 +164,7 @@ public:
   Path bestTrace (const CellCoords& start);
 
   // profile construction
-  Profile buildProfile (size_t maxCells = 0, EliminationStrategy strategy = KeepHubsAndAbsorbers);  // maxCells=0 to unlimit
+  Profile buildProfile (size_t maxCells = 0, EliminationStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
 
 private:
   map<CellCoords,LogProb> destCells (const CellCoords& srcCell);

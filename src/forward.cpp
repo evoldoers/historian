@@ -524,7 +524,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
     if (isAbsorbing(c)
 	|| c == startCell
 	|| c == endCell
-	|| (strategy == KeepHubsAndAbsorbers && outgoingTransitionCount[c] > 1)
+	|| (strategy == CollapseChains && outgoingTransitionCount[c] > 1)
 	|| strategy == KeepAll) {
       // cell is to be retained
       profStateIndex[c] = prof.state.size();
@@ -584,12 +584,11 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
 	  const EffectiveTransition& cellDestEffTrans = cellEffTransIter.second;
 	  EffectiveTransition& srcDestEffTrans = srcEffTrans[destIdx];
-	  const LogProb srcDestLogProbNewPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath;
-	  log_accum_exp (srcDestEffTrans.lpPath, srcDestLogProbNewPath);
-	  // update indel counts
-	  const double postProbNewPath = exp (srcDestLogProbNewPath - srcDestEffTrans.lpPath);
-	  srcDestEffTrans.indelCounts *= 1 - postProbNewPath;
-	  srcDestEffTrans.indelCounts += (srcCellIndelCounts + cellDestEffTrans.indelCounts) * postProbNewPath;
+	  const LogProb lpPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath;
+	  log_accum_exp (srcDestEffTrans.lpPath, lpPath);
+	  const double ppPath = exp (lpPath - srcDestEffTrans.lpPath);
+	  srcDestEffTrans.indelCounts *= 1 - ppPath;
+	  srcDestEffTrans.indelCounts += (srcCellIndelCounts + cellDestEffTrans.indelCounts) * ppPath;
 	  // we also want to keep the best single alignment consistent w/this set of paths
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpBestAlignPath;
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
@@ -617,6 +616,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
       trans.dest = destIdx;
       trans.lpTrans = srcDestEffTrans.lpPath;
       trans.alignPath = srcDestEffTrans.bestAlignPath;
+      trans.indelCounts = srcDestEffTrans.indelCounts;
       prof.trans.push_back (trans);
       (prof.state[destIdx].isNull() ? srcNullOut : srcAbsorbOut).push_back (transIdx);
       destIn.push_back (transIdx);

@@ -283,9 +283,9 @@ Alignment Reconstructor::reconstruct() {
 	nodeProf = forward.bestProfile();
       } else if (usePosteriorsForProfile) {
 	BackwardMatrix backward (forward, minPostProb);
-	nodeProf = backward.buildProfile (profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers);
+	nodeProf = backward.buildProfile (profileNodeLimit, ForwardMatrix::CollapseChains);
       } else
-	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::KeepHubsAndAbsorbers, includeBestTraceInProfile);
+	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::CollapseChains, includeBestTraceInProfile);
 
       const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
       LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
