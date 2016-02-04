@@ -36,6 +36,7 @@ struct Profile {
   map<string,string> meta;  // for debugging only
   vguard<ProfileState> state;
   vguard<ProfileTransition> trans;
+  map<AlignRowIndex,string> seq;
   Profile() { }
   Profile (AlphTok alphSize) : alphSize(alphSize) { }
   Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowIndex);

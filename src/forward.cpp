@@ -622,6 +622,9 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, EliminationStr
       destIn.push_back (transIdx);
     }
   }
+
+  prof.seq = x.seq;
+  prof.seq.insert (y.seq.begin(), y.seq.end());
   
   return prof;
 }

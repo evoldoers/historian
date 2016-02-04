@@ -41,6 +41,7 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
       state[pos+1].seqCoords[rowIndex] = pos + 1;
     }
   }
+  this->seq[rowIndex] = seq.seq;
 }
 
 Profile Profile::leftMultiply (gsl_matrix* sub) const {
