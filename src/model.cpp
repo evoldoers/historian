@@ -11,6 +11,7 @@
 #include "util.h"
 #include "alignpath.h"
 #include "logger.h"
+#include "sumprod.h"
 
 struct DistanceMatrixParams {
   const map<pair<AlphTok,AlphTok>,int>& pairCount;
@@ -453,4 +454,70 @@ EventCounts EventCounts::operator* (double w) const {
   EventCounts result (*this);
   result *= w;
   return result;
+}
+
+void EventCounts::accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight) {
+  enum { Match, Insert, Delete } state, next;
+  state = Match;
+  for (size_t col = 0; col < parent.size(); ++col) {
+    if (parent[col] && child[col])
+      next = Match;
+    else if (parent[col])
+      next = Delete;
+    else if (child[col])
+      next = Insert;
+    else
+      continue;
+    switch (next) {
+    case Match:
+      matchTime += weight * time;
+      break;
+    case Insert:
+      if (state == next)
+	insExt += weight;
+      else
+	ins += weight;
+      break;
+    case Delete:
+      if (state == next)
+	delExt += weight;
+      else {
+	del += 1;
+	delTime += weight * time;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+}
+
+void EventCounts::accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight) {
+  for (TreeNodeIndex node = 0; node < tree.nodes() - 1; ++node)
+    accumulateIndelCounts (align.at(tree.parentNode(node)), align.at(node), tree.branchLength(node), weight);
+}
+
+void EventCounts::accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight) {
+  AlignColSumProduct colSumProd (model, tree, gapped);
+
+  EventCounts c (model.alphabetSize());
+  gsl_matrix_complex *eigenCount = gsl_matrix_complex_calloc (model.alphabetSize(), model.alphabetSize());
+
+  while (!colSumProd.alignmentDone()) {
+    colSumProd.fillUp();
+    colSumProd.fillDown();
+    colSumProd.accumulateEigenCounts (c.rootCount, eigenCount);
+    colSumProd.nextColumn();
+  }
+
+  c.subCount = colSumProd.getSubCounts (eigenCount);
+  gsl_matrix_complex_free (eigenCount);
+
+  c *= weight;
+  *this += c;
+}
+
+void EventCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight) {
+  accumulateIndelCounts (align.path, tree, weight);
+  accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
 }

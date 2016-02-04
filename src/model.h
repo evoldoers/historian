@@ -8,6 +8,8 @@
 #include "gason.h"
 #include "fastseq.h"
 #include "logsumexp.h"
+#include "alignpath.h"
+#include "tree.h"
 
 using namespace std;
 
@@ -74,6 +76,12 @@ struct EventCounts {
   EventCounts operator* (double w) const;
   EventCounts& operator+= (const EventCounts& c);
   EventCounts& operator*= (double w);
+
+  void accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight = 1.);
+  void accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight = 1.);
+  void accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight = 1.);
+
+  void accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight = 1.);
 };
 
 #endif /* MODEL_INCLUDED */
