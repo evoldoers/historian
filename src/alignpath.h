@@ -23,6 +23,7 @@ struct Alignment {
   static const char gapChar, wildcardChar;
   vguard<FastSeq> ungapped;
   AlignPath path;
+  Alignment() { }
   Alignment (const vguard<FastSeq>& gapped);
   Alignment (const vguard<FastSeq>& ungapped, const AlignPath& path);
   vguard<FastSeq> gapped() const;

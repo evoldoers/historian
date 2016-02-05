@@ -218,3 +218,26 @@ string Tree::seqName (TreeNodeIndex n) const {
 string Tree::pairParentName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
   return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
 }
+
+void Tree::reorder (vguard<FastSeq>& seq) const {
+  Assert (seq.size() == nodes(), "Number of sequences doesn't match number of nodes in tree");
+  map<string,size_t> name2seq;
+  for (size_t n = 0; n < seq.size(); ++n) {
+    Assert (name2seq.find (seq[n].name) == name2seq.end(), "Duplicate sequence name: %s", seq[n].name.c_str());
+    name2seq[seq[n].name] = n;
+  }
+  vguard<size_t> new2old (seq.size()), old2new (seq.size());
+  for (TreeNodeIndex n = 0; n < nodes(); ++n) {
+    Assert (name2seq.find (seqName(n)) != name2seq.end(), "Tree node %s is absent from sequence dataset", seqName(n).c_str());
+    const size_t old_n = name2seq[seqName(n)];
+    new2old[n] = old_n;
+    old2new[old_n] = n;
+  }
+
+  for (size_t n = 0; n < new2old.size(); ++n) {
+    const size_t o = new2old[n];
+    swap (seq[n], seq[o]);
+    new2old[old2new[n]] = o;
+  }
+}
+

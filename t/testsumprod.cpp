@@ -17,11 +17,13 @@ int main (int argc, char **argv) {
   ParsedJson pj (in);
   rates.read (pj.value);
 
-  const vguard<FastSeq> gapped = readFastSeqs (argv[2]);
+  vguard<FastSeq> gapped = readFastSeqs (argv[2]);
 
   ifstream treeStream (argv[3]);
   Tree tree (JsonUtil::readStringFromStream (treeStream));
 
+  tree.reorder (gapped);
+  
   //  logger.setVerbose (8);
   
   AlignColSumProduct sp (rates, tree, gapped);

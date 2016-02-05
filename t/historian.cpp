@@ -98,8 +98,10 @@ int main (int argc, char** argv) {
 	   || usage.parseUnknown())
       { }
 
-    Alignment align = recon.loadFilesAndReconstruct();
-    writeFastaSeqs (cout, align.gapped());
+      recon.loadReconFiles();
+      recon.reconstruct();
+
+      writeFastaSeqs (cout, recon.reconstruction.gapped());
       
   } else
     return usage.parseUnknownCommand (command, HISTORIAN_VERSION);

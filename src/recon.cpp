@@ -28,13 +28,6 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-model") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      modelFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-seqs") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       Require (guideFilename.size() == 0, "Can't specify both -guide and -seqs");
@@ -54,13 +47,6 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
     } else if (arg == "-savetree") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       treeSaveFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-savemodel") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      modelSaveFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -127,11 +113,34 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       return true;
     }
   }
-  
-  return diagEnvParams.parseDiagEnvParams (argvec);
+
+  return diagEnvParams.parseDiagEnvParams (argvec)
+    || parseModelArgs (argvec);
 }
 
-Alignment Reconstructor::loadFilesAndReconstruct() {
+bool Reconstructor::parseModelArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-model") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      modelFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-savemodel") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      modelSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void Reconstructor::loadReconFiles() {
   Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
 
   generator = ForwardMatrix::newRNG();
@@ -203,7 +212,6 @@ Alignment Reconstructor::loadFilesAndReconstruct() {
   }
 
   buildIndices();
-  return reconstruct();
 }
 
 void Reconstructor::buildIndices() {
@@ -251,10 +259,10 @@ void Reconstructor::buildIndices() {
       rowName.push_back (tree.seqName(node));
     }
 
-  guide = reorderedGuide;
+  swap (guide, reorderedGuide);
 }
 
-Alignment Reconstructor::reconstruct() {
+void Reconstructor::reconstruct() {
   LogThisAt(1,"Starting reconstruction on " << tree.nodes() << "-node tree" << endl);
   gsl_vector* rootProb = model.insProb;
 
@@ -311,5 +319,5 @@ Alignment Reconstructor::reconstruct() {
     }
   }
 
-  return Alignment (ungapped, path);
+  reconstruction = Alignment (ungapped, path);
 }

@@ -37,15 +37,20 @@ public:
   AlignPath guide;
   vguard<TreeNodeIndex> closestLeaf;
   vguard<double> closestLeafDistance;
+
+  Alignment reconstruction;
   
   Reconstructor();
 
   bool parseReconArgs (deque<string>& argvec);
-  Alignment loadFilesAndReconstruct();
+  bool parseModelArgs (deque<string>& argvec);
+
+  void loadReconFiles();
+
+  void reconstruct();
 
 private:
   void buildIndices();
-  Alignment reconstruct();
 };
 
 
