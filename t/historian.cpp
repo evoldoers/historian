@@ -83,28 +83,42 @@ ProgUsage::ProgUsage (int argc, char** argv)
 int main (int argc, char** argv) {
 
   ProgUsage usage (argc, argv);
-  
+  Reconstructor recon;
+
   const string command = usage.getCommand();
+  deque<string>& argvec (usage.argvec);
 
   if (command == "align") {
 
-    Reconstructor recon;
-
     usage.implicitSwitches.push_back (string ("-seqs"));
 
-    deque<string>& argvec (usage.argvec);
     while (logger.parseLogArgs (argvec)
 	   || recon.parseReconArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
-      recon.loadReconFiles();
-      recon.reconstruct();
+    recon.loadReconFiles();
+    recon.reconstruct();
+    recon.writeRecon (cout);
 
-      writeFastaSeqs (cout, recon.reconstruction.gapped());
-      
+    
+  } else if (command == "count") {
+
+    usage.implicitSwitches.push_back (string ("-recon"));
+    usage.implicitSwitches.push_back (string ("-tree"));
+
+    while (logger.parseLogArgs (argvec)
+	   || recon.parseCountArgs (argvec)
+	   || usage.parseUnknown())
+      { }
+
+    recon.loadCountFiles();
+    recon.count();
+    recon.writeCounts (cout);
+    
   } else
     return usage.parseUnknownCommand (command, HISTORIAN_VERSION);
 
+  
   return EXIT_SUCCESS;
 }

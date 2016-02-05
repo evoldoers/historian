@@ -14,7 +14,7 @@
 
 class Reconstructor {
 public:
-  string treeFilename, seqsFilename, modelFilename, guideFilename;
+  string treeFilename, seqsFilename, modelFilename, guideFilename, reconFilename;
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
@@ -28,7 +28,7 @@ public:
   
   RateModel model;
   Tree tree;
-  vguard<FastSeq> seqs, gapped;
+  vguard<FastSeq> seqs, gappedGuide, gappedRecon;
 
   map<string,size_t> seqIndex;
   map<TreeNodeIndex,size_t> nodeToSeqIndex;
@@ -39,19 +39,33 @@ public:
   vguard<double> closestLeafDistance;
 
   Alignment reconstruction;
+  EventCounts counts;
   
   Reconstructor();
 
   bool parseReconArgs (deque<string>& argvec);
+  bool parseCountArgs (deque<string>& argvec);
+
+  bool parseTreeArgs (deque<string>& argvec);
   bool parseModelArgs (deque<string>& argvec);
 
   void loadReconFiles();
+  void loadCountFiles();
 
   void reconstruct();
+  void count();
 
+  void writeRecon (ostream& out) const;
+  void writeCounts (ostream& out) const;
+  
 private:
-  void buildIndices();
-};
+  void loadModel();
+  void loadTree();
+  void buildTree();
 
+  void seedGenerator();
+
+  void buildReconIndices();
+};
 
 #endif /* PROGALIGN_INCLUDED */

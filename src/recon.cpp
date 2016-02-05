@@ -21,14 +21,7 @@ Reconstructor::Reconstructor()
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
-    if (arg == "-tree") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      treeFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-seqs") {
+    if (arg == "-seqs") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       Require (guideFilename.size() == 0, "Can't specify both -guide and -seqs");
       seqsFilename = argvec[1];
@@ -115,7 +108,40 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
   }
 
   return diagEnvParams.parseDiagEnvParams (argvec)
+    || parseTreeArgs (argvec)
     || parseModelArgs (argvec);
+}
+
+bool Reconstructor::parseCountArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-recon") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      Require (reconFilename.size() == 0, "Can't specify both -guide and -seqs");
+      reconFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return parseTreeArgs (argvec)
+    || parseModelArgs (argvec);
+}
+
+bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-tree") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      treeFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool Reconstructor::parseModelArgs (deque<string>& argvec) {
@@ -140,12 +166,7 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
   return false;
 }
 
-void Reconstructor::loadReconFiles() {
-  Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
-
-  generator = ForwardMatrix::newRNG();
-  generator.seed (rndSeed);
-
+void Reconstructor::loadModel() {
   if (modelFilename.size()) {
     LogThisAt(1,"Loading model from " << modelFilename << endl);
     ifstream modelFile (modelFilename);
@@ -155,7 +176,32 @@ void Reconstructor::loadReconFiles() {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
   }
+}
 
+void Reconstructor::loadTree() {
+  Require (treeFilename.size() > 0, "Must specify a tree");
+  LogThisAt(1,"Loading tree from " << treeFilename << endl);
+  ifstream treeFile (treeFilename);
+  tree.parse (JsonUtil::readStringFromStream (treeFile));
+}
+
+void Reconstructor::buildTree() {
+  LogThisAt(1,"Building neighbor-joining tree" << endl);
+  auto dist = model.distanceMatrix (gappedGuide);
+  tree.buildByNeighborJoining (gappedGuide, dist);
+}
+
+void Reconstructor::seedGenerator() {
+  generator = ForwardMatrix::newRNG();
+  generator.seed (rndSeed);
+}
+
+void Reconstructor::loadReconFiles() {
+  Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
+
+  loadModel();
+  seedGenerator();
+  
   if (seqsFilename.size()) {
     LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
     seqs = readFastSeqs (seqsFilename.c_str());
@@ -166,26 +212,21 @@ void Reconstructor::loadReconFiles() {
       AlignGraph ag (seqs, model, 1, diagEnvParams, generator);
       Alignment align = ag.mstAlign();
       guide = align.path;
-      gapped = align.gapped();
+      gappedGuide = align.gapped();
     }
 
   } else {
     LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
-    gapped = readFastSeqs (guideFilename.c_str());
-    const Alignment align (gapped);
+    gappedGuide = readFastSeqs (guideFilename.c_str());
+    const Alignment align (gappedGuide);
     guide = align.path;
     seqs = align.ungapped;
   }
 
-  if (treeFilename.size()) {
-    LogThisAt(1,"Loading tree from " << treeFilename << endl);
-    ifstream treeFile (treeFilename);
-    tree.parse (JsonUtil::readStringFromStream (treeFile));
-  } else {
-    LogThisAt(1,"Building neighbor-joining tree" << endl);
-    auto dist = model.distanceMatrix (gapped);
-    tree.buildByNeighborJoining (gapped, dist);
-  }
+  if (treeFilename.size())
+    loadTree();
+  else
+    buildTree();
 
   if (modelSaveFilename.size()) {
     ofstream modelFile (modelSaveFilename);
@@ -198,11 +239,11 @@ void Reconstructor::loadReconFiles() {
   }
 
   if (guideSaveFilename.size()) {
-    if (gapped.empty())
+    if (gappedGuide.empty())
       Warn("No guide alignment to save");
     else {
       ofstream guideFile (guideSaveFilename);
-      writeFastaSeqs (guideFile, gapped);
+      writeFastaSeqs (guideFile, gappedGuide);
     }
   }
 
@@ -211,11 +252,11 @@ void Reconstructor::loadReconFiles() {
     treeFile << tree.toString() << endl;
   }
 
-  buildIndices();
+  buildReconIndices();
 }
 
-void Reconstructor::buildIndices() {
-  generator.seed (rndSeed);  // re-seed generator, in case it was used during prealignment
+void Reconstructor::buildReconIndices() {
+  seedGenerator();  // re-seed generator, in case it was used during prealignment
 
   for (size_t n = 0; n < seqs.size(); ++n) {
     Assert (seqIndex.find (seqs[n].name) == seqIndex.end(), "Duplicate sequence name %s", seqs[n].name.c_str());
@@ -320,4 +361,30 @@ void Reconstructor::reconstruct() {
   }
 
   reconstruction = Alignment (ungapped, path);
+  gappedRecon = reconstruction.gapped();
+}
+
+void Reconstructor::writeRecon (ostream& out) const {
+  writeFastaSeqs (cout, gappedRecon);
+}
+
+void Reconstructor::writeCounts (ostream& out) const {
+  counts.writeJson (model, out);
+}
+
+void Reconstructor::loadCountFiles() {
+  loadModel();
+  loadTree();
+
+  Require (reconFilename.size() > 0, "Must specify a reconstruction file");
+  LogThisAt(1,"Loading reconstruction from " << reconFilename << endl);
+  gappedRecon = readFastSeqs (reconFilename.c_str());
+
+  tree.reorder (gappedRecon);
+  reconstruction = Alignment (gappedRecon);
+}
+
+void Reconstructor::count() {
+  counts = EventCounts (model.alphabetSize());
+  counts.accumulateCounts (model, reconstruction, tree);
 }

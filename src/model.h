@@ -45,7 +45,7 @@ struct RateModel : AlphabetOwner {
   double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = 100) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
 
-  void writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent = 0);
+  void writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent = 0) const;
 };
 
 class ProbModel : public AlphabetOwner {
@@ -71,7 +71,9 @@ struct EventCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
   vguard<double> rootCount;
   vguard<vguard<double> > subCount;
+
   EventCounts (size_t alphabetSize = 0);
+
   EventCounts operator+ (const EventCounts& c) const;
   EventCounts operator* (double w) const;
   EventCounts& operator+= (const EventCounts& c);
@@ -82,6 +84,8 @@ struct EventCounts {
   void accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight = 1.);
 
   void accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight = 1.);
+
+  void writeJson (const RateModel& model, ostream& out) const;
 };
 
 #endif /* MODEL_INCLUDED */

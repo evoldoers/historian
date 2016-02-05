@@ -367,7 +367,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
 }
 
 
-void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) {
+void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) const {
   const string ind (indent, ' ');
   out << ind << "{" << endl;
   out << ind << " \"root\":" << endl;
@@ -520,4 +520,16 @@ void EventCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
 void EventCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight) {
   accumulateIndelCounts (align.path, tree, weight);
   accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
+}
+
+void EventCounts::writeJson (const RateModel& model, ostream& out) const {
+  out << "{" << endl;
+  out << " \"ins\": " << ins << "," << endl;
+  out << " \"del\": " << del << "," << endl;
+  out << " \"insExt\": " << insExt << "," << endl;
+  out << " \"delExt\": " << delExt << "," << endl;
+  out << " \"matchTime\": " << matchTime << "," << endl;
+  out << " \"delTime\": " << delTime << "," << endl;
+  model.writeSubCounts (out, rootCount, subCount, 1);
+  out << "}" << endl;
 }
