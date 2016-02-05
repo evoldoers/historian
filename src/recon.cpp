@@ -379,8 +379,8 @@ void Reconstructor::loadCountFiles() {
   Require (reconFilename.size() > 0, "Must specify a reconstruction file");
   LogThisAt(1,"Loading reconstruction from " << reconFilename << endl);
   gappedRecon = readFastSeqs (reconFilename.c_str());
-
   tree.reorder (gappedRecon);
+
   reconstruction = Alignment (gappedRecon);
 }
 

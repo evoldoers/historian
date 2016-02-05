@@ -489,6 +489,7 @@ void EventCounts::accumulateIndelCounts (const AlignRowPath& parent, const Align
     default:
       break;
     }
+    state = next;
   }
 }
 
@@ -530,6 +531,7 @@ void EventCounts::writeJson (const RateModel& model, ostream& out) const {
   out << " \"delExt\": " << delExt << "," << endl;
   out << " \"matchTime\": " << matchTime << "," << endl;
   out << " \"delTime\": " << delTime << "," << endl;
-  model.writeSubCounts (out, rootCount, subCount, 1);
+  out << " \"sub\":" << endl;
+  model.writeSubCounts (out, rootCount, subCount, 2);
   out << "}" << endl;
 }

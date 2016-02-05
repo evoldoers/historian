@@ -235,9 +235,10 @@ void Tree::reorder (vguard<FastSeq>& seq) const {
   }
 
   for (size_t n = 0; n < new2old.size(); ++n) {
-    const size_t o = new2old[n];
+    const size_t o = new2old[n], m = old2new[n];
     swap (seq[n], seq[o]);
-    new2old[old2new[n]] = o;
+    swap (old2new[n], old2new[o]);
+    swap (new2old[n], new2old[m]);
   }
 }
 

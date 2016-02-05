@@ -213,9 +213,13 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
       gappedCol[r] = seq.at(r);
       ungappedRows.push_back(r);
     }
+
+  LogThisAt(7,"Column " << join(gappedCol,"") << " ungappedRows=(" << to_string_join(ungappedRows) << ")" << endl);
   
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
-    if (!isGap(r)) {
+    if (isGap(r))
+      fill (logE[r].begin(), logE[r].end(), 0);
+    else {
       Assert (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
       const TreeNodeIndex rp = tree.parentNode(r);
       if (rp < 0 || isGap(rp))
@@ -264,6 +268,7 @@ void SumProduct::fillDown() {
       const TreeNodeIndex r = *iter;
       const TreeNodeIndex rp = tree.parentNode(r);
       const TreeNodeIndex rs = tree.getSibling(r);
+      const bool sibGap = isGap(rs);
       for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
 	LogProb logGj = -numeric_limits<double>::infinity();
 	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
