@@ -1,8 +1,11 @@
 #include <math.h>
+
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_min.h>
+#include <gsl/gsl_complex_math.h>
+
 #include <algorithm>
 #include <set>
 
@@ -398,7 +401,7 @@ void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, 
 EventCounts::EventCounts (size_t alphabetSize)
   : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0),
     rootCount (alphabetSize, 0),
-    subCount (alphabetSize, vguard<double> (alphabetSize, 0))
+    eigenCount (alphabetSize, vguard<gsl_complex> (alphabetSize, gsl_complex_rect(0,0)))
 { }
 
 EventCounts& EventCounts::operator+= (const EventCounts& c) {
@@ -417,13 +420,13 @@ EventCounts& EventCounts::operator+= (const EventCounts& c) {
       rootCount = c.rootCount;
   }
 
-  if (c.subCount.size()) {
-    if (subCount.size())
-      for (size_t i = 0; i < subCount.size(); ++i)
-	for (size_t j = 0; j < subCount[i].size(); ++j)
-	  subCount[i][j] += c.subCount.at(i).at(j);
+  if (c.eigenCount.size()) {
+    if (eigenCount.size())
+      for (size_t i = 0; i < eigenCount.size(); ++i)
+	for (size_t j = 0; j < eigenCount[i].size(); ++j)
+	  eigenCount[i][j] = gsl_complex_add (eigenCount[i][j], c.eigenCount.at(i).at(j));
     else
-      subCount = c.subCount;
+      eigenCount = c.eigenCount;
   }
 
   return *this;
@@ -438,9 +441,9 @@ EventCounts& EventCounts::operator*= (double w) {
   delTime *= w;
   for (auto& c : rootCount)
     c *= w;
-  for (auto& sc : subCount)
+  for (auto& sc : eigenCount)
     for (auto& c : sc)
-      c *= w;
+      c = gsl_complex_mul_real (c, w);
   return *this;
 }
 
@@ -502,17 +505,13 @@ void EventCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
   AlignColSumProduct colSumProd (model, tree, gapped);
 
   EventCounts c (model.alphabetSize());
-  gsl_matrix_complex *eigenCount = gsl_matrix_complex_calloc (model.alphabetSize(), model.alphabetSize());
 
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
     colSumProd.fillDown();
-    colSumProd.accumulateEigenCounts (c.rootCount, eigenCount);
+    colSumProd.accumulateEigenCounts (c.rootCount, c.eigenCount);
     colSumProd.nextColumn();
   }
-
-  c.subCount = colSumProd.getSubCounts (eigenCount);
-  gsl_matrix_complex_free (eigenCount);
 
   c *= weight;
   *this += c;
@@ -524,6 +523,8 @@ void EventCounts::accumulateCounts (const RateModel& model, const Alignment& ali
 }
 
 void EventCounts::writeJson (const RateModel& model, ostream& out) const {
+  EigenModel eigen (model);
+  auto subCount = eigen.getSubCounts (eigenCount);
   out << "{" << endl;
   out << " \"ins\": " << ins << "," << endl;
   out << " \"del\": " << del << "," << endl;

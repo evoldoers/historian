@@ -11,11 +11,13 @@
 #define SUMPROD_EPSILON 1e-6
 #define SUMPROD_NEAR_EQ(X,Y) (gsl_fcmp (X, Y, SUMPROD_EPSILON) == 0)
 #define SUMPROD_NEAR_EQ_COMPLEX(X,Y) (SUMPROD_NEAR_EQ(GSL_REAL(X),GSL_REAL(Y)) && SUMPROD_NEAR_EQ(GSL_IMAG(X),GSL_IMAG(Y)))
-#define SUMPROD_NEAR_REAL(X) SUMPROD_NEAR_EQ(GSL_IMAG(X),0)
+#define SUMPROD_NEAR_REAL(X) (abs(GSL_IMAG(X)) < SUMPROD_EPSILON)
 
 string tempComplexMatrixToString (gsl_matrix_complex* mx);
 string complexMatrixToString (const gsl_matrix_complex* mx);
 string complexVectorToString (const gsl_vector_complex* v);
+
+string complexMatrixToString (const vguard<vguard<gsl_complex> >& mx);
 string complexVectorToString (const vector<gsl_complex>& v);
 
 EigenModel::EigenModel (const RateModel& model)
@@ -175,6 +177,29 @@ gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
   return esub;
 }
 
+vguard<vguard<double> > EigenModel::getSubCounts (const vguard<vguard<gsl_complex> >& eigenCounts) const {
+  LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
+  vguard<vguard<double> > counts (model.alphabetSize(), vguard<double> (model.alphabetSize(), 0));
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex c = gsl_complex_rect (0, 0);
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+	gsl_complex ck = gsl_complex_rect (0, 0);
+	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
+	  ck = gsl_complex_add
+	    (ck,
+	     gsl_complex_mul (eigenCounts[k][l],
+			      gsl_matrix_complex_get (evec, j, l)));
+	c = gsl_complex_add
+	  (c,
+	   gsl_complex_mul (gsl_matrix_complex_get (evecInv, k, i),
+			    ck));
+      }
+      counts[i][j] = GSL_REAL(c) * (i == j ? 1 : gsl_matrix_get (model.subRate, i, j));
+    }
+  return counts;
+}
+
 SumProduct::SumProduct (const RateModel& model, const Tree& tree)
   : model (model),
     tree (tree),
@@ -232,6 +257,7 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
 }
 
 void SumProduct::fillUp() {
+  LogThisAt(8,"Sending tip-to-root messages, column " << join(gappedCol,"") << endl);
   colLogLike = -numeric_limits<double>::infinity();
   for (auto r : ungappedRows) {
     if (isWild(r))
@@ -262,6 +288,7 @@ void SumProduct::fillUp() {
 }
 
 void SumProduct::fillDown() {
+  LogThisAt(8,"Sending root-to-tip messages, column " << join(gappedCol,"") << endl);
   if (!columnEmpty()) {
     vector<AlignRowIndex>::const_reverse_iterator iter = ungappedRows.rbegin();
     logG[*iter] = logInsProb;
@@ -304,10 +331,12 @@ void SumProduct::accumulateRootCounts (vguard<double>& rootCounts, double weight
 }
 
 void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight) const {
+  LogThisAt(8,"Accumulating substitution counts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts, weight);
 
   for (auto node : ungappedRows)
     if (node != root()) {
+      LogThisAt(9,"Accumulating substitution counts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
       gsl_matrix* submat = eigen.getSubProbMatrix (tree.branchLength(node));
       for (AlphTok a = 0; a < model.alphabetSize(); ++a)
@@ -317,7 +346,8 @@ void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<
     }
 }
 
-void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, gsl_matrix_complex* eigenCounts) const {
+void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguard<gsl_complex> >& eigenCounts, double weight) const {
+  LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts);
 
   vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
@@ -325,6 +355,7 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, gsl_matrix_c
   vguard<LogProb> logD (model.alphabetSize());
   for (auto node : ungappedRows)
     if (node != root()) {
+      LogThisAt(9,"Accumulating eigencounts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
       const TreeNodeIndex sibling = tree.getSibling(node);
       const vguard<LogProb>& logU = logF[node];
@@ -379,41 +410,17 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, gsl_matrix_c
       // eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
       for (AlphTok k = 0; k < model.alphabetSize(); ++k)
 	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
-	  gsl_matrix_complex_set
-	    (eigenCounts, k, l,
-	     gsl_complex_add
-	     (gsl_matrix_complex_get (eigenCounts, k, l),
-	      gsl_complex_div_real
-	      (gsl_complex_mul
-	       (Dbasis[k],
-		gsl_complex_mul
-		(gsl_matrix_complex_get (branchEigenSubCount[node], k, l),
-		 Ubasis[l])),
-	       norm)));
+	  eigenCounts[k][l] =
+	    gsl_complex_add
+	    (eigenCounts[k][l],
+	     gsl_complex_mul_real
+	     (gsl_complex_mul
+	      (Dbasis[k],
+	       gsl_complex_mul
+	       (gsl_matrix_complex_get (branchEigenSubCount[node], k, l),
+		Ubasis[l])),
+	      weight / norm));
     }
-}
-
-vguard<vguard<double> > SumProduct::getSubCounts (gsl_matrix_complex* eigenCounts) const {
-  LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
-  vguard<vguard<double> > counts (model.alphabetSize(), vguard<double> (model.alphabetSize(), 0));
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      gsl_complex c = gsl_complex_rect (0, 0);
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
-	gsl_complex ck = gsl_complex_rect (0, 0);
-	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
-	  ck = gsl_complex_add
-	    (ck,
-	     gsl_complex_mul (gsl_matrix_complex_get (eigenCounts, k, l),
-			      gsl_matrix_complex_get (eigen.evec, j, l)));
-	c = gsl_complex_add
-	  (c,
-	   gsl_complex_mul (gsl_matrix_complex_get (eigen.evecInv, k, i),
-			    ck));
-      }
-      counts[i][j] = GSL_REAL(c) * (i == j ? 1 : gsl_matrix_get (model.subRate, i, j));
-    }
-  return counts;
 }
 
 string tempComplexMatrixToString (gsl_matrix_complex* mx) {
@@ -427,6 +434,18 @@ string complexMatrixToString (const gsl_matrix_complex* mx) {
   for (size_t i = 0; i < mx->size1; ++i) {
     for (size_t j = 0; j < mx->size2; ++j) {
       const gsl_complex c = gsl_matrix_complex_get (mx, i, j);
+      s << " (" << GSL_REAL(c) << "," << GSL_IMAG(c) << ")";
+    }
+    s << endl;
+  }
+  return s.str();
+}
+
+string complexMatrixToString (const vguard<vguard<gsl_complex> >& mx) {
+  ostringstream s;
+  for (size_t i = 0; i < mx.size(); ++i) {
+    for (size_t j = 0; j < mx[i].size(); ++j) {
+      const gsl_complex& c = mx[i][j];
       s << " (" << GSL_REAL(c) << "," << GSL_IMAG(c) << ")";
     }
     s << endl;

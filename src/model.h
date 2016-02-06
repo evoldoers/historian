@@ -70,7 +70,7 @@ struct LogProbModel {
 struct EventCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
   vguard<double> rootCount;
-  vguard<vguard<double> > subCount;
+  vguard<vguard<gsl_complex> > eigenCount;
 
   EventCounts (size_t alphabetSize = 0);
 

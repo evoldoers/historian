@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
+#include <gsl/gsl_complex_math.h>
 #include "../src/model.h"
 #include "../src/jsonutil.h"
 #include "../src/sumprod.h"
@@ -31,7 +32,7 @@ int main (int argc, char **argv) {
   
   AlignColSumProduct colSumProd (rates, tree, gapped);
 
-  gsl_matrix_complex *eigenCount = gsl_matrix_complex_calloc (rates.alphabetSize(), rates.alphabetSize());
+  vguard<vguard<gsl_complex> > eigenCount (rates.alphabetSize(), vguard<gsl_complex> (rates.alphabetSize(), gsl_complex_rect(0,0)));
   vguard<vguard<double> > count (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0));
   vguard<double> root (rates.alphabetSize(), 0);
 
@@ -46,10 +47,9 @@ int main (int argc, char **argv) {
   }
 
   if (useEigen)
-    count = colSumProd.getSubCounts (eigenCount);
-  rates.writeSubCounts (cout, root, count);
+    count = colSumProd.eigen.getSubCounts (eigenCount);
 
-  gsl_matrix_complex_free (eigenCount);
+  rates.writeSubCounts (cout, root, count);
 
   exit (EXIT_SUCCESS);
 }

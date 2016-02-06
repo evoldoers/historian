@@ -745,7 +745,7 @@ void ForwardMatrix::accumulateEventCounts (EventCounts& counts, const CellCoords
     sumProd.initColumn (col);
     sumProd.fillUp();
     sumProd.fillDown();
-    sumProd.accumulateSubCounts (counts.rootCount, counts.subCount, weight);
+    sumProd.accumulateEigenCounts (counts.rootCount, counts.eigenCount, weight);
   }
 }
 

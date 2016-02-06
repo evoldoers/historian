@@ -32,6 +32,8 @@ public:
   gsl_matrix_complex* getRateMatrix() const;
   gsl_matrix_complex* evecInv_evec() const;
 
+  vguard<vguard<double> > getSubCounts (const vguard<vguard<gsl_complex> >& eigenCounts) const;
+  
 private:
   vguard<gsl_complex> ev, ev_t, exp_ev_t;
   void compute_exp_ev_t (double t);
@@ -79,8 +81,8 @@ public:
   LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
   AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
 
-  void accumulateEigenCounts (vguard<double>& rootCounts, gsl_matrix_complex* eigenCounts) const;
-  vguard<vguard<double> > getSubCounts (gsl_matrix_complex* eigenCounts) const;  // wait times on diagonal
+  void accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguard<gsl_complex> >& eigenCounts, double weight = 1.) const;
+  vguard<vguard<double> > getSubCounts (vguard<vguard<gsl_complex> >& eigenCounts) const;  // wait times on diagonal
 
   void accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight = 1) const;
 
