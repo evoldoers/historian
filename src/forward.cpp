@@ -63,7 +63,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
     const ProfileState& xState = x.state[i];
 
-    plog.logProgress (i / (double) (xSize - 2), "state %d/%d", i + 1, xSize - 1);
+    plog.logProgress (i / (double) (xSize - 2), "state %d/%d", i + 1, xSize);
 
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
@@ -864,7 +864,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
   for (int i = xSize - 2; i >= 0; --i) {
     const ProfileState& xState = x.state[i];
 
-    plog.logProgress ((xSize - 2 - i) / (double) (xSize - 2), "state %d/%d", xSize - 1 - i, xSize - 1);
+    plog.logProgress ((xSize - 2 - i) / (double) (xSize - 2), "state %d/%d", xSize - 1 - i, xSize);
 
     for (int j = ySize - 2; j >= 0; --j) {
       const ProfileState& yState = y.state[j];
@@ -1052,7 +1052,7 @@ EventCounts BackwardMatrix::getCounts() const {
 
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
     const ProfileState& xState = x.state[i];
-    plog.logProgress (i / (double) (xSize - 2), "state %d/%d", i + 1, xSize - 1);
+    plog.logProgress (i / (double) (xSize - 2), "state %d/%d", i + 1, xSize);
 
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
