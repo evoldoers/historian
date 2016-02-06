@@ -46,7 +46,7 @@ struct Profile {
   const ProfileState& end() const { return state.back(); }
   const ProfileTransition* getTrans (ProfileStateIndex src, ProfileStateIndex dest) const;
   map<AlignRowIndex,char> alignColumn (ProfileStateIndex s) const;
-  LogProb calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag = "cumLogProb");
+  LogProb calcSumPathAbsorbProbs (const vguard<LogProb>& input, const char* tag = "cumLogProb");
   void writeJson (ostream& out) const;
   string toJson() const;
 };

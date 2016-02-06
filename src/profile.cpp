@@ -73,8 +73,8 @@ map<AlignRowIndex,char> Profile::alignColumn (ProfileStateIndex s) const {
   return col;
 }
 
-LogProb Profile::calcSumPathAbsorbProbs (const vector<LogProb>& input, const char* tag) {
-  vector<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
+LogProb Profile::calcSumPathAbsorbProbs (const vguard<LogProb>& input, const char* tag) {
+  vguard<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
   lpCumAbs[0] = 0;
   for (ProfileStateIndex pos = 1; pos < state.size(); ++pos) {
     const LogProb lpAbs = state[pos].isNull() ? 0 : logInnerProduct (input, state[pos].lpAbsorb);

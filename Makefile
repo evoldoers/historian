@@ -184,9 +184,13 @@ testhist: bin/$(MAIN)
 
 testcount: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
+	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
 
 testgp120:
-	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
+	bin/$(MAIN) align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
+
+expect-bug:
+	bin/$(MAIN) expect -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
 
 # Rules for building files in the repository
 # For updating README.md

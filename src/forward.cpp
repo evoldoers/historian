@@ -1,3 +1,5 @@
+#include <gsl/gsl_math.h>
+
 #include "forward.h"
 #include "util.h"
 #include "logger.h"
@@ -847,6 +849,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
   }
 
   LogThisAt(6,"Backward log-likelihood is " << lpStart() << endl);
+  Assert (gsl_fcmp (lpStart(), fwd.lpEnd, .01) == 0, "Forward log-likelihood is %g, Backward log-likelihood is %g", fwd.lpEnd, lpStart());
 }
 
 double BackwardMatrix::cellPostProb (const CellCoords& c) const {

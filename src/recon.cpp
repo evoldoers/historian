@@ -353,20 +353,23 @@ void Reconstructor::reconstruct() {
       
       if (backward)
 	delete backward;
-
-      const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
-      LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
       
-      if (node == tree.root()) {
+      if (node == tree.root())
 	lpFinalFwd = forward.lpEnd;
-	lpFinalTrace = lpTrace;
-      }
 
-      LogThisAt(5,prof[node].toJson());
+      if (nodeProf.size()) {
+        const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
+        LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
+
+	if (node == tree.root())
+	  lpFinalTrace = lpTrace;
+
+	LogThisAt(5,nodeProf.toJson());
+      }
     }
   }
 
-  LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << ", final alignment log-likelihood is " << lpFinalTrace << endl);
+  LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << (reconstructRoot ? (string(", final alignment log-likelihood is ") + to_string(lpFinalTrace)) : string()) << endl);
 
   if (reconstructRoot) {
     vguard<FastSeq> ungapped (tree.nodes());
