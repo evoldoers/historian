@@ -175,22 +175,22 @@ testsumprod: bin/testsumprod
 	$(TEST) bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testsumprod.out
 
 testhist: bin/$(MAIN)
-	$(TEST) bin/historian align -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json data/PF16593.historian.fa
+	$(TEST) bin/historian recon -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -samples 100 data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json data/PF16593.historian.fa
 
 testcount: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
 
 testgp120:
-	bin/$(MAIN) align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
+	bin/$(MAIN) recon -guide data/gp120.guide.fa -tree data/gp120.tree.nh
 
-expect-bug:
-	bin/$(MAIN) expect -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
+testpost:
+	bin/$(MAIN) post -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
 
 # Rules for building files in the repository
 # For updating README.md

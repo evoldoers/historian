@@ -18,16 +18,19 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{align,count,expect,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon,count,post,help,version} [options]")
 {
   text = briefText
     + "\n"
     + "Reconstruction:\n"
-    + "  " + prog + " align seqs.fa [-tree tree.nh] [-model model.json] >reconstruction.fa\n"
+    + "  " + prog + " recon seqs.fa [-tree tree.nh] [-model model.json] >reconstruction.fa\n"
     + "\n"
     + "Event counting:\n"
-    + "  " + prog + " expect seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
     + "  " + prog + " count reconstruction.fa tree.nh [-model model.json] >counts.json\n"
+    + "  " + prog + " post seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
+    + "\n"
+    + "The former (count) is a point estimate from a single reconstruction.\n"
+    + "The latter (post) averages over (a subset of) the posterior distribution.\n"
     + "\n"
     + "File options:\n"
     + "   -seqs <file>    Specify unaligned sequences (FASTA)\n"
@@ -91,7 +94,7 @@ int main (int argc, char** argv) {
   const string command = usage.getCommand();
   deque<string>& argvec (usage.argvec);
 
-  if (command == "align") {
+  if (command == "reconstruct" || command == "recon" || command == "r") {
 
     recon.reconstructRoot = true;
     recon.accumulateCounts = false;
@@ -107,7 +110,7 @@ int main (int argc, char** argv) {
     recon.reconstruct();
     recon.writeRecon (cout);
 
-  } else if (command == "expect") {
+  } else if (command == "posterior" || command == "post" || command == "p") {
 
     recon.reconstructRoot = false;
     recon.accumulateCounts = true;
@@ -123,7 +126,7 @@ int main (int argc, char** argv) {
     recon.reconstruct();
     recon.writeCounts (cout);
     
-  } else if (command == "count") {
+  } else if (command == "count" || command == "c") {
 
     usage.implicitSwitches.push_back (string ("-recon"));
     usage.implicitSwitches.push_back (string ("-tree"));

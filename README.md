@@ -3,11 +3,17 @@ Reconstruction of phylogenetic insertion-deletion histories using the transducer
 (see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
 <pre><code>
-Usage: historian {align,help,version} [options]
+Usage: historian {recon,count,post,help,version} [options]
 
 Reconstruction:
+  historian recon seqs.fa [-tree tree.nh] [-model model.json] &gt;reconstruction.fa
 
-  historian align seqs.fa [-tree tree.nh] [-model model.json] &gt;alignment.fa
+Event counting:
+  historian count reconstruction.fa tree.nh [-model model.json] &gt;counts.json
+  historian post seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
+
+The former (count) is a point estimate from a single reconstruction.
+The latter (post) averages over (a subset of) the posterior distribution.
 
 File options:
    -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
@@ -21,7 +27,7 @@ File options:
 Reconstruction options:
    -band &lt;n&gt;       Size of band around guide alignment (default 10)
    -noband         Turn off band, ignore guide alignment
-   -minpost &lt;p&gt;    Posterior probability threshold for profile states (default .1)
+   -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .1)
    -states &lt;n&gt;     Limit max number of states per profile
 
 Guide alignment options:

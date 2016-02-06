@@ -67,9 +67,13 @@ const ProfileTransition* Profile::getTrans (ProfileStateIndex src, ProfileStateI
 
 map<AlignRowIndex,char> Profile::alignColumn (ProfileStateIndex s) const {
   map<AlignRowIndex,char> col;
-  for (auto& row_pos : state[s].seqCoords)
-    if (state[s].alignPath.count(row_pos.first) && state[s].alignPath.at(row_pos.first).front())
-      col[row_pos.first] = seq.at(row_pos.first).at(row_pos.second - 1);
+  for (auto& row_path : state[s].alignPath)
+    if (row_path.second.size() && row_path.second.front()) {
+      if (state[s].seqCoords.count(row_path.first))
+	col[row_path.first] = seq.at(row_path.first).at(state[s].seqCoords.at(row_path.first) - 1);
+      else
+	col[row_path.first] = Alignment::wildcardChar;
+    }
   return col;
 }
 

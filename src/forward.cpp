@@ -739,46 +739,51 @@ EventCounts ForwardMatrix::getEventCounts (const CellCoords& cell, SumProduct& s
 }
 
 void ForwardMatrix::accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight) const {
-  sumProd.initColumn (getAlignmentColumn (cell));
-  sumProd.fillUp();
-  sumProd.fillDown();
-  sumProd.accumulateSubCounts (counts.rootCount, counts.subCount, weight);
+  LogThisAt(9,"Accumulating event counts for cell " << cellName(cell) << endl);
+  const auto col = getAlignmentColumn (cell);
+  if (col.size()) {
+    sumProd.initColumn (col);
+    sumProd.fillUp();
+    sumProd.fillDown();
+    sumProd.accumulateSubCounts (counts.rootCount, counts.subCount, weight);
+  }
 }
 
 map<AlignRowIndex,char> ForwardMatrix::getAlignmentColumn (const CellCoords& cell) const {
   map<AlignRowIndex,char> col;
-  switch (cell.state) {
-  case PairHMM::IMM:
-    if (!x.state[cell.xpos].isNull() && !y.state[cell.ypos].isNull()) {
-      col = x.alignColumn (cell.xpos);
-      const auto yCol = y.alignColumn (cell.ypos);
-      col.insert (yCol.begin(), yCol.end());
-      col[parentRowIndex] = Alignment::wildcardChar;
+  if (cell.xpos > 0 && cell.ypos > 0 && cell.xpos < xSize - 1 && cell.ypos < ySize - 1)
+    switch (cell.state) {
+    case PairHMM::IMM:
+      if (!x.state[cell.xpos].isNull() && !y.state[cell.ypos].isNull()) {
+	col = x.alignColumn (cell.xpos);
+	const auto yCol = y.alignColumn (cell.ypos);
+	col.insert (yCol.begin(), yCol.end());
+	col[parentRowIndex] = Alignment::wildcardChar;
+      }
+      break;
+    case PairHMM::IMD:
+      if (!x.state[cell.xpos].isNull()) {
+	col = x.alignColumn (cell.xpos);
+	col[parentRowIndex] = Alignment::wildcardChar;
+      }
+      break;
+    case PairHMM::IDM:
+      if (!y.state[cell.ypos].isNull()) {
+	col = y.alignColumn (cell.ypos);
+	col[parentRowIndex] = Alignment::wildcardChar;
+      }
+      break;
+    case PairHMM::IIW:
+      if (!x.state[cell.xpos].isNull())
+	col = x.alignColumn (cell.xpos);
+      break;
+    case PairHMM::IMI:
+      if (!y.state[cell.ypos].isNull())
+	col = y.alignColumn (cell.ypos);
+      break;
+    default:
+      break;
     }
-    break;
-  case PairHMM::IMD:
-    if (!x.state[cell.xpos].isNull()) {
-      col = x.alignColumn (cell.xpos);
-      col[parentRowIndex] = Alignment::wildcardChar;
-    }
-    break;
-  case PairHMM::IDM:
-    if (!y.state[cell.ypos].isNull()) {
-      col = y.alignColumn (cell.ypos);
-      col[parentRowIndex] = Alignment::wildcardChar;
-    }
-    break;
-  case PairHMM::IIW:
-    if (!x.state[cell.xpos].isNull())
-      col = x.alignColumn (cell.xpos);
-    break;
-  case PairHMM::IMI:
-    if (!y.state[cell.ypos].isNull())
-      col = y.alignColumn (cell.ypos);
-    break;
-  default:
-    break;
-  }
   return col;
 }
 

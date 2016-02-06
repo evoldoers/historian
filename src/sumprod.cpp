@@ -227,7 +227,8 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
       else
 	++ungappedKids[rp];
     }
-  Assert (roots.size() == 1, "Multiple root nodes");
+  Assert (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
+  Assert (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
 }
 
 void SumProduct::fillUp() {

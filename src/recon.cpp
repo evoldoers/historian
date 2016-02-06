@@ -314,7 +314,11 @@ void Reconstructor::reconstruct() {
     (ForwardMatrix::ProfilingStrategy) (ForwardMatrix::CollapseChains
 					| (accumulateCounts ? ForwardMatrix::CountEvents : ForwardMatrix::DontCountEvents)
 					| (includeBestTraceInProfile ? ForwardMatrix::DontIncludeBestTrace : ForwardMatrix::IncludeBestTrace));
-  
+
+  SumProduct* sumProd = NULL;
+  if (accumulateCounts)
+    sumProd = new SumProduct (model, tree);
+
   AlignPath path;
   map<int,Profile> prof;
   for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {
@@ -331,7 +335,7 @@ void Reconstructor::reconstruct() {
 
       LogThisAt(2,"Aligning " << lProf.name << " and " << rProf.name << endl);
 
-      ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide));
+      ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide), sumProd);
 
       BackwardMatrix *backward = NULL;
       if ((accumulateCounts && node == tree.root()) || (usePosteriorsForProfile && node != tree.root()))
@@ -385,6 +389,9 @@ void Reconstructor::reconstruct() {
     reconstruction = Alignment (ungapped, path);
     gappedRecon = reconstruction.gapped();
   }
+
+  if (sumProd)
+    delete sumProd;
 }
 
 void Reconstructor::writeRecon (ostream& out) const {

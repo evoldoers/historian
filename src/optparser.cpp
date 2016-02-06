@@ -58,11 +58,11 @@ bool OptParser::parseUnknown() {
 }
 
 int OptParser::parseUnknownCommand (const string& command, const char* version) {
-  if (command == "help" || command == "-help" || command == "--help" || command == "-h") {
+  if (command == "help" || command == "h" || command == "-help" || command == "--help" || command == "-h") {
     cout << text;
     return EXIT_SUCCESS;
     
-  } else if (command == "version" || command == "-version" || command == "--version" || command == "-V") {
+  } else if (command == "version" || command == "v" || command == "-version" || command == "--version" || command == "-V") {
     cout << prog << ' ' << version << endl;
     return EXIT_SUCCESS;
     
