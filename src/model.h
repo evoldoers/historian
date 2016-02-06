@@ -67,22 +67,31 @@ struct LogProbModel {
   LogProbModel (const ProbModel& pm);
 };
 
-struct EventCounts {
+struct IndelCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
+  IndelCounts();
+  IndelCounts operator+ (const IndelCounts& c) const;
+  IndelCounts operator* (double w) const;
+  IndelCounts& operator+= (const IndelCounts& c);
+  IndelCounts& operator*= (double w);
+  void accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight = 1.);
+  void accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight = 1.);
+  void writeJson (ostream& out, const size_t indent = 0) const;
+};
+
+struct EigenCounts {
+  IndelCounts indelCounts;
   vguard<double> rootCount;
   vguard<vguard<gsl_complex> > eigenCount;
 
-  EventCounts (size_t alphabetSize = 0);
+  EigenCounts (size_t alphabetSize = 0);
 
-  EventCounts operator+ (const EventCounts& c) const;
-  EventCounts operator* (double w) const;
-  EventCounts& operator+= (const EventCounts& c);
-  EventCounts& operator*= (double w);
+  EigenCounts operator+ (const EigenCounts& c) const;
+  EigenCounts operator* (double w) const;
+  EigenCounts& operator+= (const EigenCounts& c);
+  EigenCounts& operator*= (double w);
 
-  void accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight = 1.);
-  void accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight = 1.);
   void accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight = 1.);
-
   void accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight = 1.);
 
   void writeJson (const RateModel& model, ostream& out) const;

@@ -39,7 +39,7 @@ public:
   vguard<double> closestLeafDistance;
 
   Alignment reconstruction;
-  EventCounts counts;
+  EigenCounts counts;
   
   Reconstructor();
 

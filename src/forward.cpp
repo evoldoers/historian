@@ -510,8 +510,8 @@ AlignPath ForwardMatrix::transitionAlignPath (const CellCoords& src, const CellC
   return path;
 }
 
-EventCounts ForwardMatrix::transitionEventCounts (const CellCoords& src, const CellCoords& dest) const {
-  EventCounts c;
+EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const CellCoords& dest) const {
+  EigenCounts c;
   if (src.xpos != dest.xpos)
     c += x.getTrans(src.xpos,dest.xpos)->counts;
   if (src.ypos != dest.ypos)
@@ -521,44 +521,44 @@ EventCounts ForwardMatrix::transitionEventCounts (const CellCoords& src, const C
   switch (dest.state) {
   case PairHMM::IMM:
     if (!xNull && !yNull)
-      c.matchTime += hmm.l.t + hmm.r.t;
+      c.indelCounts.matchTime += hmm.l.t + hmm.r.t;
     break;
   case PairHMM::IMD:
     if (!xNull) {
-      c.matchTime += hmm.l.t;
+      c.indelCounts.matchTime += hmm.l.t;
       if (src.state == dest.state)
-	c.delExt += 1;
+	c.indelCounts.delExt += 1;
       else {
-	c.del += 1;
-	c.delTime += hmm.r.t;
+	c.indelCounts.del += 1;
+	c.indelCounts.delTime += hmm.r.t;
       }
     }
     break;
   case PairHMM::IIW:
     if (!xNull) {
       if (src.state == dest.state)
-	c.insExt += 1;
+	c.indelCounts.insExt += 1;
       else
-	c.ins += 1;
+	c.indelCounts.ins += 1;
     }
     break;
   case PairHMM::IDM:
     if (!yNull) {
-      c.matchTime += hmm.r.t;
+      c.indelCounts.matchTime += hmm.r.t;
       if (src.state == dest.state)
-	c.delExt += 1;
+	c.indelCounts.delExt += 1;
       else {
-	c.del += 1;
-	c.delTime += hmm.l.t;
+	c.indelCounts.del += 1;
+	c.indelCounts.delTime += hmm.l.t;
       }
     }
     break;
   case PairHMM::IMI:
     if (!yNull) {
       if (src.state == dest.state)
-	c.insExt += 1;
+	c.indelCounts.insExt += 1;
       else
-	c.ins += 1;
+	c.indelCounts.ins += 1;
     }
     break;
   default:
@@ -648,20 +648,20 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
 	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
 	eff.bestAlignPath = transitionAlignPath(src,cell);
 	if (strategy & CountEvents)
-	  eff.counts = transitionEventCounts(src,cell);
+	  eff.counts = transitionEigenCounts(src,cell);
       }
     } else {
       // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
       const auto& cellEffTrans = effTrans[cell];
       const AlignPath& cap = cellAlignPath (cell);
-      EventCounts cellCounts, srcCellCounts;
+      EigenCounts cellCounts, srcCellCounts;
       if ((strategy & CountEvents) != 0 && sumProd != NULL)
-	cellCounts = cachedCellEventCounts (cell, *sumProd);
+	cellCounts = cachedCellEigenCounts (cell, *sumProd);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
 	if (strategy & CountEvents)
-	  srcCellCounts = transitionEventCounts (src, cell) + cellCounts;
+	  srcCellCounts = transitionEigenCounts (src, cell) + cellCounts;
 	auto& srcEffTrans = effTrans[src];
 	for (const auto cellEffTransIter : cellEffTrans) {
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
@@ -753,30 +753,30 @@ Profile ForwardMatrix::bestProfile (ProfilingStrategy strategy) {
   return makeProfile (profCells, strategy);
 }
 
-EventCounts ForwardMatrix::cellEventCounts (const CellCoords& cell, SumProduct& sumProd) const {
-  EventCounts c (hmm.alphabetSize());
-  accumulateEventCounts (c, cell, sumProd);
+EigenCounts ForwardMatrix::cellEigenCounts (const CellCoords& cell, SumProduct& sumProd) const {
+  EigenCounts c (hmm.alphabetSize());
+  accumulateEigenCounts (c, cell, sumProd);
   return c;
 }
 
-EventCounts ForwardMatrix::cachedCellEventCounts (const CellCoords& cell, SumProduct& sumProd) {
+EigenCounts ForwardMatrix::cachedCellEigenCounts (const CellCoords& cell, SumProduct& sumProd) {
   if (!isAbsorbing (cell)) {
     if (changesX (cell)) {
       if (xInsertCounts.find (cell.xpos) == xInsertCounts.end())
-	xInsertCounts[cell.xpos] = cellEventCounts (cell, sumProd);
+	xInsertCounts[cell.xpos] = cellEigenCounts (cell, sumProd);
       return xInsertCounts[cell.xpos];
 
     } else if (changesY (cell)) {
       if (yInsertCounts.find (cell.ypos) == yInsertCounts.end())
-	yInsertCounts[cell.ypos] = cellEventCounts (cell, sumProd);
+	yInsertCounts[cell.ypos] = cellEigenCounts (cell, sumProd);
       return yInsertCounts[cell.ypos];
     }
   }
 
-  return cellEventCounts (cell, sumProd);
+  return cellEigenCounts (cell, sumProd);
 }
 
-void ForwardMatrix::accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight) const {
+void ForwardMatrix::accumulateEigenCounts (EigenCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight) const {
   LogThisAt(9,"Accumulating event counts for cell " << cellName(cell) << endl);
   const auto col = getAlignmentColumn (cell);
   if (col.size()) {
@@ -787,11 +787,11 @@ void ForwardMatrix::accumulateEventCounts (EventCounts& counts, const CellCoords
   }
 }
 
-void ForwardMatrix::accumulateCachedEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight) {
+void ForwardMatrix::accumulateCachedEigenCounts (EigenCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight) {
   if (!isAbsorbing(cell) && (changesX(cell) || changesY(cell)))
-    counts += cachedCellEventCounts (cell, sumProd) * weight;
+    counts += cachedCellEigenCounts (cell, sumProd) * weight;
   else
-    accumulateEventCounts (counts, cell, sumProd, weight);
+    accumulateEigenCounts (counts, cell, sumProd, weight);
 }
 
 map<AlignRowIndex,char> ForwardMatrix::getAlignmentColumn (const CellCoords& cell) const {
@@ -1043,8 +1043,8 @@ double BackwardMatrix::transPostProb (const CellCoords& src, const CellCoords& d
   return 0;
 }
 
-EventCounts BackwardMatrix::getCounts() const {
-  EventCounts counts (hmm.alphabetSize());
+EigenCounts BackwardMatrix::getCounts() const {
+  EigenCounts counts (hmm.alphabetSize());
   const auto states = hmm.states();
 
   ProgressLog (plog, 4);
@@ -1062,10 +1062,10 @@ EventCounts BackwardMatrix::getCounts() const {
 	  const CellCoords dest (i, j, s);
 	  const LogProb lpDest = cell(dest);
 	  if (fwd.sumProd)
-	    fwd.accumulateCachedEventCounts (counts, dest, *fwd.sumProd, exp (fwd.cell(dest) + lpDest - fwd.lpEnd));
+	    fwd.accumulateCachedEigenCounts (counts, dest, *fwd.sumProd, exp (fwd.cell(dest) + lpDest - fwd.lpEnd));
 	  const auto srcTrans = fwd.sourceTransitions (dest);
 	  for (auto& src_lp : srcTrans)
-	    counts += fwd.transitionEventCounts (src_lp.first, dest) * exp (fwd.cell(src_lp.first) + src_lp.second + lpDest - fwd.lpEnd);
+	    counts += fwd.transitionEigenCounts (src_lp.first, dest) * exp (fwd.cell(src_lp.first) + src_lp.second + lpDest - fwd.lpEnd);
 	}
       }
     }

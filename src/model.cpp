@@ -374,43 +374,74 @@ void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, 
   const string ind (indent, ' ');
   out << ind << "{" << endl;
   out << ind << " \"root\":" << endl;
-  out << ind << " {";
+  out << ind << "  {";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
     out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << rootCounts[i];
-  out << endl << ind << " }," << endl;
+  out << endl << ind << "  }," << endl;
   out << ind << " \"sub\":" << endl;
-  out << ind << " {";
+  out << ind << "  {";
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << (i == 0 ? "" : ",") << endl << ind << "  \"" << alphabet[i] << "\": {";
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": {";
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
 	out << (j == (i == 0 ? 1 : 0) ? "" : ",") << " " << "\"" << alphabet[j] << "\": " << subCountsAndWaitTimes[i][j];
     out << " }";
   }
   out << endl;
-  out << ind << " }," << endl;
+  out << ind << "  }," << endl;
   out << ind << " \"wait\":" << endl;
-  out << ind << " {";
+  out << ind << "  {";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
     out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << subCountsAndWaitTimes[i][i];
   out << endl;
-  out << ind << " }" << endl;
+  out << ind << "  }" << endl;
   out << ind << "}" << endl;
 }
 
-EventCounts::EventCounts (size_t alphabetSize)
-  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0),
-    rootCount (alphabetSize, 0),
-    eigenCount (alphabetSize, vguard<gsl_complex> (alphabetSize, gsl_complex_rect(0,0)))
+IndelCounts::IndelCounts()
+  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0)
 { }
 
-EventCounts& EventCounts::operator+= (const EventCounts& c) {
+IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
   ins += c.ins;
   del += c.del;
   insExt += c.insExt;
   delExt += c.delExt;
   matchTime += c.matchTime;
   delTime += c.delTime;
+  return *this;
+}
+
+IndelCounts& IndelCounts::operator*= (double w) {
+  ins *= w;
+  del *= w;
+  insExt *= w;
+  delExt *= w;
+  matchTime *= w;
+  delTime *= w;
+  return *this;
+}
+
+IndelCounts IndelCounts::operator+ (const IndelCounts& c) const {
+  IndelCounts result (*this);
+  result += c;
+  return result;
+}
+
+IndelCounts IndelCounts::operator* (double w) const {
+  IndelCounts result (*this);
+  result *= w;
+  return result;
+}
+
+EigenCounts::EigenCounts (size_t alphabetSize)
+  : indelCounts(),
+    rootCount (alphabetSize, 0),
+    eigenCount (alphabetSize, vguard<gsl_complex> (alphabetSize, gsl_complex_rect(0,0)))
+{ }
+
+EigenCounts& EigenCounts::operator+= (const EigenCounts& c) {
+  indelCounts += c.indelCounts;
 
   if (c.rootCount.size()) {
     if (rootCount.size())
@@ -432,13 +463,8 @@ EventCounts& EventCounts::operator+= (const EventCounts& c) {
   return *this;
 }
 
-EventCounts& EventCounts::operator*= (double w) {
-  ins *= w;
-  del *= w;
-  insExt *= w;
-  delExt *= w;
-  matchTime *= w;
-  delTime *= w;
+EigenCounts& EigenCounts::operator*= (double w) {
+  indelCounts *= w;
   for (auto& c : rootCount)
     c *= w;
   for (auto& sc : eigenCount)
@@ -447,19 +473,19 @@ EventCounts& EventCounts::operator*= (double w) {
   return *this;
 }
 
-EventCounts EventCounts::operator+ (const EventCounts& c) const {
-  EventCounts result (*this);
+EigenCounts EigenCounts::operator+ (const EigenCounts& c) const {
+  EigenCounts result (*this);
   result += c;
   return result;
 }
 
-EventCounts EventCounts::operator* (double w) const {
-  EventCounts result (*this);
+EigenCounts EigenCounts::operator* (double w) const {
+  EigenCounts result (*this);
   result *= w;
   return result;
 }
 
-void EventCounts::accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight) {
+void IndelCounts::accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight) {
   enum { Match, Insert, Delete } state, next;
   state = Match;
   for (size_t col = 0; col < parent.size(); ++col) {
@@ -496,15 +522,15 @@ void EventCounts::accumulateIndelCounts (const AlignRowPath& parent, const Align
   }
 }
 
-void EventCounts::accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight) {
+void IndelCounts::accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight) {
   for (TreeNodeIndex node = 0; node < tree.nodes() - 1; ++node)
     accumulateIndelCounts (align.at(tree.parentNode(node)), align.at(node), tree.branchLength(node), weight);
 }
 
-void EventCounts::accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight) {
+void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight) {
   AlignColSumProduct colSumProd (model, tree, gapped);
 
-  EventCounts c (model.alphabetSize());
+  EigenCounts c (model.alphabetSize());
 
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
@@ -517,22 +543,31 @@ void EventCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
   *this += c;
 }
 
-void EventCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight) {
-  accumulateIndelCounts (align.path, tree, weight);
+void EigenCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight) {
+  indelCounts.accumulateIndelCounts (align.path, tree, weight);
   accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
 }
 
-void EventCounts::writeJson (const RateModel& model, ostream& out) const {
+void EigenCounts::writeJson (const RateModel& model, ostream& out) const {
   EigenModel eigen (model);
   auto subCount = eigen.getSubCounts (eigenCount);
   out << "{" << endl;
-  out << " \"ins\": " << ins << "," << endl;
-  out << " \"del\": " << del << "," << endl;
-  out << " \"insExt\": " << insExt << "," << endl;
-  out << " \"delExt\": " << delExt << "," << endl;
-  out << " \"matchTime\": " << matchTime << "," << endl;
-  out << " \"delTime\": " << delTime << "," << endl;
+  out << " \"indel\":" << endl;
+  indelCounts.writeJson (out, 2);
+  out << "," << endl;
   out << " \"sub\":" << endl;
   model.writeSubCounts (out, rootCount, subCount, 2);
   out << "}" << endl;
+}
+
+void IndelCounts::writeJson (ostream& out, const size_t indent) const {
+  const string ind (indent, ' ');
+  out << ind << "{" << endl;
+  out << ind << " \"ins\": " << ins << "," << endl;
+  out << ind << " \"del\": " << del << "," << endl;
+  out << ind << " \"insExt\": " << insExt << "," << endl;
+  out << ind << " \"delExt\": " << delExt << "," << endl;
+  out << ind << " \"matchTime\": " << matchTime << "," << endl;
+  out << ind << " \"delTime\": " << delTime << endl;
+  out << ind << "}";
 }

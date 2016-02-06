@@ -118,12 +118,12 @@ class ForwardMatrix : public DPMatrix {
 public:
   const AlignRowIndex parentRowIndex;
   SumProduct *sumProd;
-  map<ProfileStateIndex,EventCounts> xInsertCounts, yInsertCounts;
+  map<ProfileStateIndex,EigenCounts> xInsertCounts, yInsertCounts;
 
   struct EffectiveTransition {
     LogProb lpPath, lpBestAlignPath;
     AlignPath bestAlignPath;
-    EventCounts counts;
+    EigenCounts counts;
     EffectiveTransition();
   };
   
@@ -142,12 +142,12 @@ public:
 
   map<AlignRowIndex,char> getAlignmentColumn (const CellCoords& cell) const;
 
-  void accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.) const;
-  void accumulateCachedEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.);
+  void accumulateEigenCounts (EigenCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.) const;
+  void accumulateCachedEigenCounts (EigenCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.);
 
-  EventCounts transitionEventCounts (const CellCoords& src, const CellCoords& dest) const;
-  EventCounts cellEventCounts (const CellCoords& cell, SumProduct& sumProd) const;
-  EventCounts cachedCellEventCounts (const CellCoords& cell, SumProduct& sumProd);
+  EigenCounts transitionEigenCounts (const CellCoords& src, const CellCoords& dest) const;
+  EigenCounts cellEigenCounts (const CellCoords& cell, SumProduct& sumProd) const;
+  EigenCounts cachedCellEigenCounts (const CellCoords& cell, SumProduct& sumProd);
 
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
 
@@ -183,7 +183,7 @@ public:
   double cellPostProb (const CellCoords& cell) const;
   double transPostProb (const CellCoords& src, const CellCoords& dest) const;
 
-  EventCounts getCounts() const;
+  EigenCounts getCounts() const;
 
   // traceforward
   Path bestTrace (const CellCoords& start);

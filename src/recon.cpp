@@ -415,6 +415,6 @@ void Reconstructor::loadCountFiles() {
 }
 
 void Reconstructor::count() {
-  counts = EventCounts (model.alphabetSize());
+  counts = EigenCounts (model.alphabetSize());
   counts.accumulateCounts (model, reconstruction, tree);
 }
