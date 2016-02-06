@@ -252,16 +252,18 @@ ForwardMatrix::Path ForwardMatrix::bestTrace (const CellCoords& end) {
   Path path;
   path.push_back (end);
 
-  map<CellCoords,LogProb> clp = sourceCells (end);
-  CellCoords current;
-  while (true) {
-    current = bestCell (clp);
-    LogThisAt(6,__func__ << " traceback at " << cellName(current) << " score " << cell(current) << endl);
-
-    path.push_front (current);
-    if (current.xpos == 0 && current.ypos == 0)
-      break;
-    clp = sourceCells (current);
+  if (end.xpos > 0 || end.ypos > 0) {
+    map<CellCoords,LogProb> clp = sourceCells (end);
+    CellCoords current;
+    while (true) {
+      current = bestCell (clp);
+      LogThisAt(6,__func__ << " traceback at " << cellName(current) << " score " << cell(current) << endl);
+      
+      path.push_front (current);
+      if (current.xpos == 0 && current.ypos == 0)
+	break;
+      clp = sourceCells (current);
+    }
   }
 
   return path;
@@ -949,12 +951,12 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
   Path path;
 
   CellCoords current = traceStart;
-  do {
+  while (current.xpos < xSize - 1 && current.ypos < ySize - 1) {
     map<CellCoords,LogProb> clp = destCells (current);
     current = bestCell (clp);
     LogThisAt(6,__func__ << " traceforward at " << cellName(current) << " score " << cell(current) << endl);
     path.push_back (current);
-  } while (current.xpos < xSize - 1 && current.ypos < ySize - 1);
+  }
 
   path.push_back (endCell);
   return path;

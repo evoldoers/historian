@@ -175,6 +175,7 @@ testsumprod: bin/testsumprod
 	$(TEST) bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testsumprod.out
 
 testhist: bin/$(MAIN)
+	$(TEST) bin/historian align -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa data/PF16593.testspan.testnj.historian.fa
@@ -186,9 +187,6 @@ testcount: bin/$(MAIN)
 
 testgp120:
 	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
-
-backtrace-bug:
-	bin/historian align -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh
 
 # Rules for building files in the repository
 # For updating README.md
