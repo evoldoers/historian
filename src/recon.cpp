@@ -333,7 +333,7 @@ void Reconstructor::reconstruct() {
       ProbModel rProbs (model, tree.branchLength(rChildNode));
       PairHMM hmm (lProbs, rProbs, rootProb);
 
-      LogThisAt(2,"Aligning " << lProf.name << " and " << rProf.name << endl);
+      LogThisAt(2,"Aligning " << lProf.name << " (" << plural(lProf.state.size(),"state") << ", " << plural(lProf.trans.size(),"transition") << ") and " << rProf.name << " (" << plural(rProf.state.size(),"state") << ", " << plural(rProf.trans.size(),"transition") << ")" << endl);
 
       ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide), sumProd);
 

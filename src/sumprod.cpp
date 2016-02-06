@@ -350,28 +350,29 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
   LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts, weight);
 
-  vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
-  vguard<gsl_complex> Ubasis (model.alphabetSize()), Dbasis (model.alphabetSize());
-  vguard<LogProb> logD (model.alphabetSize());
+  const int A = model.alphabetSize();
+  vguard<double> U (A), D (A);
+  vguard<gsl_complex> Ubasis (A), Dbasis (A);
+  vguard<LogProb> logD (A);
   for (auto node : ungappedRows)
     if (node != root()) {
       LogThisAt(9,"Accumulating eigencounts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
       const TreeNodeIndex sibling = tree.getSibling(node);
       const vguard<LogProb>& logU = logF[node];
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      for (AlphTok i = 0; i < A; ++i)
 	logD[i] = logG[parent][i] + logE[sibling][i];
       const LogProb maxLogU = *max_element (logU.begin(), logU.end());
       const LogProb maxLogD = *max_element (logD.begin(), logD.end());
       const double norm = exp (colLogLike - maxLogU - maxLogD);
 
       // U[b] = exp(logU[b]-maxLogU); Ubasis[l] = sum_b U[b] * evecInv[l][b]
-      for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+      for (AlphTok b = 0; b < A; ++b)
 	U[b] = exp (logU[b] - maxLogU);
 
-      for (AlphTok l = 0; l < model.alphabetSize(); ++l) {
+      for (AlphTok l = 0; l < A; ++l) {
 	Ubasis[l] = gsl_complex_rect (0, 0);
-	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+	for (AlphTok b = 0; b < A; ++b)
 	  Ubasis[l] = gsl_complex_add
 	    (Ubasis[l],
 	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv, l, b),
@@ -379,12 +380,12 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
       }
 
       // D[a] = exp(logD[a]-maxLogD); Dbasis[k] = sum_a D[a] * evec[a][k]
-      for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+      for (AlphTok a = 0; a < A; ++a)
 	D[a] = exp (logD[a] - maxLogD);
 
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+      for (AlphTok k = 0; k < A; ++k) {
 	Dbasis[k] = gsl_complex_rect (0, 0);
-	for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+	for (AlphTok a = 0; a < A; ++a)
 	  Dbasis[k] = gsl_complex_add
 	    (Dbasis[k],
 	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec, a, k),
@@ -403,8 +404,8 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
       //   = R_ij \sum_k evecInv_ki \sum_l evec_jl Dbasis_k Ubasis_l eigenSubCount(k,l,T)
 
       // eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
+      for (AlphTok k = 0; k < A; ++k)
+	for (AlphTok l = 0; l < A; ++l)
 	  eigenCounts[k][l] =
 	    gsl_complex_add
 	    (eigenCounts[k][l],
