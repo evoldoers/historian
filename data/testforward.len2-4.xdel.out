@@ -8,53 +8,53 @@
    "name": "(SSS,START,START)",
    "meta": { "fwdLogProb": "0.000000" },
    "seqPos": [ [ 1, 0 ], [ 2, 0 ] ],
-   "trans": [ { "to": 1, "lpTrans": -0.022000 } ]
+   "trans": [ { "to": 1, "lpTrans": -1.718867 } ]
   },
   {
    "n": 1,
    "name": "(IMM,a1,a1)",
    "meta": 
     {
-     "cumLogProb": "-1.718867",
+     "cumLogProb": "-3.415733",
      "fwdLogProb": "-1.718867"
     },
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
    "lpAbsorb": [ -0.313884, -7.121031, -7.121031, -7.121031 ],
-   "trans": [ { "to": 2, "lpTrans": -4.622166 } ]
+   "trans": [ { "to": 2, "lpTrans": -6.008460 } ]
   },
   {
    "n": 2,
    "name": "(IDM,a1,c2)",
    "meta": 
     {
-     "cumLogProb": "-7.727327",
+     "cumLogProb": "-10.810488",
      "fwdLogProb": "-7.726982"
     },
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 2 ] ],
    "lpAbsorb": [ -4.625104, -0.029849, -4.625104, -4.625104 ],
-   "trans": [ { "to": 3, "lpTrans": -0.107361 } ]
+   "trans": [ { "to": 3, "lpTrans": -1.493655 } ]
   },
   {
    "n": 3,
    "name": "(IDM,a1,t3)",
    "meta": 
     {
-     "cumLogProb": "-9.220982",
+     "cumLogProb": "-13.690437",
      "fwdLogProb": "-9.220487"
     },
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 3 ] ],
    "lpAbsorb": [ -4.625104, -4.625104, -4.625104, -0.029849 ],
-   "trans": [ { "to": 4, "lpTrans": -2.304585 } ]
+   "trans": [ { "to": 4, "lpTrans": -4.001452 } ]
   },
   {
    "n": 4,
    "name": "(IMM,g2,g4)",
    "meta": 
     {
-     "cumLogProb": "-13.222434",
+     "cumLogProb": "-19.388756",
      "fwdLogProb": "-13.012149"
     },
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
@@ -67,7 +67,7 @@
    "name": "(EEE,END,END)",
    "meta": 
     {
-     "cumLogProb": "-13.233434",
+     "cumLogProb": "-19.399756",
      "fwdLogProb": "-12.920738"
     },
    "seqPos": [ [ 1, 2 ], [ 2, 4 ] ],

@@ -104,6 +104,8 @@ protected:
     return logInnerProduct (hmm.logRoot, absorbScratch);
   }
 
+  LogProb lpCellEmitOrAbsorb (const CellCoords& c);
+  
   bool isAbsorbing (const CellCoords& c) const;
   
   CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
@@ -142,6 +144,8 @@ public:
 
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
 
+  void slowFillTest();
+
 private:
   map<CellCoords,LogProb> sourceCells (const CellCoords& destCell);
   LogProb eliminatedLogProbInsert (const CellCoords& cell) const;
@@ -179,6 +183,11 @@ public:
 
   // profile construction
   Profile buildProfile (size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
+
+  map<CellCoords,LogProb> destTransitions (const CellCoords& srcCell);
+
+  void slowFillTest();
+  void sourceDestTransTest();
 
 private:
   map<CellCoords,LogProb> destCells (const CellCoords& srcCell);

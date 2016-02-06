@@ -94,6 +94,8 @@ double log_sum_exp_slow (double a, double b);  /* does not use lookup table */
 double log_sum_exp_slow (double a, double b, double c);
 double log_sum_exp_slow (double a, double b, double c, double d);
 
+void log_accum_exp_slow (double& a, double b);
+
 typedef double LogProb;
 std::vector<LogProb> log_gsl_vector (gsl_vector* v);
 

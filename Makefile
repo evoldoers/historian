@@ -146,14 +146,14 @@ testtreeio: bin/testtreeio
 	$(TEST) bin/testtreeio data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.nh
 
 testspan: bin/testspan
-	$(TEST) bin/testspan data/PF16593.fa data/amino.json 1 data/PF16593.testspan.fa
+	$(TEST) bin/testspan data/PF16593.fa data/testamino.json 1 data/PF16593.testspan.fa
 
 testnj: bin/testnj
 	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
-	$(TEST) bin/testnj data/amino.json data/PF16593.testspan.fa data/PF16593.testspan.testnj.nh
+	$(TEST) bin/testnj data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testnj.nh
 
 testquickalign: bin/testquickalign
-	$(TEST) bin/testquickalign data/PF16593.pair.fa data/amino.json 1 data/testquickalign.out.fa
+	$(TEST) bin/testquickalign data/PF16593.pair.fa data/testamino.json 1 data/testquickalign.out.fa
 
 testsubcount: bin/testsubcount
 	$(TEST) bin/testsubcount data/testrates.json A T 1 data/testsubcount1.json
@@ -176,11 +176,11 @@ testsumprod: bin/testsumprod
 
 testhist: bin/$(MAIN)
 	$(TEST) bin/historian align -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/amino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 data/PF16593.fa data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) align -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx data/PF16593.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) align -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json data/PF16593.historian.fa
 
 testcount: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
