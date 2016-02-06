@@ -18,7 +18,7 @@ public:
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
-  bool includeBestTraceInProfile, usePosteriorsForProfile;
+  bool includeBestTraceInProfile, usePosteriorsForProfile, reconstructRoot, accumulateCounts;
   double minPostProb;
   
   ForwardMatrix::random_engine generator;

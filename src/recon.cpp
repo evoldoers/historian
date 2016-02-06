@@ -11,10 +11,12 @@
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
     profileNodeLimit (0),
-    includeBestTraceInProfile (true),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
+    includeBestTraceInProfile (true),
     usePosteriorsForProfile (true),
+    reconstructRoot (true),
+    accumulateCounts (false),
     minPostProb (DefaultProfilePostProb)
 { }
 
@@ -305,9 +307,14 @@ void Reconstructor::buildReconIndices() {
 
 void Reconstructor::reconstruct() {
   LogThisAt(1,"Starting reconstruction on " << tree.nodes() << "-node tree" << endl);
-  gsl_vector* rootProb = model.insProb;
 
+  gsl_vector* rootProb = model.insProb;
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
+  const ForwardMatrix::ProfilingStrategy strategy =
+    (ForwardMatrix::ProfilingStrategy) (ForwardMatrix::CollapseChains
+					| (accumulateCounts ? ForwardMatrix::CountEvents : ForwardMatrix::DontCountEvents)
+					| (includeBestTraceInProfile ? ForwardMatrix::DontIncludeBestTrace : ForwardMatrix::IncludeBestTrace));
+  
   AlignPath path;
   map<int,Profile> prof;
   for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {
@@ -326,15 +333,26 @@ void Reconstructor::reconstruct() {
 
       ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide));
 
+      BackwardMatrix *backward = NULL;
+      if ((accumulateCounts && node == tree.root()) || (usePosteriorsForProfile && node != tree.root()))
+	backward = new BackwardMatrix (forward, minPostProb);
+
       Profile& nodeProf = prof[node];
       if (node == tree.root()) {
-	path = forward.bestAlignPath();
-	nodeProf = forward.bestProfile();
-      } else if (usePosteriorsForProfile) {
-	BackwardMatrix backward (forward, minPostProb);
-	nodeProf = backward.buildProfile (profileNodeLimit, ForwardMatrix::CollapseChains);
-      } else
-	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, ForwardMatrix::CollapseChains, includeBestTraceInProfile);
+	if (reconstructRoot) {
+	  path = forward.bestAlignPath();
+	  nodeProf = forward.bestProfile();
+	}
+      } else if (usePosteriorsForProfile)
+	nodeProf = backward->buildProfile (profileNodeLimit, strategy);
+      else
+	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
+
+      if (accumulateCounts && node == tree.root())
+	counts = backward->getCounts();
+      
+      if (backward)
+	delete backward;
 
       const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
       LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
@@ -350,18 +368,20 @@ void Reconstructor::reconstruct() {
 
   LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << ", final alignment log-likelihood is " << lpFinalTrace << endl);
 
-  vguard<FastSeq> ungapped (tree.nodes());
-  for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {
-    if (tree.isLeaf(node)) 
-      ungapped[node] = seqs[seqIndex.at(rowName[node])];
-    else {
-      ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), '*');
-      ungapped[node].name = rowName[node];
+  if (reconstructRoot) {
+    vguard<FastSeq> ungapped (tree.nodes());
+    for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {
+      if (tree.isLeaf(node)) 
+	ungapped[node] = seqs[seqIndex.at(rowName[node])];
+      else {
+	ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), '*');
+	ungapped[node].name = rowName[node];
+      }
     }
-  }
 
-  reconstruction = Alignment (ungapped, path);
-  gappedRecon = reconstruction.gapped();
+    reconstruction = Alignment (ungapped, path);
+    gappedRecon = reconstruction.gapped();
+  }
 }
 
 void Reconstructor::writeRecon (ostream& out) const {

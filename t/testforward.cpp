@@ -24,7 +24,7 @@ int main (int argc, char **argv) {
   if (whatCells == "-best") useBest = true;
   else if (whatCells == "-matrix") useMatrix = true;
   else nPaths = atoi (argv[2]);
-
+  
   vguard<FastSeq> seqs = readFastSeqs (argv[3]);
   Assert (seqs.size() == 2, "Expected two sequences in file %s", argv[3]);
 

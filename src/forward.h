@@ -40,7 +40,8 @@ public:
   };
 
   enum ProfilingStrategy { KeepAll = 0, CollapseChains = 1,
-			   DontCountEvents = 0, CountEvents = 2 };
+			   DontCountEvents = 0, CountEvents = 2,
+			   DontIncludeBestTrace = 0, IncludeBestTrace = 4 };
 
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;
@@ -131,7 +132,7 @@ public:
 
   // profile construction
   Profile makeProfile (const set<CellCoords>& cells, ProfilingStrategy strategy = CollapseChains);
-  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains, bool includeBestTraceInProfile = true);  // maxCells=0 to unlimit
+  Profile sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
   Profile bestProfile (ProfilingStrategy strategy = CollapseChains);
 
   map<AlignRowIndex,char> getAlignmentColumn (const CellCoords& cell) const;

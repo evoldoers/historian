@@ -639,13 +639,13 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
   return prof;
 }
 
-Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, ProfilingStrategy strategy, bool includeBestTraceInProfile) {
+Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, ProfilingStrategy strategy) {
   map<CellCoords,size_t> cellCount;
 
-  Require (includeBestTraceInProfile || profileSamples > 0, "Must allow at least one sample path in the profile");
+  Require ((strategy & IncludeBestTrace) || profileSamples > 0, "Must allow at least one sample path in the profile");
 
   size_t nTraces = 0;
-  if (includeBestTraceInProfile) {
+  if (strategy & IncludeBestTrace) {
     const Path best = bestTrace();
     for (auto& c : best)
       cellCount[c] = 2;  // avoid dropping these cells
@@ -962,38 +962,38 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
 
 Profile BackwardMatrix::buildProfile (size_t maxCells, ProfilingStrategy strategy) {
   set<CellCoords> cells;
-  if (bestCells.empty()) {
+  if (bestCells.empty() || (strategy & IncludeBestTrace)) {
     const list<CellCoords> fwdBestTrace = fwd.bestTrace();
     cells.insert (fwdBestTrace.begin(), fwdBestTrace.end());
-  } else
-    while ((maxCells == 0 || cells.size() < maxCells) && !bestCells.empty()) {
-      const CellCoords& best = bestCells.top();
-      if (cells.count (best))
-	bestCells.pop();
-      else {
-	LogThisAt(5,"Starting traceback/forward from " << cellName(best) << endl);
-	const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);
-	list<CellCoords> newCells;
-	for (auto cellIter = fwdTrace.rbegin(); cellIter != fwdTrace.rend(); ++cellIter)
-	  if (cells.count (*cellIter))
-	    break;
-	  else
-	    newCells.push_back (*cellIter);
-	for (const auto& cell : backTrace)
-	  if (cells.count (cell))
-	    break;
-	  else
-	    newCells.push_back (cell);
-	if (maxCells > 0 && cells.size() > 0 && cells.size() + newCells.size() > maxCells)
+  }
+  while ((maxCells == 0 || cells.size() < maxCells) && !bestCells.empty()) {
+    const CellCoords& best = bestCells.top();
+    if (cells.count (best))
+      bestCells.pop();
+    else {
+      LogThisAt(5,"Starting traceback/forward from " << cellName(best) << endl);
+      const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);
+      list<CellCoords> newCells;
+      for (auto cellIter = fwdTrace.rbegin(); cellIter != fwdTrace.rend(); ++cellIter)
+	if (cells.count (*cellIter))
 	  break;
-	if (LoggingThisAt(6)) {
-	  LogThisAt(6,"Adding the following cells to profile:");
-	  for (const auto& c : newCells)
-	    LogThisAt(6," " << cellName(c));
-	  LogThisAt(6,endl);
-	}
-	cells.insert (newCells.begin(), newCells.end());
+	else
+	  newCells.push_back (*cellIter);
+      for (const auto& cell : backTrace)
+	if (cells.count (cell))
+	  break;
+	else
+	  newCells.push_back (cell);
+      if (maxCells > 0 && cells.size() > 0 && cells.size() + newCells.size() > maxCells)
+	break;
+      if (LoggingThisAt(6)) {
+	LogThisAt(6,"Adding the following cells to profile:");
+	for (const auto& c : newCells)
+	  LogThisAt(6," " << cellName(c));
+	LogThisAt(6,endl);
       }
+      cells.insert (newCells.begin(), newCells.end());
     }
+  }
   return fwd.makeProfile (cells, strategy);
 }

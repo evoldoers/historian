@@ -187,6 +187,9 @@ testcount: bin/$(MAIN)
 testgp120:
 	bin/historian align -guide data/gp120.guide.fa -tree data/gp120.tree.nh
 
+backtrace-bug:
+	bin/historian align -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh
+
 # Rules for building files in the repository
 # For updating README.md
 README.md: bin/$(MAIN)

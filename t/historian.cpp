@@ -18,13 +18,16 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{align,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{align,count,expect,help,version} [options]")
 {
   text = briefText
     + "\n"
     + "Reconstruction:\n"
+    + "  " + prog + " align seqs.fa [-tree tree.nh] [-model model.json] >reconstruction.fa\n"
     + "\n"
-    + "  " + prog + " align seqs.fa [-tree tree.nh] [-model model.json] >alignment.fa\n"
+    + "Event counting:\n"
+    + "  " + prog + " expect seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
+    + "  " + prog + " count reconstruction.fa tree.nh [-model model.json] >counts.json\n"
     + "\n"
     + "File options:\n"
     + "   -seqs <file>    Specify unaligned sequences (FASTA)\n"
@@ -38,7 +41,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "Reconstruction options:\n"
     + "   -band <n>       Size of band around guide alignment (default " + to_string(DefaultMaxDistanceFromGuide) + ")\n"
     + "   -noband         Turn off band, ignore guide alignment\n"
-    + "   -minpost <p>    Posterior probability threshold for profile states (default " + TOSTRING(DefaultProfilePostProb) + ")\n"
+    + "   -minpost <p>    Posterior prob. threshold for profile states (default " + TOSTRING(DefaultProfilePostProb) + ")\n"
     // Uncomment to show help for obsolescent random-sampling profile option:
     //    + "   -samples <n>    Sample profile states randomly\n"
     + "   -states <n>     Limit max number of states per profile\n"
@@ -90,6 +93,9 @@ int main (int argc, char** argv) {
 
   if (command == "align") {
 
+    recon.reconstructRoot = true;
+    recon.accumulateCounts = false;
+
     usage.implicitSwitches.push_back (string ("-seqs"));
 
     while (logger.parseLogArgs (argvec)
@@ -101,6 +107,21 @@ int main (int argc, char** argv) {
     recon.reconstruct();
     recon.writeRecon (cout);
 
+  } else if (command == "expect") {
+
+    recon.reconstructRoot = false;
+    recon.accumulateCounts = true;
+
+    usage.implicitSwitches.push_back (string ("-seqs"));
+
+    while (logger.parseLogArgs (argvec)
+	   || recon.parseReconArgs (argvec)
+	   || usage.parseUnknown())
+      { }
+
+    recon.loadReconFiles();
+    recon.reconstruct();
+    recon.writeCounts (cout);
     
   } else if (command == "count") {
 
