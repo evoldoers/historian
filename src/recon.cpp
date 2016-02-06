@@ -353,7 +353,7 @@ void Reconstructor::reconstruct() {
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
 
       if (accumulateCounts && node == tree.root())
-	counts = backward->getCounts();
+	eigenCounts = backward->getCounts();
       
       if (backward)
 	delete backward;
@@ -389,7 +389,7 @@ void Reconstructor::reconstruct() {
     reconstruction = Alignment (ungapped, path);
     gappedRecon = reconstruction.gapped();
   }
-
+  
   if (sumProd)
     delete sumProd;
 }
@@ -399,7 +399,8 @@ void Reconstructor::writeRecon (ostream& out) const {
 }
 
 void Reconstructor::writeCounts (ostream& out) const {
-  counts.writeJson (model, out);
+  EventCounts eventCounts = eigenCounts.transform (model);
+  eventCounts.writeJson (out);
 }
 
 void Reconstructor::loadCountFiles() {
@@ -415,6 +416,6 @@ void Reconstructor::loadCountFiles() {
 }
 
 void Reconstructor::count() {
-  counts = EigenCounts (model.alphabetSize());
-  counts.accumulateCounts (model, reconstruction, tree);
+  eigenCounts = EigenCounts (model.alphabetSize());
+  eigenCounts.accumulateCounts (model, reconstruction, tree);
 }

@@ -370,7 +370,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
 }
 
 
-void RateModel::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) const {
+void AlphabetOwner::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) const {
   const string ind (indent, ' ');
   out << ind << "{" << endl;
   out << ind << " \"root\":" << endl;
@@ -485,6 +485,50 @@ EigenCounts EigenCounts::operator* (double w) const {
   return result;
 }
 
+EventCounts::EventCounts (const AlphabetOwner& alph)
+  : AlphabetOwner (alph),
+    indelCounts(),
+    rootCount (alph.alphabetSize(), 0),
+    subCount (alph.alphabetSize(), vguard<double> (alph.alphabetSize(), 0))
+{ }
+
+EventCounts& EventCounts::operator+= (const EventCounts& c) {
+  Assert (alphabet == c.alphabet, "Alphabets don't match");
+
+  indelCounts += c.indelCounts;
+
+  for (size_t n = 0; n < rootCount.size(); ++n)
+    rootCount[n] += c.rootCount.at(n);
+
+  for (size_t i = 0; i < subCount.size(); ++i)
+    for (size_t j = 0; j < subCount[i].size(); ++j)
+      subCount[i][j] += c.subCount.at(i).at(j);
+
+  return *this;
+}
+
+EventCounts& EventCounts::operator*= (double w) {
+  indelCounts *= w;
+  for (auto& c : rootCount)
+    c *= w;
+  for (auto& sc : subCount)
+    for (auto& c : sc)
+      c *= w;
+  return *this;
+}
+
+EventCounts EventCounts::operator+ (const EventCounts& c) const {
+  EventCounts result (*this);
+  result += c;
+  return result;
+}
+
+EventCounts EventCounts::operator* (double w) const {
+  EventCounts result (*this);
+  result *= w;
+  return result;
+}
+
 void IndelCounts::accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight) {
   enum { Match, Insert, Delete } state, next;
   state = Match;
@@ -548,15 +592,22 @@ void EigenCounts::accumulateCounts (const RateModel& model, const Alignment& ali
   accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
 }
 
-void EigenCounts::writeJson (const RateModel& model, ostream& out) const {
+EventCounts EigenCounts::transform (const RateModel& model) const {
+  EventCounts c (model);
   EigenModel eigen (model);
-  auto subCount = eigen.getSubCounts (eigenCount);
+  c.indelCounts = indelCounts;
+  c.rootCount = rootCount;
+  c.subCount = eigen.getSubCounts (eigenCount);
+  return c;
+}
+
+void EventCounts::writeJson (ostream& out) const {
   out << "{" << endl;
   out << " \"indel\":" << endl;
   indelCounts.writeJson (out, 2);
   out << "," << endl;
   out << " \"sub\":" << endl;
-  model.writeSubCounts (out, rootCount, subCount, 2);
+  writeSubCounts (out, rootCount, subCount, 2);
   out << "}" << endl;
 }
 
