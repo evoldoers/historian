@@ -289,6 +289,37 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCo
   map<CellCoords,LogProb> clp;
   const ProfileState& xState = x.state[destCell.xpos];
   const ProfileState& yState = y.state[destCell.ypos];
+
+  LogProb lpAbs = 0;
+  switch (destCell.state) {
+  case PairHMM::IMD:
+    if (!xState.isNull())
+      lpAbs = rootsubx[destCell.xpos];
+    break;
+
+  case PairHMM::IIW:
+    if (!xState.isNull())
+      lpAbs = insx[destCell.xpos];
+    break;
+
+  case PairHMM::IDM:
+    if (!yState.isNull())
+      lpAbs = rootsuby[destCell.ypos];
+    break;
+
+  case PairHMM::IMI:
+    if (!yState.isNull())
+      lpAbs = insy[destCell.ypos];
+    break;
+
+  case PairHMM::IMM:
+    if (!xState.isNull() && !yState.isNull())
+      lpAbs = computeLogProbAbsorb(destCell.xpos,destCell.ypos);
+
+  default:
+    break;
+  }
+
   switch (destCell.state) {
   case PairHMM::IMD:
   case PairHMM::IIW:
@@ -300,7 +331,7 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCo
       // x-absorbing transitions into IMD, IIW
       for (auto xt : xState.in)
 	for (auto s : hmm.sources (destCell.state))
-	  clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans;
+	  clp[CellCoords(x.trans[xt].src,destCell.ypos,s)] = hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + lpAbs;
     break;
 
   case PairHMM::IDM:
@@ -313,7 +344,7 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCo
       // y-absorbing transitions into IDM, IMI
       for (auto yt : yState.in)
 	for (auto s : hmm.sources (destCell.state))
-	  clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans;
+	  clp[CellCoords(destCell.xpos,y.trans[yt].src,s)] = hmm.lpTrans(s,destCell.state) + y.trans[yt].lpTrans + lpAbs;
     break;
 
   case PairHMM::IMM:
@@ -330,7 +361,7 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCo
       for (auto xt : xState.in)
 	for (auto yt : yState.in)
 	  for (auto s : hmm.sources (destCell.state))
-	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans;
+	    clp[CellCoords(x.trans[xt].src,y.trans[yt].src,s)] = hmm.lpTrans(s,destCell.state) + x.trans[xt].lpTrans + y.trans[yt].lpTrans + lpAbs;
     break;
 
     // null transitions into EEE
@@ -851,7 +882,25 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
   }
 
   LogThisAt(6,"Backward log-likelihood is " << lpStart() << endl);
-  Assert (gsl_fcmp (lpStart(), fwd.lpEnd, FWD_BACK_ERROR_TOLERANCE) == 0, "Forward log-likelihood is %g, Backward log-likelihood is %g", fwd.lpEnd, lpStart());
+  if (gsl_fcmp (lpStart(), fwd.lpEnd, FWD_BACK_ERROR_TOLERANCE) != 0) {
+    for (int i = xSize - 2; i >= 0; --i)
+      for (int j = ySize - 2; j >= 0; --j)
+	if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j]))
+	  for (auto s : states) {
+	    const CellCoords srcCell (i, j, s);
+	    LogProb lp = 0;
+	    for (auto dest_lp : destCells(srcCell)) {
+	      auto srcTrans = fwd.sourceTransitions (dest_lp.first);
+	      auto destTrans = dest_lp.second - cell(dest_lp.first);
+	      Test (gsl_fcmp (destTrans, srcTrans[srcCell], FWD_BACK_ERROR_TOLERANCE) == 0, "Forward (%g) & Backward (%g) transitions between %s and %s don't match", srcTrans[srcCell], destTrans, cellName(srcCell).c_str(), cellName(dest_lp.first).c_str());
+	      log_accum_exp (lp, dest_lp.second);
+	    }
+	    if (x.getTrans(i,xSize-1) && y.getTrans(j,ySize-1))
+	      log_accum_exp (lp, x.getTrans(i,xSize-1)->lpTrans + y.getTrans(j,ySize-1)->lpTrans + hmm.lpTrans(s,PairHMM::EEE));
+	    Test (lp == cell(srcCell), "Backward cell %s score (%g) doesn't match slow computation (%g)", cellName(srcCell).c_str(), lp, cell(srcCell));
+	  }
+    Abort ("Forward log-likelihood is %g, Backward log-likelihood is %g", fwd.lpEnd, lpStart());
+  }
 }
 
 double BackwardMatrix::cellPostProb (const CellCoords& c) const {
