@@ -107,6 +107,8 @@ protected:
   LogProb lpCellEmitOrAbsorb (const CellCoords& c);
   
   bool isAbsorbing (const CellCoords& c) const;
+  bool changesX (const CellCoords& c) const;
+  bool changesY (const CellCoords& c) const;
   
   CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
   static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
@@ -116,6 +118,7 @@ class ForwardMatrix : public DPMatrix {
 public:
   const AlignRowIndex parentRowIndex;
   SumProduct *sumProd;
+  map<ProfileStateIndex,EventCounts> xInsertCounts, yInsertCounts;
 
   struct EffectiveTransition {
     LogProb lpPath, lpBestAlignPath;
@@ -138,9 +141,13 @@ public:
   Profile bestProfile (ProfilingStrategy strategy = CollapseChains);
 
   map<AlignRowIndex,char> getAlignmentColumn (const CellCoords& cell) const;
+
   void accumulateEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.) const;
-  EventCounts getEventCounts (const CellCoords& cell, SumProduct& sumProd) const;
+  void accumulateCachedEventCounts (EventCounts& counts, const CellCoords& cell, SumProduct& sumProd, double weight = 1.);
+
   EventCounts transitionEventCounts (const CellCoords& src, const CellCoords& dest) const;
+  EventCounts cellEventCounts (const CellCoords& cell, SumProduct& sumProd) const;
+  EventCounts cachedCellEventCounts (const CellCoords& cell, SumProduct& sumProd);
 
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
 

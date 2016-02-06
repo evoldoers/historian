@@ -348,7 +348,7 @@ void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<
 
 void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguard<gsl_complex> >& eigenCounts, double weight) const {
   LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << endl);
-  accumulateRootCounts (rootCounts);
+  accumulateRootCounts (rootCounts, weight);
 
   vguard<double> U (model.alphabetSize()), D (model.alphabetSize());
   vguard<gsl_complex> Ubasis (model.alphabetSize()), Dbasis (model.alphabetSize());
@@ -401,11 +401,6 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
       //   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b eigenSubCount(k,l,T)
       //   = R_ij \sum_k evecInv_ki \sum_l evec_jl (\sum_a D_a evec_ak) (\sum_b U_b evecInv_lb) eigenSubCount(k,l,T)
       //   = R_ij \sum_k evecInv_ki \sum_l evec_jl Dbasis_k Ubasis_l eigenSubCount(k,l,T)
-
-      // check U & D
-      for (AlphTok a = 0; a < model.alphabetSize(); ++a)
-	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
-	  LogThisAt(8,"P( " << tree.seqName(parent) << " = " << model.alphabet[a] << " , " << tree.seqName(node) << " = " << model.alphabet[b] << " ) = " << U[b]*D[a]*eigen.getSubProb(tree.branchLength(node),a,b)/norm << endl);
 
       // eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
       for (AlphTok k = 0; k < model.alphabetSize(); ++k)
