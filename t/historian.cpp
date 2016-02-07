@@ -31,7 +31,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  " + prog + " count reconstruction.fa tree.nh [-model model.json] >counts.json\n"
     + "  " + prog + " post seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
     + "\n"
-    + "The former (count) is a point estimate from a single reconstruction.\n"
+    + "The former (count) obtains a point estimate from a single reconstruction.\n"
     + "The latter (post) averages over (a subset of) the posterior distribution.\n"
     + "\n"
     + "Model fitting:\n"

@@ -14,7 +14,7 @@ Event counting:
   historian count reconstruction.fa tree.nh [-model model.json] &gt;counts.json
   historian post seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
 
-The former (count) is a point estimate from a single reconstruction.
+The former (count) obtains a point estimate from a single reconstruction.
 The latter (post) averages over (a subset of) the posterior distribution.
 
 Model fitting:
