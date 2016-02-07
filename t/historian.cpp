@@ -72,7 +72,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     //    + " -samples randomly samples state paths from the posterior distribution.\n"
     //    + "Both strategies are subject to the state limit imposed by -states.\n"
     //    + "\n"
-    + "Guide alignment options:\n"
+    + "Guide alignment construction options:\n"
     + "  -kmatch <k>     Length of kmers for pre-filtering heuristic (default " + to_string(DEFAULT_KMER_LENGTH) + ")\n"
     + "  -kmatchn <n>    Threshold# of kmer matches to seed a diagonal\n"
     + "  -kmatchband <n> Size of DP band around kmer-matching diagonals (default " + to_string(DEFAULT_BAND_SIZE) + ")\n"
