@@ -77,6 +77,7 @@ struct IndelCounts {
   void accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight = 1.);
   void accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight = 1.);
   void writeJson (ostream& out, const size_t indent = 0) const;
+  void read (const JsonValue& json);
 };
 
 struct EventCounts : AlphabetOwner {
@@ -84,6 +85,7 @@ struct EventCounts : AlphabetOwner {
   vguard<double> rootCount;
   vguard<vguard<double> > subCount;
 
+  EventCounts() { }
   EventCounts (const AlphabetOwner& alph);
 
   EventCounts operator+ (const EventCounts& c) const;
@@ -92,6 +94,7 @@ struct EventCounts : AlphabetOwner {
   EventCounts& operator*= (double w);
 
   void writeJson (ostream& out) const;
+  void read (const JsonValue& json);
 };
 
 struct EigenCounts {

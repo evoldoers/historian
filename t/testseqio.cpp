@@ -1,8 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
-#include "../src/model.h"
-#include "../src/jsonutil.h"
+#include "../src/fastseq.h"
 
 int main (int argc, char **argv) {
   if (argc != 2) {

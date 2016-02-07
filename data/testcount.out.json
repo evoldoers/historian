@@ -1,4 +1,5 @@
 {
+ "alphabet": "ACGT",
  "indel":
   {
    "ins": 1,

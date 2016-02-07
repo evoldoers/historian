@@ -603,6 +603,7 @@ EventCounts EigenCounts::transform (const RateModel& model) const {
 
 void EventCounts::writeJson (ostream& out) const {
   out << "{" << endl;
+  out << " \"alphabet\": \"" << alphabet << "\"," << endl;
   out << " \"indel\":" << endl;
   indelCounts.writeJson (out, 2);
   out << "," << endl;
@@ -621,4 +622,37 @@ void IndelCounts::writeJson (ostream& out, const size_t indent) const {
   out << ind << " \"matchTime\": " << matchTime << "," << endl;
   out << ind << " \"delTime\": " << delTime << endl;
   out << ind << "}";
+}
+
+void IndelCounts::read (const JsonValue& json) {
+  JsonMap jm (json);
+  ins = jm.getNumber("ins");
+  del = jm.getNumber("del");
+  insExt = jm.getNumber("insExt");
+  delExt = jm.getNumber("delExt");
+  matchTime = jm.getNumber("matchTime");
+  delTime = jm.getNumber("delTime");
+}
+
+void EventCounts::read (const JsonValue& json) {
+  AlphabetOwner alph;
+  alph.readAlphabet (json);
+  *this = EventCounts (alph);
+  JsonMap jm (json);
+  indelCounts.read (jm.getType("indel",JSON_OBJECT));
+  JsonMap subBlock = jm.getObject("sub");
+  JsonMap root = subBlock.getObject("root");
+  JsonMap sub = subBlock.getObject("sub");
+  JsonMap wait = subBlock.getObject("wait");
+  for (AlphTok i = 0; i < alphabetSize(); ++i) {
+    const string si (1, alphabet[i]);
+    rootCount[i] = root.getNumber(si);
+    subCount[i][i] = wait.getNumber(si);
+    JsonMap sub_i = sub.getObject(si);
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (i != j) {
+	const string sj (1, alphabet[j]);
+	subCount[i][j] = sub_i.getNumber(sj);
+      }
+  }
 }
