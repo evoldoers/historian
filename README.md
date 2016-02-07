@@ -8,7 +8,8 @@ Usage: historian {recon,count,post,sum,fit,help,version} [options]
 COMMANDS
 
 Reconstruction:
-  historian recon seqs.fa [-tree tree.nh] [-model model.json] &gt;reconstruction.fa
+  historian reconstruct seqs.fa [-tree tree.nh] &gt;reconstruction.fa
+  historian reconstruct -guide guide.fa [-tree tree.nh] &gt;reconstruction.fa
 
 Event counting:
   historian count reconstruction.fa tree.nh [-model model.json] &gt;counts.json
