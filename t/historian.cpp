@@ -18,7 +18,7 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon,count,post,sum,fit,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{reconstruct,count,post,sum,fit,help,version} [options]")
 {
   text = briefText
     + "\n"
