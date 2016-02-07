@@ -22,9 +22,10 @@ Model fitting:
   historian sum counts.json pseudocounts.json [morecounts.json...] &gt;sum.json
   historian fit counts.json &gt;newmodel.json
 
-All commands can be abbreviated to single letters, like this:
+All commands can be abbreviated to single letters, like so:
   historian r seqs.fa &gt;reconstruction.fa
   historian p seqs.fa &gt;counts.json
+  historian f counts.json &gt;model.json
 (etc.)
 
 OPTIONS
