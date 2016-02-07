@@ -59,7 +59,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -noband         Turn off band, ignore guide alignment\n"
     + "  -minpost <p>    Posterior prob. threshold for profile states (default " + TOSTRING(DefaultProfilePostProb) + ")\n"
     // Uncomment to show help for obsolescent random-sampling profile option:
-    //    + "   -samples <n>    Sample profile states randomly\n"
+    //    + "  -samples <n>    Sample profile states randomly\n"
     + "  -states <n>     Limit max number of states per profile\n"
     + "\n"
     // Uncomment to show help for obsolescent random-sampling profile option:
