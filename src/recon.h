@@ -16,6 +16,7 @@ class Reconstructor {
 public:
   string treeFilename, seqsFilename, modelFilename, guideFilename, reconFilename;
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
+  vguard<string> countFilenames;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
   bool includeBestTraceInProfile, usePosteriorsForProfile, reconstructRoot, accumulateCounts;
@@ -40,23 +41,28 @@ public:
 
   Alignment reconstruction;
   EigenCounts eigenCounts;
+  EventCounts eventCounts;
   
   Reconstructor();
 
   bool parseReconArgs (deque<string>& argvec);
   bool parseCountArgs (deque<string>& argvec);
+  bool parseSumArgs (deque<string>& argvec);
 
   bool parseTreeArgs (deque<string>& argvec);
   bool parseModelArgs (deque<string>& argvec);
 
-  void loadReconFiles();
-  void loadCountFiles();
+  void loadSeqs();
+  void loadRecon();
+  void loadCounts();
 
   void reconstruct();
   void count();
+  void fit();
 
   void writeRecon (ostream& out) const;
   void writeCounts (ostream& out) const;
+  void writeModel (ostream& out) const;
   
 private:
   void loadModel();

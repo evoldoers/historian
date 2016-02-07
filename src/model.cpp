@@ -30,7 +30,11 @@ struct DistanceMatrixParams {
 void AlphabetOwner::readAlphabet (const JsonValue& json) {
   const JsonMap jm (json);
   Assert (jm.containsType("alphabet",JSON_STRING), "No alphabet");
-  alphabet = jm["alphabet"].toString();
+  initAlphabet (jm["alphabet"].toString());
+}
+
+void AlphabetOwner::initAlphabet (const string& a) {
+  alphabet = a;
   set<char> s;
   for (auto c : alphabet) {
     Assert (s.find(c) == s.end(), "Duplicate character %c in alphabet %s", c, alphabet.c_str());
@@ -84,16 +88,28 @@ RateModel& RateModel::operator= (const RateModel& model) {
   if (insProb)
     gsl_vector_free (insProb);
 
-  ((AlphabetOwner&)*this) = model;
+  initAlphabet (model.alphabet);
   insRate = model.insRate;
   delRate = model.delRate;
   insExtProb = model.insExtProb;
   delExtProb = model.delExtProb;
-  insProb = model.newAlphabetVector();
-  subRate = model.newAlphabetMatrix();
+  insProb = newAlphabetVector();
+  subRate = newAlphabetMatrix();
   CheckGsl (gsl_vector_memcpy (insProb, model.insProb));
   CheckGsl (gsl_matrix_memcpy (subRate, model.subRate));
   return *this;
+}
+
+void RateModel::init (const string& alph) {
+  if (subRate)
+    gsl_matrix_free (subRate);
+  if (insProb)
+    gsl_vector_free (insProb);
+
+  initAlphabet (alph);
+  
+  insProb = newAlphabetVector();
+  subRate = newAlphabetMatrix();
 }
 
 void RateModel::read (const JsonValue& json) {
@@ -655,4 +671,28 @@ void EventCounts::read (const JsonValue& json) {
 	subCount[i][j] = sub_i.getNumber(sj);
       }
   }
+}
+
+void EventCounts::optimize (RateModel& model) const {
+  model.init (alphabet);
+
+  const double insNorm = accumulate (rootCount.begin(), rootCount.end(), 0.);
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    gsl_vector_set (model.insProb, i, rootCount[i] / insNorm);
+
+  for (AlphTok i = 0; i < alphabetSize(); ++i) {
+    double r_ii = 0;
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (j != i) {
+	const double r_ij = subCount[i][j] / subCount[i][i];
+	gsl_matrix_set (model.subRate, i, j, r_ij);
+	r_ii -= r_ij;
+      }
+    gsl_matrix_set (model.subRate, i, i, r_ii);
+  }
+
+  model.insRate = indelCounts.ins / indelCounts.matchTime;
+  model.delRate = indelCounts.del / (indelCounts.matchTime + indelCounts.delTime);
+  model.insExtProb = indelCounts.insExt / (indelCounts.insExt + indelCounts.ins);
+  model.delExtProb = indelCounts.delExt / (indelCounts.delExt + indelCounts.del);
 }

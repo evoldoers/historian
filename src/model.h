@@ -16,8 +16,9 @@ using namespace std;
 struct AlphabetOwner {
   string alphabet;
   AlphabetOwner() { }
-  AlphabetOwner (const string& a) : alphabet(a) { }
-  AlphabetOwner (const AlphabetOwner& ao) : alphabet(ao.alphabet) { }
+  AlphabetOwner (const string& a) { initAlphabet(a); }
+  AlphabetOwner (const AlphabetOwner& ao) { initAlphabet(ao.alphabet); }
+  void initAlphabet (const string& a);
   inline size_t alphabetSize() const { return alphabet.size(); }
   void readAlphabet (const JsonValue& json);
   UnvalidatedAlphTok tokenize (char c) const;
@@ -38,9 +39,11 @@ struct RateModel : AlphabetOwner {
   ~RateModel();
 
   RateModel& operator= (const RateModel& model);
-  
+
+  void init (const string& alphabet);
   void read (const JsonValue& json);
   void write (ostream& out) const;
+
   gsl_vector* getEqmProbVector() const;
   gsl_matrix* getSubProbMatrix (double t) const;
 
@@ -93,6 +96,8 @@ struct EventCounts : AlphabetOwner {
   EventCounts& operator+= (const EventCounts& c);
   EventCounts& operator*= (double w);
 
+  void optimize (RateModel& model) const;
+  
   void writeJson (ostream& out) const;
   void read (const JsonValue& json);
 };

@@ -168,6 +168,21 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
   return false;
 }
 
+bool Reconstructor::parseSumArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-counts") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      countFilenames.push_back (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void Reconstructor::loadModel() {
   if (modelFilename.size()) {
     LogThisAt(1,"Loading model from " << modelFilename << endl);
@@ -198,7 +213,7 @@ void Reconstructor::seedGenerator() {
   generator.seed (rndSeed);
 }
 
-void Reconstructor::loadReconFiles() {
+void Reconstructor::loadSeqs() {
   Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
 
   loadModel();
@@ -389,6 +404,9 @@ void Reconstructor::reconstruct() {
     reconstruction = Alignment (ungapped, path);
     gappedRecon = reconstruction.gapped();
   }
+
+  if (accumulateCounts)
+    eventCounts = eigenCounts.transform (model);
   
   if (sumProd)
     delete sumProd;
@@ -399,11 +417,14 @@ void Reconstructor::writeRecon (ostream& out) const {
 }
 
 void Reconstructor::writeCounts (ostream& out) const {
-  EventCounts eventCounts = eigenCounts.transform (model);
   eventCounts.writeJson (out);
 }
 
-void Reconstructor::loadCountFiles() {
+void Reconstructor::writeModel (ostream& out) const {
+  model.write (out);
+}
+
+void Reconstructor::loadRecon() {
   loadModel();
   loadTree();
 
@@ -415,7 +436,25 @@ void Reconstructor::loadCountFiles() {
   reconstruction = Alignment (gappedRecon);
 }
 
+void Reconstructor::loadCounts() {
+  for (size_t n = 0; n < countFilenames.size(); ++n) {
+    ifstream in (countFilenames[n]);
+    ParsedJson pj (in);
+    EventCounts c;
+    c.read (pj.value);
+    if (n == 0)
+      eventCounts = c;
+    else
+      eventCounts += c;
+  }
+}
+
 void Reconstructor::count() {
   eigenCounts = EigenCounts (model.alphabetSize());
   eigenCounts.accumulateCounts (model, reconstruction, tree);
+  eventCounts = eigenCounts.transform (model);
+}
+
+void Reconstructor::fit() {
+  eventCounts.optimize (model);
 }
