@@ -19,7 +19,7 @@ public:
   vguard<string> countFilenames;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
-  bool includeBestTraceInProfile, usePosteriorsForProfile, reconstructRoot, accumulateCounts;
+  bool includeBestTraceInProfile, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts;
   double minPostProb;
   
   ForwardMatrix::random_engine generator;
@@ -29,7 +29,7 @@ public:
   
   RateModel model;
   Tree tree;
-  vguard<FastSeq> seqs, gappedGuide, gappedRecon;
+  vguard<FastSeq> seqs, gappedGuide, gappedRecon, ancestral;
 
   map<string,size_t> seqIndex;
   map<TreeNodeIndex,size_t> nodeToSeqIndex;
@@ -46,6 +46,7 @@ public:
   Reconstructor();
 
   bool parseReconArgs (deque<string>& argvec);
+  bool parsePostArgs (deque<string>& argvec);
   bool parseCountArgs (deque<string>& argvec);
   bool parseSumArgs (deque<string>& argvec);
 

@@ -17,10 +17,23 @@ Reconstructor::Reconstructor()
     usePosteriorsForProfile (true),
     reconstructRoot (true),
     accumulateCounts (false),
+    predictAncestralSequence (false),
     minPostProb (DefaultProfilePostProb)
 { }
 
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-ancseq") {
+      predictAncestralSequence = true;
+      argvec.pop_front();
+      return true;
+    }
+  }
+  return parsePostArgs (argvec);
+}
+
+bool Reconstructor::parsePostArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-seqs") {
@@ -403,6 +416,16 @@ void Reconstructor::reconstruct() {
 
     reconstruction = Alignment (ungapped, path);
     gappedRecon = reconstruction.gapped();
+
+    if (predictAncestralSequence) {
+      AlignColSumProduct colSumProd (model, tree, gappedRecon);
+      while (!colSumProd.alignmentDone()) {
+	colSumProd.fillUp();
+	colSumProd.fillDown();
+	colSumProd.appendAncestralReconstructedColumn (ancestral);
+	colSumProd.nextColumn();
+      }
+    }
   }
 
   if (accumulateCounts)
@@ -413,7 +436,7 @@ void Reconstructor::reconstruct() {
 }
 
 void Reconstructor::writeRecon (ostream& out) const {
-  writeFastaSeqs (cout, gappedRecon);
+  writeFastaSeqs (cout, predictAncestralSequence ? ancestral : gappedRecon);
 }
 
 void Reconstructor::writeCounts (ostream& out) const {

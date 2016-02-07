@@ -495,3 +495,17 @@ void AlignColSumProduct::nextColumn() {
   if (!alignmentDone())
     initAlignColumn();
 }
+
+void AlignColSumProduct::appendAncestralReconstructedColumn (vguard<FastSeq>& out) const {
+  if (col == 0) {
+    out = gapped;
+    for (auto& fs : out) {
+      fs.seq.clear();
+      fs.qual.clear();
+    }
+  }
+  for (AlignRowIndex row = 0; row < gapped.size(); ++row) {
+    const char g = gapped[row].seq[col];
+    out[row].seq.push_back (Alignment::isWildcard(g) ? model.alphabet[maxPostState(row)] : g);
+  }
+}

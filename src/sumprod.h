@@ -104,6 +104,8 @@ public:
   bool alignmentDone() const;
   void nextColumn();
 
+  void appendAncestralReconstructedColumn (vguard<FastSeq>& out) const;
+  
 private:
   void initAlignColumn();  // populates ungappedRows
 };

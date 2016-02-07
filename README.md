@@ -40,6 +40,7 @@ Reconstruction file I/O options:
                   Save various intermediate analysis results to files
 
 Reconstruction algorithm options:
+  -ancseq         Reconstruct ancestral sequences (default leaves them as *'s)
   -band &lt;n&gt;       Size of band around guide alignment (default 10)
   -noband         Turn off band, ignore guide alignment
   -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .1)

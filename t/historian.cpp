@@ -57,6 +57,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "                  Save various intermediate analysis results to files\n"
     + "\n"
     + "Reconstruction algorithm options:\n"
+    + "  -ancseq         Reconstruct ancestral sequences (default leaves them as *'s)\n"
     + "  -band <n>       Size of band around guide alignment (default " + to_string(DefaultMaxDistanceFromGuide) + ")\n"
     + "  -noband         Turn off band, ignore guide alignment\n"
     + "  -minpost <p>    Posterior prob. threshold for profile states (default " + TOSTRING(DefaultProfilePostProb) + ")\n"
@@ -140,7 +141,7 @@ int main (int argc, char** argv) {
     usage.implicitSwitches.push_back (string ("-seqs"));
 
     while (logger.parseLogArgs (argvec)
-	   || recon.parseReconArgs (argvec)
+	   || recon.parsePostArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
