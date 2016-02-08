@@ -245,15 +245,15 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
     if (isGap(r))
       fill (logE[r].begin(), logE[r].end(), 0);
     else {
-      Assert (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
+      Require (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
       const TreeNodeIndex rp = tree.parentNode(r);
       if (rp < 0 || isGap(rp))
 	roots.push_back (r);
       else
 	++ungappedKids[rp];
     }
-  Assert (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
-  Assert (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
+  Require (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
+  Require (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
 }
 
 void SumProduct::fillUp() {
