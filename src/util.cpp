@@ -104,3 +104,27 @@ std::string plural (long n, const char* singular, const char* plural) {
   std::string s = std::to_string(n) + " " + (n == 1 ? singular : plural);
   return s;
 }
+
+std::vector<std::string> split (const std::string& s, const char* splitChars) {
+  std::vector<std::string> result;
+  auto b = s.begin();
+  while (true) {
+    while (b != s.end() && strchr (splitChars, *b) != NULL)
+      ++b;
+    if (b == s.end())
+      break;
+    auto e = b;
+    while (e != s.end() && strchr (splitChars, *e) == NULL)
+      ++e;
+    result.push_back (string (b, e));
+    b = e;
+  }
+  return result;
+}
+
+std::string toupper (const std::string& s) {
+  std::string r (s);
+  for (size_t n = 0; n < r.size(); ++n)
+    r[n] = toupper (r[n]);
+  return r;
+}

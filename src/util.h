@@ -66,6 +66,12 @@ std::string to_string_join (const Container& c, const char* sep = " ") {
   return j.str();
 }
 
+/* split */
+std::vector<std::string> split (const std::string& s, const char* splitChars = " \t\n");
+
+/* toupper */
+std::string toupper (const std::string& s);
+
 /* escaping a string
    http://stackoverflow.com/questions/2417588/escaping-a-c-string
  */

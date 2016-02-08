@@ -1,0 +1,10 @@
+#NEXUS
+BEGIN DATA;
+DIMENSIONS NTAX=4 NCHAR=15;
+MATRIX
+Species1        atgctagctagctcg
+Species2        atgcta??tag-tag
+Species3        atgttagctag-tgg
+LongSpeciesName atgttagctag-tag
+;
+END;

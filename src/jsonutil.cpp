@@ -136,12 +136,14 @@ string JsonUtil::quoteEscaped (const string& str) {
   return esc;
 }
 
-string JsonUtil::readStringFromStream (istream& in) {
+string JsonUtil::readStringFromStream (istream& in, bool keepNewlines) {
   string s;
   while (in && !in.eof()) {
     string line;
     getline(in,line);
     s += line;
+    if (keepNewlines)
+      s += '\n';
   }
   return s;
 }

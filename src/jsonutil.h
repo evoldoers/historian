@@ -60,7 +60,7 @@ struct JsonUtil {
   static string toString (const map<string,string>& tags, size_t indent = 0);
 
   // helpers
-  static string readStringFromStream (istream& in);
+  static string readStringFromStream (istream& in, bool keepNewlines = false);
 };
 
 #endif /* JSONUTIL_INCLUDED */
