@@ -200,7 +200,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
 
   const string s = toString();
   LogThisAt(4,"Neighbor-joining tree: " << s << endl);
-  parse (s);  // to ensure consistency
+  parse (s);  // to ensure consistency (i.e. serializing & deserializing will not change node indices)
 }
 
 void Tree::buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
