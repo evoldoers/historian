@@ -3,6 +3,7 @@
 #include "profile.h"
 #include "jsonutil.h"
 #include "forward.h"
+#include "util.h"
 
 ProfileTransition::ProfileTransition()
   : lpTrans(-numeric_limits<double>::infinity())
@@ -84,6 +85,7 @@ LogProb Profile::calcSumPathAbsorbProbs (const vguard<LogProb>& input, const cha
     const LogProb lpAbs = state[pos].isNull() ? 0 : logInnerProduct (input, state[pos].lpAbsorb);
     for (auto ti : state[pos].in) {
       const ProfileTransition& t = trans[ti];
+      Assert (t.src < pos, "Transition #%u from %u -> %u is not toposorted", ti, t.src, t.dest);
       log_accum_exp (lpCumAbs[pos], lpCumAbs[t.src] + t.lpTrans + lpAbs);
     }
     if (tag != NULL)

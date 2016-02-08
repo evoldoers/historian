@@ -10,7 +10,7 @@ my $test = pop @ARGV;
 open MAKE, "make -n $test |";
 my %seen;
 while (<MAKE>) {
-    if (/ (\S+)$/) {
+    if (/testexpect.pl.* (\S+)$/) {
 	my $out = $1;
 	if ($seen{$out}++) {
 	    print;

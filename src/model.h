@@ -53,11 +53,13 @@ struct RateModel : AlphabetOwner {
 
 class ProbModel : public AlphabetOwner {
 public:
+  typedef enum { Match, Insert, Delete, End } State;
   double t, ins, del, insExt, delExt;
   gsl_vector* insVec;
   gsl_matrix* subMat;
   ProbModel (const RateModel& model, double t);
   ~ProbModel();
+  double transProb (State src, State dest) const;
   void write (ostream& out) const;
 private:
   ProbModel (const ProbModel&) = delete;
@@ -72,13 +74,14 @@ struct LogProbModel {
 
 struct IndelCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
+  LogProb lp;
   IndelCounts();
   IndelCounts operator+ (const IndelCounts& c) const;
   IndelCounts operator* (double w) const;
   IndelCounts& operator+= (const IndelCounts& c);
   IndelCounts& operator*= (double w);
-  void accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight = 1.);
-  void accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight = 1.);
+  void accumulateIndelCounts (const RateModel& model, double time, const AlignRowPath& parent, const AlignRowPath& child, double weight = 1.);
+  void accumulateIndelCounts (const RateModel& model, const Tree& tree, const AlignPath& align, double weight = 1.);
   void writeJson (ostream& out, const size_t indent = 0) const;
   void read (const JsonValue& json);
 };

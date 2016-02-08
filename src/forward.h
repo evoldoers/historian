@@ -150,6 +150,7 @@ public:
   EigenCounts cachedCellEigenCounts (const CellCoords& cell, SumProduct& sumProd);
 
   map<CellCoords,LogProb> sourceTransitions (const CellCoords& destCell);
+  map<CellCoords,LogProb> sourceTransitionsWithoutEmitOrAbsorb (const CellCoords& destCell);
 
   void slowFillTest();
 

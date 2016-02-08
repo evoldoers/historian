@@ -8,27 +8,27 @@
    "name": "(SSS,START,START)",
    "meta": { "fwdLogProb": "0.000000" },
    "seqPos": [ [ 1, 0 ], [ 2, 0 ] ],
-   "trans": [ { "to": 1, "lpTrans": -21.416413 } ]
+   "trans": [ { "to": 1, "lpTrans": 0.000000 } ]
   },
   {
    "n": 1,
    "name": "(IMM,a1,c1)",
    "meta": 
     {
-     "cumLogProb": "-42.832826",
+     "cumLogProb": "-21.416413",
      "fwdLogProb": "-21.416413"
     },
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
    "lpAbsorb": [ -20.723266, -20.723266, -41.446532, -41.446532 ],
-   "trans": [ { "to": 2, "lpTrans": -21.416413 } ]
+   "trans": [ { "to": 2, "lpTrans": 0.000000 } ]
   },
   {
    "n": 2,
    "name": "(IMM,g2,t2)",
    "meta": 
     {
-     "cumLogProb": "-85.665652",
+     "cumLogProb": "-42.832826",
      "fwdLogProb": "-42.832826"
     },
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
@@ -41,7 +41,7 @@
    "name": "(EEE,END,END)",
    "meta": 
     {
-     "cumLogProb": "-85.665652",
+     "cumLogProb": "-42.832826",
      "fwdLogProb": "-42.832826"
     },
    "seqPos": [ [ 1, 2 ], [ 2, 2 ] ],

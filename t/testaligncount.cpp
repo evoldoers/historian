@@ -50,6 +50,7 @@ int main (int argc, char **argv) {
     count = colSumProd.eigen.getSubCounts (eigenCount);
 
   rates.writeSubCounts (cout, root, count);
-
+  cout << endl;
+  
   exit (EXIT_SUCCESS);
 }

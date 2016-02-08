@@ -295,6 +295,16 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceCells (const CellCoords& 
 }
 
 map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCoords& destCell) {
+  auto clp = sourceTransitionsWithoutEmitOrAbsorb (destCell);
+
+  const LogProb lpAbs = lpCellEmitOrAbsorb (destCell);
+  for (auto& src_lp : clp)
+    src_lp.second += lpAbs;
+
+  return clp;
+}
+
+map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitionsWithoutEmitOrAbsorb (const CellCoords& destCell) {
   map<CellCoords,LogProb> clp;
   const ProfileState& xState = x.state[destCell.xpos];
   const ProfileState& yState = y.state[destCell.ypos];
@@ -360,10 +370,6 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitions (const CellCo
     Abort ("%s fail",__func__);
     break;
   }
-
-  const LogProb lpAbs = lpCellEmitOrAbsorb (destCell);
-  for (auto& src_lp : clp)
-    src_lp.second += lpAbs;
 
   return clp;
 }
@@ -636,7 +642,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
   map<CellCoords,map<ProfileStateIndex,EffectiveTransition> > effTrans;  // effTrans[srcCell][destStateIdx]
   for (auto iter = cells.crbegin(); iter != cells.crend(); ++iter) {
     const CellCoords& cell = *iter;
-    const map<CellCoords,LogProb>& slp = sourceTransitions (cell);
+    const map<CellCoords,LogProb>& slp = sourceTransitionsWithoutEmitOrAbsorb (cell);
     const LogProb cellLogProbInsert = eliminatedLogProbInsert (cell);
     if (profStateIndex.find(cell) != profStateIndex.end()) {
       // cell is to be retained. Incoming & outgoing paths can be kept separate
@@ -1045,6 +1051,8 @@ double BackwardMatrix::transPostProb (const CellCoords& src, const CellCoords& d
 
 EigenCounts BackwardMatrix::getCounts() const {
   EigenCounts counts (hmm.alphabetSize());
+  counts.indelCounts.lp = fwd.lpEnd;
+  
   const auto states = hmm.states();
 
   ProgressLog (plog, 4);

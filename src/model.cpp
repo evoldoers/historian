@@ -253,6 +253,56 @@ ProbModel::~ProbModel() {
   gsl_vector_free (insVec);
 }
 
+double ProbModel::transProb (State src, State dest) const {
+  switch (src) {
+  case Match:
+    switch (dest) {
+    case Match:
+      return (1 - ins) * (1 - del);
+    case Insert:
+      return ins;
+    case Delete:
+      return (1 - ins) * del;
+    case End:
+      return 1 - ins;
+    default:
+      break;
+    }
+    break;
+  case Insert:
+    switch (dest) {
+    case Match:
+      return (1 - insExt) * (1 - del);
+    case Insert:
+      return insExt;
+    case Delete:
+      return (1 - insExt) * del;
+    case End:
+      return 1 - insExt;
+    default:
+      break;
+    }
+    break;
+  case Delete:
+    switch (dest) {
+    case Match:
+      return 1 - delExt;
+    case Insert:
+      return 0;
+    case Delete:
+      return delExt;
+    case End:
+      return 1 - delExt;
+    default:
+      break;
+    }
+    break;
+  default:
+    break;
+  }
+  return 0;
+}
+
 void ProbModel::write (ostream& out) const {
   out << "{" << endl;
   out << " \"alphabet\": \"" << alphabet << "\"," << endl;
@@ -411,11 +461,11 @@ void AlphabetOwner::writeSubCounts (ostream& out, const vguard<double>& rootCoun
     out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << subCountsAndWaitTimes[i][i];
   out << endl;
   out << ind << "  }" << endl;
-  out << ind << "}" << endl;
+  out << ind << "}";
 }
 
 IndelCounts::IndelCounts()
-  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0)
+  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0), lp(0)
 { }
 
 IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
@@ -425,6 +475,7 @@ IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
   delExt += c.delExt;
   matchTime += c.matchTime;
   delTime += c.delTime;
+  lp += c.lp;
   return *this;
 }
 
@@ -435,6 +486,7 @@ IndelCounts& IndelCounts::operator*= (double w) {
   delExt *= w;
   matchTime *= w;
   delTime *= w;
+  lp *= w;
   return *this;
 }
 
@@ -545,46 +597,49 @@ EventCounts EventCounts::operator* (double w) const {
   return result;
 }
 
-void IndelCounts::accumulateIndelCounts (const AlignRowPath& parent, const AlignRowPath& child, double time, double weight) {
-  enum { Match, Insert, Delete } state, next;
-  state = Match;
+void IndelCounts::accumulateIndelCounts (const RateModel& model, double time, const AlignRowPath& parent, const AlignRowPath& child, double weight) {
+  ProbModel pm (model, time);
+  ProbModel::State state, next;
+  state = ProbModel::Match;
   for (size_t col = 0; col < parent.size(); ++col) {
     if (parent[col] && child[col])
-      next = Match;
+      next = ProbModel::Match;
     else if (parent[col])
-      next = Delete;
+      next = ProbModel::Delete;
     else if (child[col])
-      next = Insert;
+      next = ProbModel::Insert;
     else
       continue;
     switch (next) {
-    case Match:
+    case ProbModel::Match:
       matchTime += weight * time;
       break;
-    case Insert:
+    case ProbModel::Insert:
       if (state == next)
 	insExt += weight;
       else
 	ins += weight;
       break;
-    case Delete:
+    case ProbModel::Delete:
       if (state == next)
 	delExt += weight;
       else {
-	del += 1;
+	del += weight;
 	delTime += weight * time;
       }
       break;
     default:
       break;
     }
+    lp += log (pm.transProb (state, next)) * weight;
     state = next;
   }
+  lp += log (pm.transProb (state, ProbModel::End)) * weight;
 }
 
-void IndelCounts::accumulateIndelCounts (const AlignPath& align, const Tree& tree, double weight) {
+void IndelCounts::accumulateIndelCounts (const RateModel& model, const Tree& tree, const AlignPath& align, double weight) {
   for (TreeNodeIndex node = 0; node < tree.nodes() - 1; ++node)
-    accumulateIndelCounts (align.at(tree.parentNode(node)), align.at(node), tree.branchLength(node), weight);
+    accumulateIndelCounts (model, tree.branchLength(node), align.at(tree.parentNode(node)), align.at(node), weight);
 }
 
 void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight) {
@@ -596,6 +651,7 @@ void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
     colSumProd.fillUp();
     colSumProd.fillDown();
     colSumProd.accumulateEigenCounts (c.rootCount, c.eigenCount);
+    c.indelCounts.lp += colSumProd.colLogLike;
     colSumProd.nextColumn();
   }
 
@@ -604,7 +660,7 @@ void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
 }
 
 void EigenCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight) {
-  indelCounts.accumulateIndelCounts (align.path, tree, weight);
+  indelCounts.accumulateIndelCounts (model, tree, align.path, weight);
   accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
 }
 
@@ -625,6 +681,8 @@ void EventCounts::writeJson (ostream& out) const {
   out << "," << endl;
   out << " \"sub\":" << endl;
   writeSubCounts (out, rootCount, subCount, 2);
+  out << "," << endl;
+  out << " \"logLikelihood\": " << indelCounts.lp << endl;
   out << "}" << endl;
 }
 
@@ -656,6 +714,7 @@ void EventCounts::read (const JsonValue& json) {
   *this = EventCounts (alph);
   JsonMap jm (json);
   indelCounts.read (jm.getType("indel",JSON_OBJECT));
+  indelCounts.lp = jm.getNumber("logLikelihood");
   JsonMap subBlock = jm.getObject("sub");
   JsonMap root = subBlock.getObject("root");
   JsonMap sub = subBlock.getObject("sub");

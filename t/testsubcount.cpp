@@ -38,6 +38,7 @@ int main (int argc, char **argv) {
   root[src] = 1;
 
   rates.writeSubCounts (cout, root, count);
+  cout << endl;
 
   exit (EXIT_SUCCESS);
 }
