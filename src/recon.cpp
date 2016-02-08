@@ -218,13 +218,13 @@ void Reconstructor::loadTree() {
   Require (treeFilename.size() > 0, "Must specify a tree");
   LogThisAt(1,"Loading tree from " << treeFilename << endl);
   ifstream treeFile (treeFilename);
-  tree.parse (JsonUtil::readStringFromStream (treeFile));
+  dataset.tree.parse (JsonUtil::readStringFromStream (treeFile));
 }
 
 void Reconstructor::buildTree() {
   LogThisAt(1,"Building neighbor-joining tree" << endl);
-  auto dist = model.distanceMatrix (gappedGuide);
-  tree.buildByNeighborJoining (gappedGuide, dist);
+  auto dist = model.distanceMatrix (dataset.gappedGuide);
+  dataset.tree.buildByNeighborJoining (dataset.gappedGuide, dist);
 }
 
 void Reconstructor::seedGenerator() {
@@ -240,23 +240,23 @@ void Reconstructor::loadSeqs() {
   
   if (seqsFilename.size()) {
     LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
-    seqs = readFastSeqs (seqsFilename.c_str());
+    dataset.seqs = readFastSeqs (seqsFilename.c_str());
     if (maxDistanceFromGuide < 0 && treeFilename.size())
       LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
     else {
       LogThisAt(1,"Building guide alignment" << endl);
-      AlignGraph ag (seqs, model, 1, diagEnvParams, generator);
+      AlignGraph ag (dataset.seqs, model, 1, diagEnvParams, generator);
       Alignment align = ag.mstAlign();
-      guide = align.path;
-      gappedGuide = align.gapped();
+      dataset.guide = align.path;
+      dataset.gappedGuide = align.gapped();
     }
 
   } else {
     LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
-    gappedGuide = readFastSeqs (guideFilename.c_str());
-    const Alignment align (gappedGuide);
-    guide = align.path;
-    seqs = align.ungapped;
+    dataset.gappedGuide = readFastSeqs (guideFilename.c_str());
+    const Alignment align (dataset.gappedGuide);
+    dataset.guide = align.path;
+    dataset.seqs = align.ungapped;
   }
 
   if (treeFilename.size())
@@ -271,29 +271,27 @@ void Reconstructor::loadSeqs() {
 
   if (seqsSaveFilename.size()) {
     ofstream seqsFile (seqsSaveFilename);
-    writeFastaSeqs (seqsFile, seqs);
+    writeFastaSeqs (seqsFile, dataset.seqs);
   }
 
   if (guideSaveFilename.size()) {
-    if (gappedGuide.empty())
+    if (dataset.gappedGuide.empty())
       Warn("No guide alignment to save");
     else {
       ofstream guideFile (guideSaveFilename);
-      writeFastaSeqs (guideFile, gappedGuide);
+      writeFastaSeqs (guideFile, dataset.gappedGuide);
     }
   }
 
   if (treeSaveFilename.size()) {
     ofstream treeFile (treeSaveFilename);
-    treeFile << tree.toString() << endl;
+    treeFile << dataset.tree.toString() << endl;
   }
 
-  buildReconIndices();
+  dataset.buildReconIndices();
 }
 
-void Reconstructor::buildReconIndices() {
-  seedGenerator();  // re-seed generator, in case it was used during prealignment
-
+void Reconstructor::Dataset::buildReconIndices() {
   for (size_t n = 0; n < seqs.size(); ++n) {
     Assert (seqIndex.find (seqs[n].name) == seqIndex.end(), "Duplicate sequence name %s", seqs[n].name.c_str());
     seqIndex[seqs[n].name] = n;
@@ -340,7 +338,9 @@ void Reconstructor::buildReconIndices() {
 }
 
 void Reconstructor::reconstruct() {
-  LogThisAt(1,"Starting reconstruction on " << tree.nodes() << "-node tree" << endl);
+  LogThisAt(1,"Starting reconstruction on " << dataset.tree.nodes() << "-node tree" << endl);
+
+  seedGenerator();  // re-seed generator, in case it was used during prealignment
 
   gsl_vector* rootProb = model.insProb;
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
@@ -352,32 +352,32 @@ void Reconstructor::reconstruct() {
 
   SumProduct* sumProd = NULL;
   if (accumulateCounts)
-    sumProd = new SumProduct (model, tree);
+    sumProd = new SumProduct (model, dataset.tree);
 
   AlignPath path;
   map<int,Profile> prof;
-  for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {
-    if (tree.isLeaf(node))
-      prof[node] = Profile (model.alphabet, seqs[nodeToSeqIndex[node]], node);
+  for (TreeNodeIndex node = 0; node < dataset.tree.nodes(); ++node) {
+    if (dataset.tree.isLeaf(node))
+      prof[node] = Profile (model.alphabet, dataset.seqs[dataset.nodeToSeqIndex[node]], node);
     else {
-      const int lChildNode = tree.getChild(node,0);
-      const int rChildNode = tree.getChild(node,1);
+      const int lChildNode = dataset.tree.getChild(node,0);
+      const int rChildNode = dataset.tree.getChild(node,1);
       const Profile& lProf = prof[lChildNode];
       const Profile& rProf = prof[rChildNode];
-      ProbModel lProbs (model, tree.branchLength(lChildNode));
-      ProbModel rProbs (model, tree.branchLength(rChildNode));
+      ProbModel lProbs (model, dataset.tree.branchLength(lChildNode));
+      ProbModel rProbs (model, dataset.tree.branchLength(rChildNode));
       PairHMM hmm (lProbs, rProbs, rootProb);
 
       LogThisAt(2,"Aligning " << lProf.name << " (" << plural(lProf.state.size(),"state") << ", " << plural(lProf.trans.size(),"transition") << ") and " << rProf.name << " (" << plural(rProf.state.size(),"state") << ", " << plural(rProf.trans.size(),"transition") << ")" << endl);
 
-      ForwardMatrix forward (lProf, rProf, hmm, node, guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (guide, closestLeaf[lChildNode], closestLeaf[rChildNode], maxDistanceFromGuide), sumProd);
+      ForwardMatrix forward (lProf, rProf, hmm, node, dataset.guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (dataset.guide, dataset.closestLeaf[lChildNode], dataset.closestLeaf[rChildNode], maxDistanceFromGuide), sumProd);
 
       BackwardMatrix *backward = NULL;
-      if ((accumulateCounts && node == tree.root()) || (usePosteriorsForProfile && node != tree.root()))
+      if ((accumulateCounts && node == dataset.tree.root()) || (usePosteriorsForProfile && node != dataset.tree.root()))
 	backward = new BackwardMatrix (forward, minPostProb);
 
       Profile& nodeProf = prof[node];
-      if (node == tree.root()) {
+      if (node == dataset.tree.root()) {
 	if (reconstructRoot) {
 	  path = forward.bestAlignPath();
 	  nodeProf = forward.bestProfile();
@@ -387,20 +387,20 @@ void Reconstructor::reconstruct() {
       else
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
 
-      if (accumulateCounts && node == tree.root())
-	eigenCounts = backward->getCounts();
+      if (accumulateCounts && node == dataset.tree.root())
+	dataset.eigenCounts = backward->getCounts();
       
       if (backward)
 	delete backward;
       
-      if (node == tree.root())
+      if (node == dataset.tree.root())
 	lpFinalFwd = forward.lpEnd;
 
       if (nodeProf.size()) {
         const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
         LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
 
-	if (node == tree.root())
+	if (node == dataset.tree.root())
 	  lpFinalTrace = lpTrace;
 
 	LogThisAt(5,nodeProf.toJson());
@@ -411,43 +411,43 @@ void Reconstructor::reconstruct() {
   LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << (reconstructRoot ? (string(", final alignment log-likelihood is ") + to_string(lpFinalTrace)) : string()) << endl);
 
   if (reconstructRoot) {
-    vguard<FastSeq> ungapped (tree.nodes());
-    for (TreeNodeIndex node = 0; node < tree.nodes(); ++node) {
-      if (tree.isLeaf(node)) 
-	ungapped[node] = seqs[seqIndex.at(rowName[node])];
+    vguard<FastSeq> ungapped (dataset.tree.nodes());
+    for (TreeNodeIndex node = 0; node < dataset.tree.nodes(); ++node) {
+      if (dataset.tree.isLeaf(node)) 
+	ungapped[node] = dataset.seqs[dataset.seqIndex.at(dataset.rowName[node])];
       else {
 	ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), '*');
-	ungapped[node].name = rowName[node];
+	ungapped[node].name = dataset.rowName[node];
       }
     }
 
-    reconstruction = Alignment (ungapped, path);
-    gappedRecon = reconstruction.gapped();
+    dataset.reconstruction = Alignment (ungapped, path);
+    dataset.gappedRecon = dataset.reconstruction.gapped();
 
     if (predictAncestralSequence) {
-      AlignColSumProduct colSumProd (model, tree, gappedRecon);
+      AlignColSumProduct colSumProd (model, dataset.tree, dataset.gappedRecon);
       while (!colSumProd.alignmentDone()) {
 	colSumProd.fillUp();
 	colSumProd.fillDown();
-	colSumProd.appendAncestralReconstructedColumn (ancestral);
+	colSumProd.appendAncestralReconstructedColumn (dataset.ancestral);
 	colSumProd.nextColumn();
       }
     }
   }
 
   if (accumulateCounts)
-    eventCounts = eigenCounts.transform (model);
+    dataset.eventCounts = dataset.eigenCounts.transform (model);
   
   if (sumProd)
     delete sumProd;
 }
 
 void Reconstructor::writeRecon (ostream& out) const {
-  writeFastaSeqs (cout, predictAncestralSequence ? ancestral : gappedRecon);
+  writeFastaSeqs (cout, predictAncestralSequence ? dataset.ancestral : dataset.gappedRecon);
 }
 
 void Reconstructor::writeCounts (ostream& out) const {
-  eventCounts.writeJson (out);
+  dataset.eventCounts.writeJson (out);
 }
 
 void Reconstructor::writeModel (ostream& out) const {
@@ -460,10 +460,10 @@ void Reconstructor::loadRecon() {
 
   Require (reconFilename.size() > 0, "Must specify a reconstruction file");
   LogThisAt(1,"Loading reconstruction from " << reconFilename << endl);
-  gappedRecon = readFastSeqs (reconFilename.c_str());
-  tree.reorder (gappedRecon);
+  dataset.gappedRecon = readFastSeqs (reconFilename.c_str());
+  dataset.tree.reorder (dataset.gappedRecon);
 
-  reconstruction = Alignment (gappedRecon);
+  dataset.reconstruction = Alignment (dataset.gappedRecon);
 }
 
 void Reconstructor::loadCounts() {
@@ -473,18 +473,18 @@ void Reconstructor::loadCounts() {
     EventCounts c;
     c.read (pj.value);
     if (n == 0)
-      eventCounts = c;
+      dataset.eventCounts = c;
     else
-      eventCounts += c;
+      dataset.eventCounts += c;
   }
 }
 
 void Reconstructor::count() {
-  eigenCounts = EigenCounts (model.alphabetSize());
-  eigenCounts.accumulateCounts (model, reconstruction, tree);
-  eventCounts = eigenCounts.transform (model);
+  dataset.eigenCounts = EigenCounts (model.alphabetSize());
+  dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree);
+  dataset.eventCounts = dataset.eigenCounts.transform (model);
 }
 
 void Reconstructor::fit() {
-  eventCounts.optimize (model);
+  dataset.eventCounts.optimize (model);
 }

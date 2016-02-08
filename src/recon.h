@@ -28,20 +28,26 @@ public:
   DiagEnvParams diagEnvParams;
   
   RateModel model;
-  Tree tree;
-  vguard<FastSeq> seqs, gappedGuide, gappedRecon, ancestral;
 
-  map<string,size_t> seqIndex;
-  map<TreeNodeIndex,size_t> nodeToSeqIndex;
-  vguard<string> rowName;
+  struct Dataset {
+    Tree tree;
+    vguard<FastSeq> seqs, gappedGuide, gappedRecon, ancestral;
 
-  AlignPath guide;
-  vguard<TreeNodeIndex> closestLeaf;
-  vguard<double> closestLeafDistance;
+    map<string,size_t> seqIndex;
+    map<TreeNodeIndex,size_t> nodeToSeqIndex;
+    vguard<string> rowName;
 
-  Alignment reconstruction;
-  EigenCounts eigenCounts;
-  EventCounts eventCounts;
+    AlignPath guide;
+    vguard<TreeNodeIndex> closestLeaf;
+    vguard<double> closestLeafDistance;
+
+    Alignment reconstruction;
+    EigenCounts eigenCounts;
+    EventCounts eventCounts;
+
+    void buildReconIndices();
+  };
+  Dataset dataset;
   
   Reconstructor();
 
@@ -71,8 +77,6 @@ private:
   void buildTree();
 
   void seedGenerator();
-
-  void buildReconIndices();
 };
 
 #endif /* PROGALIGN_INCLUDED */
