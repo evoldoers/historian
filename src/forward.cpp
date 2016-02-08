@@ -587,7 +587,21 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
   return p;
 }
 
-Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrategy strategy) {
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& origCells, ProfilingStrategy strategy) {
+  set<CellCoords> cells (origCells);
+  if (strategy & KeepGapsOpen) {
+    for (auto& cell : origCells)
+      if (cell.state == PairHMM::IIW)
+	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IMD));
+      else if (cell.state == PairHMM::IMI)
+	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IDM));
+      else if (cell.state == PairHMM::IMD)
+	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IIW));
+      else if (cell.state == PairHMM::IDM)
+	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IMI));
+    LogThisAt(5,"Added " << plural(cells.size() - origCells.size(), "state") << " to " << origCells.size() << "-state profile using 'keep gaps open' heuristic" << endl);
+  }
+
   Profile prof (alphSize);
   prof.name = Tree::pairParentName (x.name, hmm.l.t, y.name, hmm.r.t);
   prof.meta["node"] = to_string(parentRowIndex);
@@ -634,6 +648,8 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
       prof.state.back().meta["fwdLogProb"] = to_string(c.state == PairHMM::EEE ? lpEnd : cell(c.xpos,c.ypos,c.state));
     }
 
+  LogThisAt(5,"Eliminated " << plural(cells.size() - prof.state.size(), "state") << " from " << cells.size() << "-state profile using 'collapse chains' heuristic" << endl);
+  
   // Calculate log-probabilities of "effective transitions" from cells to retained-cells.
   // Each effective transition represents a sum over paths.
   // A path is either a single direct transition (from source cell to destination retained-cell),

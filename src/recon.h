@@ -19,7 +19,7 @@ public:
   vguard<string> countFilenames;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
-  bool includeBestTraceInProfile, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts;
+  bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts;
   double minPostProb;
   
   ForwardMatrix::random_engine generator;

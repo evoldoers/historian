@@ -41,7 +41,8 @@ public:
 
   enum ProfilingStrategy { KeepAll = 0, CollapseChains = 1,
 			   DontCountEvents = 0, CountEvents = 2,
-			   DontIncludeBestTrace = 0, IncludeBestTrace = 4 };
+			   DontIncludeBestTrace = 0, IncludeBestTrace = 4,
+			   DontKeepGapsOpen = 0, KeepGapsOpen = 8 };
 
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;

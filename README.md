@@ -45,6 +45,7 @@ Reconstruction algorithm options:
   -noband         Turn off band, ignore guide alignment
   -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .1)
   -states &lt;n&gt;     Limit max number of states per profile
+  -keepgapsopen   Keep gaps open (c.f. PRANK's +F option)
 
 Guide alignment construction options:
   -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)

@@ -14,6 +14,7 @@ Reconstructor::Reconstructor()
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     includeBestTraceInProfile (true),
+    keepGapsOpen (false),
     usePosteriorsForProfile (true),
     reconstructRoot (true),
     accumulateCounts (false),
@@ -110,6 +111,11 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
 
     } else if (arg == "-nobest") {
       includeBestTraceInProfile = false;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-keepgapsopen") {
+      keepGapsOpen = true;
       argvec.pop_front();
       return true;
 
@@ -340,8 +346,9 @@ void Reconstructor::reconstruct() {
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
   const ForwardMatrix::ProfilingStrategy strategy =
     (ForwardMatrix::ProfilingStrategy) (ForwardMatrix::CollapseChains
+					| (keepGapsOpen ? ForwardMatrix::KeepGapsOpen : ForwardMatrix::DontKeepGapsOpen)
 					| (accumulateCounts ? ForwardMatrix::CountEvents : ForwardMatrix::DontCountEvents)
-					| (includeBestTraceInProfile ? ForwardMatrix::DontIncludeBestTrace : ForwardMatrix::IncludeBestTrace));
+					| (includeBestTraceInProfile ? ForwardMatrix::IncludeBestTrace : ForwardMatrix::DontIncludeBestTrace));
 
   SumProduct* sumProd = NULL;
   if (accumulateCounts)
