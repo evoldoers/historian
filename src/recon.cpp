@@ -264,6 +264,8 @@ void Reconstructor::loadSeqs() {
   else
     buildTree();
 
+  dataset.buildReconIndices();
+
   if (modelSaveFilename.size()) {
     ofstream modelFile (modelSaveFilename);
     model.write (modelFile);
@@ -287,8 +289,6 @@ void Reconstructor::loadSeqs() {
     ofstream treeFile (treeSaveFilename);
     treeFile << dataset.tree.toString() << endl;
   }
-
-  dataset.buildReconIndices();
 }
 
 void Reconstructor::Dataset::buildReconIndices() {
