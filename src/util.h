@@ -41,49 +41,6 @@ std::string plural (long n, const char* singular, const char* plural);
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-/* pipe to string */
-std::string pipeToString (const char* command, int* status = NULL);
-
-/* temp files and dirs */
-#define DefaultTempFilePrefix "tempfile"
-#define DefaultTempDirPrefix  "tempdir"
-
-/* temp file */
-class TempFile {
-private:
-  static std::string makeNewPath (std::string basePath, bool usePid);
-  TempFile (const TempFile&) = delete;
-  TempFile& operator= (const TempFile&) = delete;
-public:
-  static const std::string dir;  /* /tmp */
-  static unsigned int count;
-  static std::mutex mx;
-  static std::string newPathWithPid (std::string basePath);
-  static std::string newPath (std::string basePath);
-  std::string fullPath;
-  TempFile();
-  TempFile (const std::string& contents, const char* filenamePrefix = DefaultTempFilePrefix);
-  ~TempFile();
-  void init (const std::string& contents, const char* filenamePrefix = DefaultTempFilePrefix);
-};
-
-/* temp directory */
-class TempDir {
-private:
-  TempDir (const TempDir&) = delete;
-  TempDir& operator= (const TempDir&) = delete;
-public:
-  std::string fullPath;
-  bool cleanup;
-  TempDir (const char* filenamePrefix = DefaultTempDirPrefix);  // by default, creates tempdir in cwd
-  ~TempDir();
-  void init();
-  std::string makePath (const std::string& filename) const;
-};
-
-/* test file exists */
-bool file_exists (const char *filename);
-
 /* join */
 template<class Container>
 std::string join (const Container& c, const char* sep = " ") {
@@ -96,7 +53,7 @@ std::string join (const Container& c, const char* sep = " ") {
   return j;
 }
 
-/* join */
+/* to_string_join */
 template<class Container>
 std::string to_string_join (const Container& c, const char* sep = " ") {
   std::ostringstream j;
@@ -107,53 +64,6 @@ std::string to_string_join (const Container& c, const char* sep = " ") {
     j << s;
   }
   return j.str();
-}
-
-/* sgn function
-   http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
- */
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
-}
-
-/* index sort
-   http://stackoverflow.com/questions/10580982/c-sort-keeping-track-of-indices
- */
-template <typename T>
-std::vector<size_t> orderedIndices (std::vector<T> const& values) {
-    std::vector<size_t> indices(values.size());
-    std::iota(begin(indices), end(indices), static_cast<size_t>(0));
-
-    std::sort(
-        begin(indices), end(indices),
-        [&](size_t a, size_t b) { return values[a] < values[b]; }
-    );
-    return indices;
-}
-
-/* vector sum */
-template <typename T>
-std::vector<T> vector_sum(const std::vector<T>& a, const std::vector<T>& b)
-{
-  assert(a.size() == b.size());
-
-  std::vector<T> result;
-  result.reserve(a.size());
-
-  std::transform(a.begin(), a.end(), b.begin(), 
-		 std::back_inserter(result), std::plus<T>());
-  return result;
-}
-
-/* vector-scalar product */
-template <typename T>
-std::vector<T> vector_scale(const T x, const std::vector<T>& a)
-{
-  std::vector<T> result = a;
-  for (auto& y : result)
-    y *= x;
-
-  return result;
 }
 
 /* escaping a string
