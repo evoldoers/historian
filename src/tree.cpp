@@ -11,6 +11,7 @@ void Tree::parse (const string& nhx) {
   ktree_t *tree = kn_parse (nhx.c_str());
   LogThisAt(6,"Tree has " << plural(tree->n,"node") << endl);
   node = vguard<TreeNode> (tree->n);
+  set<string> names;
   for (int n = 0; n < tree->n; ++n) {
     node[n].parent = tree->node[n].parent;
     node[n].child = vector<TreeNodeIndex> (tree->node[n].n);
@@ -18,6 +19,10 @@ void Tree::parse (const string& nhx) {
       node[n].child[c] = tree->node[n].child[c];
     node[n].name = tree->node[n].name;
     node[n].d = tree->node[n].d;
+    if (node[n].name.size()) {
+      Require (names.count (node[n].name) == 0, "Duplicate node name '%s' in tree: %s", node[n].name.c_str(), nhx.c_str());
+      names.insert (node[n].name);
+    }
   }
   kn_free (tree);
 }
@@ -27,11 +32,13 @@ string Tree::nodeToString (TreeNodeIndex root) const {
     return nodeName(root);
   string s = "(";
   for (int c = 0; c < nChildren(root); ++c) {
-    ostringstream d;
-    d << defaultfloat << branchLength(getChild(root,c));
+    ostringstream ds;
+    const double d = branchLength(getChild(root,c));
+    if (d >= 0)
+      ds << ':' << defaultfloat << branchLength(getChild(root,c));
     if (c > 0)
       s += ",";
-    s += nodeToString(getChild(root,c)) + ":" + d.str(); // to_string(branchLength(getChild(root,c)));
+    s += nodeToString(getChild(root,c)) + ds.str();
   }
   s += ")" + nodeName(root);
   return s;

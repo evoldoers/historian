@@ -145,6 +145,8 @@ testtreeio: bin/testtreeio
 	$(TEST) bin/testtreeio data/PF16593.nhx data/PF16593.nhx
 	$(TEST) bin/testtreeio data/testnj.out.nh data/testnj.out.nh
 	$(TEST) bin/testtreeio data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.nh
+	$(TEST) bin/testtreeio data/testtreedupname.nh data/empty 2> /dev/null
+	$(TEST) bin/testtreeio data/testtreenobranchlen.nh data/testtreenobranchlen.nh 2> /dev/null
 
 testspan: bin/testspan
 	$(TEST) bin/testspan data/PF16593.fa data/testamino.json 1 data/PF16593.testspan.fa
