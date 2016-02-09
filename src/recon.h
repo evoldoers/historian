@@ -14,7 +14,8 @@
 
 class Reconstructor {
 public:
-  string treeFilename, seqsFilename, modelFilename, guideFilename, reconFilename, nexusFilename;
+  string reconFilename, treeFilename, modelFilename;
+  list<string> seqsFilenames, guideFilenames, nexusFilenames;
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
   vguard<string> countFilenames;
   size_t profileSamples, profileNodeLimit;
@@ -43,12 +44,12 @@ public:
 
     Alignment reconstruction;
     EigenCounts eigenCounts;
-    EventCounts eventCounts;
 
     void initGuide (const vguard<FastSeq>& gapped);
     void buildReconIndices();
   };
-  Dataset dataset;
+  list<Dataset> datasets;
+  EventCounts eventCounts;
   
   Reconstructor();
 
@@ -63,22 +64,27 @@ public:
   bool parseTreeArgs (deque<string>& argvec);
   bool parseModelArgs (deque<string>& argvec);
 
+  void loadModel();
   void loadSeqs();
+  void loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename);
   void loadRecon();
   void loadCounts();
 
-  void reconstruct();
-  void count();
+  void reconstructAll();
+  void countAll();
+
+  void reconstruct (Dataset& dataset);
+  void count (Dataset& dataset);
   void fit();
 
+  void writeRecon (const Dataset& dataset, ostream& out) const;
   void writeRecon (ostream& out) const;
   void writeCounts (ostream& out) const;
   void writeModel (ostream& out) const;
   
 private:
-  void loadModel();
-  void loadTree();
-  void buildTree();
+  void loadTree (Dataset& dataset);
+  void buildTree (Dataset& dataset);
 
   void seedGenerator();
 };

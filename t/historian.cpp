@@ -125,14 +125,18 @@ int main (int argc, char** argv) {
     recon.accumulateCounts = false;
 
     usage.implicitSwitches.push_back (string ("-seqs"));
+    usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parseReconArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
+    recon.checkUniqueSeqFile();
+    recon.loadModel();
     recon.loadSeqs();
-    recon.reconstruct();
+
+    recon.reconstructAll();
     recon.writeRecon (cout);
 
   } else if (command == "posterior" || command == "post" || command == "p") {
@@ -141,14 +145,17 @@ int main (int argc, char** argv) {
     recon.accumulateCounts = true;
 
     usage.implicitSwitches.push_back (string ("-seqs"));
+    usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePostArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
+    recon.loadModel();
     recon.loadSeqs();
-    recon.reconstruct();
+
+    recon.reconstructAll();
     recon.writeCounts (cout);
     
   } else if (command == "count" || command == "c") {
@@ -161,8 +168,10 @@ int main (int argc, char** argv) {
 	   || usage.parseUnknown())
       { }
 
+    recon.loadModel();
     recon.loadRecon();
-    recon.count();
+
+    recon.countAll();
     recon.writeCounts (cout);
 
   } else if (command == "sum" || command == "s") {
@@ -188,6 +197,7 @@ int main (int argc, char** argv) {
 	   || usage.parseUnknown())
       { }
 
+    recon.loadModel();
     recon.loadCounts();
     recon.fit();
     recon.writeModel (cout);
@@ -195,6 +205,5 @@ int main (int argc, char** argv) {
   } else
     return usage.parseUnknownCommand (command, HISTORIAN_VERSION);
 
-  
   return EXIT_SUCCESS;
 }

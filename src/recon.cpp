@@ -30,46 +30,6 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       predictAncestralSequence = true;
       argvec.pop_front();
       return true;
-    }
-  }
-  return parsePostArgs (argvec);
-}
-
-void Reconstructor::checkUniqueSeqFile() {
-  Require (guideFilename.empty() && seqsFilename.empty() && nexusFilename.empty() && reconFilename.empty(), "Can only specify one of the following: sequence file, guide alignment, reconstruction, or Nexus file");
-}
-
-void Reconstructor::checkUniqueTreeFile() {
-  Require (treeFilename.empty() && nexusFilename.empty(), "Can only specify one of the following: tree file or Nexus file");
-}
-
-bool Reconstructor::parsePostArgs (deque<string>& argvec) {
-  if (argvec.size()) {
-    const string& arg = argvec[0];
-    if (arg == "-seqs") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      checkUniqueSeqFile();
-      seqsFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-guide") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      checkUniqueSeqFile();
-      guideFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-nexus") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      checkUniqueSeqFile();
-      checkUniqueTreeFile();
-      nexusFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
 
     } else if (arg == "-savetree") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
@@ -88,6 +48,43 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
     } else if (arg == "-saveguide") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       guideSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+  return parsePostArgs (argvec);
+}
+
+void Reconstructor::checkUniqueSeqFile() {
+  Require (guideFilenames.size() + seqsFilenames.size() + nexusFilenames.size() == 1, "Please specify exactly one (and only one) of the following: sequence file, guide alignment, or Nexus file.");
+}
+
+void Reconstructor::checkUniqueTreeFile() {
+  Require (treeFilename.empty() || nexusFilenames.empty(), "This program can't accept both a tree file and a Nexus file. If you have multiple datasets with trees, please encode each one in its own Nexus file.");
+  Require (treeFilename.empty() || (seqsFilenames.size() + guideFilenames.size() == 1), "To indicate which sequence dataset is associated with the tree, please use Nexus format to encode the tree and sequence data directly into the same file.");
+}
+
+bool Reconstructor::parsePostArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-seqs") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      seqsFilenames.push_back (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-guide") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      guideFilenames.push_back (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-nexus") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      nexusFilenames.push_back (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -156,7 +153,6 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-recon") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      checkUniqueSeqFile();
       reconFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
@@ -173,7 +169,7 @@ bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-tree") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      checkUniqueTreeFile();
+      Require (treeFilename.empty(), "To specify multiple trees, please encode each one in its own Nexus file, together with the associated sequence data.");
       treeFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
@@ -231,16 +227,17 @@ void Reconstructor::loadModel() {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
   }
+  eventCounts = EventCounts (model);
 }
 
-void Reconstructor::loadTree() {
+void Reconstructor::loadTree (Dataset& dataset) {
   Require (treeFilename.size() > 0, "Must specify a tree");
   LogThisAt(1,"Loading tree from " << treeFilename << endl);
   ifstream treeFile (treeFilename);
   dataset.tree.parse (JsonUtil::readStringFromStream (treeFile));
 }
 
-void Reconstructor::buildTree() {
+void Reconstructor::buildTree (Dataset& dataset) {
   LogThisAt(1,"Building neighbor-joining tree" << endl);
   auto dist = model.distanceMatrix (dataset.gappedGuide);
   dataset.tree.buildByNeighborJoining (dataset.gappedGuide, dist);
@@ -252,10 +249,20 @@ void Reconstructor::seedGenerator() {
 }
 
 void Reconstructor::loadSeqs() {
-  Require (seqsFilename.size() > 0 || guideFilename.size() > 0 || nexusFilename.size(), "Must specify sequences");
+  for (const auto& fn : seqsFilenames)
+    loadSeqs (fn, string(), string());
+  for (const auto& fn : guideFilenames)
+    loadSeqs (string(), fn, string());
+  for (const auto& fn : nexusFilenames)
+    loadSeqs (string(), string(), fn);
+}
 
-  loadModel();
-  seedGenerator();
+void Reconstructor::loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename) {
+  Require (seqsFilename.size() || guideFilename.size() || nexusFilename.size(), "Must specify sequences");
+  checkUniqueTreeFile();
+
+  datasets.push_back (Dataset());
+  Dataset& dataset = datasets.back();
 
   if (nexusFilename.size()) {
     LogThisAt(1,"Loading Nexus data from " << nexusFilename << endl);
@@ -272,6 +279,7 @@ void Reconstructor::loadSeqs() {
 	LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
       else {
 	LogThisAt(1,"Building guide alignment" << endl);
+	seedGenerator();
 	AlignGraph ag (dataset.seqs, model, 1, diagEnvParams, generator);
 	Alignment align = ag.mstAlign();
 	dataset.guide = align.path;
@@ -284,9 +292,9 @@ void Reconstructor::loadSeqs() {
     }
 
     if (treeFilename.size())
-      loadTree();
+      loadTree (dataset);
     else
-      buildTree();
+      buildTree (dataset);
   }
 
   dataset.buildReconIndices();
@@ -371,7 +379,7 @@ void Reconstructor::Dataset::buildReconIndices() {
   swap (guide, reorderedGuide);
 }
 
-void Reconstructor::reconstruct() {
+void Reconstructor::reconstruct (Dataset& dataset) {
   LogThisAt(1,"Starting reconstruction on " << dataset.tree.nodes() << "-node tree" << endl);
 
   seedGenerator();  // re-seed generator, in case it was used during prealignment
@@ -470,18 +478,23 @@ void Reconstructor::reconstruct() {
   }
 
   if (accumulateCounts)
-    dataset.eventCounts = dataset.eigenCounts.transform (model);
+    eventCounts += dataset.eigenCounts.transform (model);
   
   if (sumProd)
     delete sumProd;
 }
 
-void Reconstructor::writeRecon (ostream& out) const {
+void Reconstructor::writeRecon (const Dataset& dataset, ostream& out) const {
   writeFastaSeqs (cout, predictAncestralSequence ? dataset.ancestral : dataset.gappedRecon);
 }
 
+void Reconstructor::writeRecon (ostream& out) const {
+  Assert (datasets.size() == 1, "No dataset");
+  writeRecon (datasets.front(), out);
+}
+
 void Reconstructor::writeCounts (ostream& out) const {
-  dataset.eventCounts.writeJson (out);
+  eventCounts.writeJson (out);
 }
 
 void Reconstructor::writeModel (ostream& out) const {
@@ -489,11 +502,14 @@ void Reconstructor::writeModel (ostream& out) const {
 }
 
 void Reconstructor::loadRecon() {
-  loadModel();
-  loadTree();
+  datasets.push_back (Dataset());
+  Dataset& dataset = datasets.back();
+
+  loadTree (dataset);
 
   Require (reconFilename.size() > 0, "Must specify a reconstruction file");
   LogThisAt(1,"Loading reconstruction from " << reconFilename << endl);
+
   dataset.gappedRecon = readFastSeqs (reconFilename.c_str());
   dataset.tree.reorder (dataset.gappedRecon);
 
@@ -507,18 +523,28 @@ void Reconstructor::loadCounts() {
     EventCounts c;
     c.read (pj.value);
     if (n == 0)
-      dataset.eventCounts = c;
+      eventCounts = c;
     else
-      dataset.eventCounts += c;
+      eventCounts += c;
   }
 }
 
-void Reconstructor::count() {
+void Reconstructor::count (Dataset& dataset) {
   dataset.eigenCounts = EigenCounts (model.alphabetSize());
   dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree);
-  dataset.eventCounts = dataset.eigenCounts.transform (model);
+  eventCounts += dataset.eigenCounts.transform (model);
+}
+
+void Reconstructor::reconstructAll() {
+  for (auto& ds : datasets)
+    reconstruct (ds);
+}
+
+void Reconstructor::countAll() {
+  for (auto& ds : datasets)
+    count (ds);
 }
 
 void Reconstructor::fit() {
-  dataset.eventCounts.optimize (model);
+  eventCounts.optimize (model);
 }

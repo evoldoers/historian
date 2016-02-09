@@ -131,7 +131,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
 	    if (nj != ni)
 	      a_i += dist[ni][nj];
 	  avgDist[ni] = a_i / (double) (nActiveNodes - 2);
-	  LogThisAt(4,"Distance correction for node " << ni << " is " << avgDist[ni] << endl);
+	  LogThisAt(7,"Distance correction for node " << ni << " is " << avgDist[ni] << endl);
 	}
       // find minimal compensated distance (with avg distances subtracted off)
       bool isFirstPair = true;
@@ -143,7 +143,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
 	for (node_j_p = node_i_p, ++node_j_p; node_j_p != activeNodes_end_p; ++node_j_p)
 	  {
 	    const double compensatedDist = dist [*node_i_p] [*node_j_p] - avgDist [*node_i_p] - avgDist [*node_j_p];
-	    LogThisAt(4,"Compensated distance from node " << *node_i_p << " to node " << *node_j_p << " is " << compensatedDist << endl);
+	    LogThisAt(7,"Compensated distance from node " << *node_i_p << " to node " << *node_j_p << " is " << compensatedDist << endl);
 	    if (isFirstPair || compensatedDist < minDist)
 	      {
 		min_i = *node_i_p;
@@ -162,7 +162,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
 	dist[m].push_back (dist[k][m] = 0.5 * (dist[min_i][m] + dist[min_j][m] - d_ij));
       TreeBranchLength d_ik = 0.5 * (d_ij + avgDist[min_i] - avgDist[min_j]);
       TreeBranchLength d_jk = d_ij - d_ik;
-      LogThisAt(6,"Before Kuhner-Felsenstein:\ni=" << min_i << ", j=" << min_j << ", k=" << k << ", d_ij=" << d_ij << ", d_ik=" << d_ik << ", d_jk=" << d_jk << "\nDistances from k to other nodes: " << to_string_join(dist[k]) << endl);
+      LogThisAt(8,"Before Kuhner-Felsenstein:\ni=" << min_i << ", j=" << min_j << ", k=" << k << ", d_ij=" << d_ij << ", d_ik=" << d_ik << ", d_jk=" << d_jk << "\nDistances from k to other nodes: " << to_string_join(dist[k]) << endl);
       // apply Kuhner-Felsenstein correction to prevent negative branch lengths
       if (d_ik < 0)
 	{
@@ -184,7 +184,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
       node[min_i].d = d_ik;
       node[min_j].parent = k;
       node[min_j].d = d_jk;
-      LogThisAt(4,"Joining nodes " << min_i << " and " << min_j << " to common ancestor " << k << " (branch lengths: " << k << "->" << min_i << " = " << d_ik << ", " << k << "->" << min_j << " = " << d_jk << ")" << endl);
+      LogThisAt(7,"Joining nodes " << min_i << " and " << min_j << " to common ancestor " << k << " (branch lengths: " << k << "->" << min_i << " = " << d_ik << ", " << k << "->" << min_j << " = " << d_jk << ")" << endl);
       activeNodes.erase (min_i);
       activeNodes.erase (min_j);
       activeNodes.insert (k);
@@ -204,7 +204,7 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
   node[j].d = d/2;
 
   const string s = toString();
-  LogThisAt(4,"Neighbor-joining tree: " << s << endl);
+  LogThisAt(5,"Neighbor-joining tree: " << s << endl);
   parse (s);  // to ensure consistency (i.e. serializing & deserializing will not change node indices)
 }
 

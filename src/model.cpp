@@ -336,7 +336,7 @@ LogProbModel::LogProbModel (const ProbModel& pm)
 }
 
 double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterations) const {
-  LogThisAt(4,"Estimating distance from " << x.name << " to " << y.name << endl);
+  LogThisAt(6,"Estimating distance from " << x.name << " to " << y.name << endl);
   map<pair<AlphTok,AlphTok>,int> pairCount;
   Assert (x.length() == y.length(), "Sequences %s and %s have different lengths (%u, %u)", x.name.c_str(), y.name.c_str(), x.length(), y.length());
   for (size_t col = 0; col < x.length(); ++col) {
@@ -396,7 +396,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   double t;
   const double tLower = .0001, tUpper = 10 + tLower;
   const double llLower = negLogLike(tLower), llUpper = negLogLike(tUpper);
-  LogThisAt(4,"tML: f(" << tLower << ") = " << llLower << ", f(" << tUpper << ") = " << llUpper << endl);
+  LogThisAt(8,"tML: f(" << tLower << ") = " << llLower << ", f(" << tUpper << ") = " << llUpper << endl);
 
   const double maxSteps = 128;
   double nSteps;
@@ -404,7 +404,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   for (double step = 4; step > 1.0001 && !foundGuess; step = sqrt(step))
     for (double x = tLower + step; x < tUpper && !foundGuess; x += step) {
       const double ll = negLogLike(x);
-      LogThisAt(4,"tML: f(" << x << ") = " << ll << endl);
+      LogThisAt(8,"tML: f(" << x << ") = " << ll << endl);
       if (ll < llLower && ll < llUpper) {
 	foundGuess = true;
 	t = x;
@@ -413,7 +413,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   if (!foundGuess)
     return llLower < llUpper ? tLower : tUpper;
 
-  LogThisAt(4,"Initializing with t=" << t << ", tLower=" << tLower << ", tUpper=" << tUpper << endl);
+  LogThisAt(8,"Initializing with t=" << t << ", tLower=" << tLower << ", tUpper=" << tUpper << endl);
   gsl_min_fminimizer_set (s, &F, t, tLower, tUpper);
 
   for (int iter = 0; iter < maxIterations; ++iter) {
@@ -423,7 +423,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
     const double a = gsl_min_fminimizer_x_lower (s);
     const double b = gsl_min_fminimizer_x_upper (s);
 
-    LogThisAt(5,"Iteration #" << iter+1 << " tML: f(" << t << ") = " << negLogLike(t) << endl);
+    LogThisAt(7,"Iteration #" << iter+1 << " tML: f(" << t << ") = " << negLogLike(t) << endl);
     
     const int status = gsl_min_test_interval (a, b, 0.01, 0.0);  // converge to 1%
     if (status == GSL_SUCCESS)
