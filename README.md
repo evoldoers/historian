@@ -31,10 +31,11 @@ All commands can be abbreviated to single letters, like so:
 OPTIONS
 
 Reconstruction file I/O options:
+  -model &lt;file&gt;   Specify substitution & indel model (JSON)
   -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
   -guide &lt;file&gt;   Specify guide alignment (gapped FASTA)
   -tree &lt;file&gt;    Specify phylogeny (New Hampshire)
-  -model &lt;file&gt;   Specify substitution & indel model (JSON)
+  -nexus &lt;file&gt;   Specify phylogeny & guide alignment together (NEXUS)
 
   -saveseqs &lt;file&gt;, -saveguide &lt;file&gt;, -savetree &lt;file&gt;, -savemodel &lt;file&gt;
                   Save various intermediate analysis results to files

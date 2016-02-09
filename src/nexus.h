@@ -9,6 +9,7 @@
 struct NexusData {
   vguard<FastSeq> gapped;
   vguard<string> rowName;
+  string treeName;
   Tree tree;
 
   NexusData (const vguard<FastSeq>& matrix, const Tree& tree);

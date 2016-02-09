@@ -7,6 +7,7 @@
 #include "logger.h"
 #include "span.h"
 #include "amino.h"
+#include "nexus.h"
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
@@ -34,12 +35,20 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
   return parsePostArgs (argvec);
 }
 
+void Reconstructor::checkUniqueSeqFile() {
+  Require (guideFilename.empty() && seqsFilename.empty() && nexusFilename.empty() && reconFilename.empty(), "Can only specify one of the following: sequence file, guide alignment, reconstruction, or Nexus file");
+}
+
+void Reconstructor::checkUniqueTreeFile() {
+  Require (treeFilename.empty() && nexusFilename.empty(), "Can only specify one of the following: tree file or Nexus file");
+}
+
 bool Reconstructor::parsePostArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-seqs") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      Require (guideFilename.size() == 0, "Can't specify both -guide and -seqs");
+      checkUniqueSeqFile();
       seqsFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
@@ -47,8 +56,17 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
 
     } else if (arg == "-guide") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      Require (seqsFilename.size() == 0, "Can't specify both -seqs and -guide");
+      checkUniqueSeqFile();
       guideFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-nexus") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      checkUniqueSeqFile();
+      checkUniqueTreeFile();
+      nexusFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -138,7 +156,7 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-recon") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      Require (reconFilename.size() == 0, "Can't specify both -guide and -seqs");
+      checkUniqueSeqFile();
       reconFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
@@ -155,6 +173,7 @@ bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-tree") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      checkUniqueTreeFile();
       treeFilename = argvec[1];
       argvec.pop_front();
       argvec.pop_front();
@@ -233,36 +252,42 @@ void Reconstructor::seedGenerator() {
 }
 
 void Reconstructor::loadSeqs() {
-  Require (seqsFilename.size() > 0 || guideFilename.size() > 0, "Must specify sequences");
+  Require (seqsFilename.size() > 0 || guideFilename.size() > 0 || nexusFilename.size(), "Must specify sequences");
 
   loadModel();
   seedGenerator();
-  
-  if (seqsFilename.size()) {
-    LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
-    dataset.seqs = readFastSeqs (seqsFilename.c_str());
-    if (maxDistanceFromGuide < 0 && treeFilename.size())
-      LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
-    else {
-      LogThisAt(1,"Building guide alignment" << endl);
-      AlignGraph ag (dataset.seqs, model, 1, diagEnvParams, generator);
-      Alignment align = ag.mstAlign();
-      dataset.guide = align.path;
-      dataset.gappedGuide = align.gapped();
+
+  if (nexusFilename.size()) {
+    LogThisAt(1,"Loading Nexus data from " << nexusFilename << endl);
+    ifstream nexIn (nexusFilename);
+    NexusData nex (nexIn);
+    dataset.tree = nex.tree;
+    dataset.initGuide (nex.gapped);
+    
+  } else {
+    if (seqsFilename.size()) {
+      LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
+      dataset.seqs = readFastSeqs (seqsFilename.c_str());
+      if (maxDistanceFromGuide < 0 && treeFilename.size())
+	LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
+      else {
+	LogThisAt(1,"Building guide alignment" << endl);
+	AlignGraph ag (dataset.seqs, model, 1, diagEnvParams, generator);
+	Alignment align = ag.mstAlign();
+	dataset.guide = align.path;
+	dataset.gappedGuide = align.gapped();
+      }
+
+    } else {
+      LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
+      dataset.initGuide (readFastSeqs (guideFilename.c_str()));
     }
 
-  } else {
-    LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
-    dataset.gappedGuide = readFastSeqs (guideFilename.c_str());
-    const Alignment align (dataset.gappedGuide);
-    dataset.guide = align.path;
-    dataset.seqs = align.ungapped;
+    if (treeFilename.size())
+      loadTree();
+    else
+      buildTree();
   }
-
-  if (treeFilename.size())
-    loadTree();
-  else
-    buildTree();
 
   dataset.buildReconIndices();
 
@@ -291,7 +316,16 @@ void Reconstructor::loadSeqs() {
   }
 }
 
+void Reconstructor::Dataset::initGuide (const vguard<FastSeq>& gapped) {
+  gappedGuide = gapped;
+  const Alignment align (gappedGuide);
+  guide = align.path;
+  seqs = align.ungapped;
+}
+
 void Reconstructor::Dataset::buildReconIndices() {
+  tree.validateBranchLengths();
+
   for (size_t n = 0; n < seqs.size(); ++n) {
     Assert (seqIndex.find (seqs[n].name) == seqIndex.end(), "Duplicate sequence name %s", seqs[n].name.c_str());
     seqIndex[seqs[n].name] = n;

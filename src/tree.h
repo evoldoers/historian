@@ -36,6 +36,7 @@ struct Tree {
 
   // I/O
   void parse (const string& nhx);
+  void validateBranchLengths() const;
 
   string nodeToString (TreeNodeIndex n) const;  // Newick format, without trailing ";"
   string toString (TreeNodeIndex root) const;  // Newick format, with trailing ";"

@@ -14,7 +14,7 @@
 
 class Reconstructor {
 public:
-  string treeFilename, seqsFilename, modelFilename, guideFilename, reconFilename;
+  string treeFilename, seqsFilename, modelFilename, guideFilename, reconFilename, nexusFilename;
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
   vguard<string> countFilenames;
   size_t profileSamples, profileNodeLimit;
@@ -45,6 +45,7 @@ public:
     EigenCounts eigenCounts;
     EventCounts eventCounts;
 
+    void initGuide (const vguard<FastSeq>& gapped);
     void buildReconIndices();
   };
   Dataset dataset;
@@ -55,6 +56,9 @@ public:
   bool parsePostArgs (deque<string>& argvec);
   bool parseCountArgs (deque<string>& argvec);
   bool parseSumArgs (deque<string>& argvec);
+
+  void checkUniqueSeqFile();
+  void checkUniqueTreeFile();
 
   bool parseTreeArgs (deque<string>& argvec);
   bool parseModelArgs (deque<string>& argvec);

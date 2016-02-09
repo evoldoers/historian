@@ -3,8 +3,11 @@ BEGIN DATA;
 DIMENSIONS NTAX=4 NCHAR=15;
 MATRIX
 Species1        atgctagctagctcg
-Species2        atgcta??tag-tag
+Species2        atgctaggtag-tag
 Species3        atgttagctag-tgg
 LongSpeciesName atgttagctag-tag
 ;
+END;
+BEGIN TREES;
+TREE tree1 = ((Species1:0.1,Species2:0.3):0.01,(Species3:1,LongSpeciesName:3):0.01);
 END;

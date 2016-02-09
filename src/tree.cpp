@@ -27,6 +27,11 @@ void Tree::parse (const string& nhx) {
   kn_free (tree);
 }
 
+void Tree::validateBranchLengths() const {
+  for (size_t n = 0; n + 1 < node.size(); ++n)
+    Require (branchLength(n) >= 0, "Node in tree is missing branch length: %s", seqName(n).c_str());
+}
+
 string Tree::nodeToString (TreeNodeIndex root) const {
   if (isLeaf(root))
     return nodeName(root);
@@ -215,15 +220,20 @@ string Tree::seqName (TreeNodeIndex n) const {
   string s = nodeName(n);
   if (s.size() == 0) {
     vguard<string> cs;
-    for (auto c : node[n].child)
-      cs.push_back (seqName(c) + ':' + to_string(branchLength(c)));
+    for (auto c : node[n].child) {
+      ostringstream o;
+      o << seqName(c) << ':' << defaultfloat << branchLength(c);
+      cs.push_back (o.str());
+    }
     s = "(" + join(cs,",") + ")";
   }
   return s;
 }
 
 string Tree::pairParentName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
-  return string("(") + lChildName + ":" + to_string(lTime) + "," + rChildName + ":" + to_string(rTime) + ")";
+  ostringstream o;
+  o << "(" << lChildName << ":" << defaultfloat << lTime << "," << rChildName << ":" << defaultfloat << rTime << ")";
+  return o.str();
 }
 
 void Tree::reorder (vguard<FastSeq>& seq) const {

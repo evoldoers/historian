@@ -1,0 +1,14 @@
+>Species1
+atgctagctagctcg
+>Species2
+atgctaggtag-tag
+>(Species1:0.1,Species2:0.3)
+***********-***
+>Species3
+atgttagctag-tgg
+>LongSpeciesName
+atgttagctag-tag
+>(Species3:1,LongSpeciesName:3)
+***********-***
+>((Species1:0.1,Species2:0.3):0.01,(Species3:1,LongSpeciesName:3):0.01)
+***********-***

@@ -80,7 +80,8 @@ void NexusData::read (const string& nexusString) {
 	if (tok.size() == 1 && cmd == "END")
 	  block = NoBlock;
 	else if (cmd == "TREE" && tok.size() == 4 && tok[2] == "=") {
-	  Require (tree.nodes() == 0, "Multiple trees in Nexus file");
+	  Require (treeName.empty(), "Multiple trees in Nexus file");
+	  treeName = tok[1];
 	  tree.parse (tok[3] + ";");
 	}
 	break;
@@ -111,5 +112,8 @@ void NexusData::write (ostream& out) const {
       out << setw(w+1) << left << fs.name << fs.seq << endl;
     out << ";" << endl;
   }
+  out << "END;" << endl;
+  out << "BEGIN TREES;" << endl;
+  out << "TREE " << treeName << " = " << tree.toString() << endl;
   out << "END;" << endl;
 }

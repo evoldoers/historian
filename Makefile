@@ -184,7 +184,8 @@ testcountio: bin/testcountio
 	$(TEST) bin/testcountio data/testcount.count.json data/testcount.count.json
 
 testhist: bin/$(MAIN)
-	$(TEST) bin/historian recon -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(TEST) bin/$(MAIN) recon -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(TEST) bin/$(MAIN) recon -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
 	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
