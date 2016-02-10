@@ -101,7 +101,7 @@ string alignPathJson (const AlignPath& a) {
       s += ",";
     s += " [ " + to_string(row_path.first) + ", \"";
     for (auto col : row_path.second)
-      s += (col ? "*" : "-");
+      s += (col ? Alignment::wildcardChar : Alignment::gapChar);
     s += "\" ]";
   }
   s += " ]";

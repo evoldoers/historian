@@ -464,7 +464,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
       if (dataset.tree.isLeaf(node)) 
 	ungapped[node] = dataset.seqs[dataset.seqIndex.at(dataset.rowName[node])];
       else {
-	ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), '*');
+	ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), Alignment::wildcardChar);
 	ungapped[node].name = dataset.rowName[node];
       }
     }

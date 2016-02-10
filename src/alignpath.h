@@ -28,7 +28,7 @@ struct Alignment {
   Alignment (const vguard<FastSeq>& ungapped, const AlignPath& path);
   vguard<FastSeq> gapped() const;
   static inline bool isGap (char c) { return c == '-' || c == '.'; }
-  static inline bool isWildcard (char c) { return c == '*'; }
+  static inline bool isWildcard (char c) { return c == wildcardChar; }
 };
 
 struct GuideAlignmentEnvelope {
