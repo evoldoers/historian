@@ -111,6 +111,7 @@ testnexus: bin/testnexus
 
 teststockholm: bin/teststockholm
 	$(TEST) bin/teststockholm data/cbs.stock data/cbs.stock
+	$(TEST) bin/teststockholm data/Lysine.stock data/Lysine.stock
 
 testmatexp: bin/testmatexp
 	$(TEST) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
