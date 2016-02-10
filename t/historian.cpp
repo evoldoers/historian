@@ -139,6 +139,9 @@ int main (int argc, char** argv) {
     
   } else if (command == "count" || command == "c") {
 
+    recon.reconstructRoot = false;
+    recon.accumulateCounts = true;
+
     usage.implicitSwitches.push_back (string ("-nexusrecon"));
     usage.unlimitImplicitSwitches = true;
 
