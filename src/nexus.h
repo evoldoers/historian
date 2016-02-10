@@ -6,13 +6,17 @@
 
 // very crude Nexus format parser
 
+#define DefaultNexusTreeName "tree"
+
 struct NexusData {
+  static const char gapChar, wildcardChar;
+
   vguard<FastSeq> gapped;
   vguard<string> rowName;
   string treeName;
   Tree tree;
 
-  NexusData (const vguard<FastSeq>& matrix, const Tree& tree);
+  NexusData (const vguard<FastSeq>& matrix, const Tree& tree, bool convertGapsAndWildcards = true);
   NexusData (const string& nexusString);
   NexusData (istream& in);
 

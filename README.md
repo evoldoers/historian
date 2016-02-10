@@ -38,6 +38,9 @@ Reconstruction file I/O options:
   -saveseqs &lt;file&gt;, -saveguide &lt;file&gt;, -savetree &lt;file&gt;, -savemodel &lt;file&gt;
                   Save various intermediate analysis results to files
 
+  -output (nexus|fasta)
+                  Select output format for reconstruction
+
 Reconstruction algorithm options:
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
   -band &lt;n&gt;       Size of band around guide alignment (default 10)

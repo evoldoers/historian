@@ -24,7 +24,8 @@ Reconstructor::Reconstructor()
     useLaplacePseudocounts (true),
     minPostProb (DefaultProfilePostProb),
     maxEMIterations (DefaultMaxEMIterations),
-    minEMImprovement (DefaultMinEMImprovement)
+    minEMImprovement (DefaultMinEMImprovement),
+    outputFormat (Fasta)
 { }
 
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
@@ -55,6 +56,20 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-output") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const string format = toupper (argvec[1]);
+      if (format == "NEXUS")
+	outputFormat = Nexus;
+      else if (format == "FASTA")
+	outputFormat = Fasta;
+      else
+	Fail ("Unrecognized format: %s", argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     }
   }
   return parsePostArgs (argvec);
@@ -500,7 +515,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
       while (!colSumProd.alignmentDone()) {
 	colSumProd.fillUp();
 	colSumProd.fillDown();
-	colSumProd.appendAncestralReconstructedColumn (dataset.ancestral);
+	colSumProd.appendAncestralReconstructedColumn (dataset.gappedAncestralRecon);
 	colSumProd.nextColumn();
       }
     }
@@ -514,7 +529,20 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 }
 
 void Reconstructor::writeRecon (const Dataset& dataset, ostream& out) const {
-  writeFastaSeqs (cout, predictAncestralSequence ? dataset.ancestral : dataset.gappedRecon);
+  switch (outputFormat) {
+  case Fasta:
+    writeFastaSeqs (out, predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon);
+    break;
+  case Nexus:
+    {
+      NexusData nexus (predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon, dataset.tree);
+      nexus.write (out);
+    }
+    break;
+  default:
+    Fail ("Unknown output format");
+    break;
+  }
 }
 
 void Reconstructor::writeRecon (ostream& out) const {

@@ -23,7 +23,9 @@ public:
   int maxDistanceFromGuide;
   bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
   double minPostProb, minEMImprovement;
-  
+  typedef enum { Fasta, Nexus } OutputFormat;
+  OutputFormat outputFormat;
+
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
 
@@ -33,7 +35,7 @@ public:
 
   struct Dataset {
     Tree tree;
-    vguard<FastSeq> seqs, gappedGuide, gappedRecon, ancestral;
+    vguard<FastSeq> seqs, gappedGuide, gappedRecon, gappedAncestralRecon;
 
     map<string,size_t> seqIndex;
     map<TreeNodeIndex,size_t> nodeToSeqIndex;

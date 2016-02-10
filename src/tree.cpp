@@ -259,3 +259,18 @@ void Tree::reorder (vguard<FastSeq>& seq) const {
   }
 }
 
+void Tree::assignInternalNodeNames (const char* prefix) {
+  set<string> names;
+  for (const auto& n : node)
+    if (n.name.size()) {
+      Assert (names.count(n.name) == 0, "Duplicate tree node name: %s", n.name.c_str());
+      names.insert (n.name);
+    }
+  for (size_t i = 0; i < node.size(); ++i)
+    if (node[i].name.empty()) {
+      string nn = string(prefix) + to_string(i+1);
+      while (names.count(nn))
+	nn = string("_") + nn;
+      node[i].name = nn;
+    }
+}

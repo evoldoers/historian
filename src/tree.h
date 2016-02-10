@@ -7,6 +7,8 @@
 
 using namespace std;
 
+#define DefaultNodeNamePrefix "node"
+
 typedef int TreeNodeIndex;
 typedef double TreeBranchLength;
 
@@ -42,6 +44,8 @@ struct Tree {
   string toString (TreeNodeIndex root) const;  // Newick format, with trailing ";"
   string toString() const;
 
+  void assignInternalNodeNames (const char* prefix = DefaultNodeNamePrefix);
+  
   // neighbor-joining
   void buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
   void buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
