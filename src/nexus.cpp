@@ -91,6 +91,8 @@ void NexusData::read (const string& nexusString) {
       }
     }
   }
+  Require (rowName.size() > 0, "No sequence data found in Nexus file");
+  Require (tree.nodes() > 0, "No tree found in Nexus file");
   for (size_t n = 0; n < rowName.size(); ++n) {
     FastSeq fs;
     fs.name = rowName[n];

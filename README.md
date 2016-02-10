@@ -3,23 +3,21 @@ Reconstruction of phylogenetic insertion-deletion histories using the transducer
 (see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
 <pre><code>
-Usage: historian {reconstruct,count,post,sum,fit,help,version} [options]
+Usage: historian {reconstruct,count,fit,help,version} [options]
 
 COMMANDS
 
 Reconstruction:
   historian reconstruct seqs.fa [-tree tree.nh] &gt;reconstruction.fa
   historian reconstruct -guide guide.fa [-tree tree.nh] &gt;reconstruction.fa
+  historian reconstruct -nexus data.nex &gt;reconstruction.fa
 
 Event counting:
-  historian count reconstruction.fa tree.nh [-model model.json] &gt;counts.json
-  historian post seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
-
-The former (count) obtains a point estimate from a single reconstruction.
-The latter (post) averages over (a subset of) the posterior distribution.
+  historian count seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
+  historian count -guide guide.fa [-tree tree.nh] &gt;counts.json
+  historian count -recon reconstruction.fa -tree tree.nh &gt;counts.json
 
 Model fitting:
-  historian sum counts.json pseudocounts.json [morecounts.json...] &gt;sum.json
   historian fit counts.json &gt;newmodel.json
 
 All commands can be abbreviated to single letters, like so:

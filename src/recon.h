@@ -14,10 +14,9 @@
 
 class Reconstructor {
 public:
-  string reconFilename, treeFilename, modelFilename;
-  list<string> seqsFilenames, guideFilenames, nexusFilenames;
+  string fastaReconFilename, treeFilename, modelFilename;
+  list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, nexusReconFilenames, countFilenames;
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
-  vguard<string> countFilenames;
   size_t profileSamples, profileNodeLimit;
   int maxDistanceFromGuide;
   bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts;
@@ -47,9 +46,10 @@ public:
 
     void initGuide (const vguard<FastSeq>& gapped);
     void buildReconIndices();
+    bool hasReconstruction() const { return !gappedRecon.empty(); }
   };
   list<Dataset> datasets;
-  EventCounts eventCounts;
+  EventCounts initCounts, eventCounts;
   
   Reconstructor();
 

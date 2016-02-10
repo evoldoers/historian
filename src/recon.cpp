@@ -57,12 +57,12 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
 }
 
 void Reconstructor::checkUniqueSeqFile() {
-  Require (guideFilenames.size() + seqsFilenames.size() + nexusFilenames.size() == 1, "Please specify exactly one (and only one) of the following: sequence file, guide alignment, or Nexus file.");
+  Require (fastaGuideFilenames.size() + seqFilenames.size() + nexusGuideFilenames.size() == 1, "Please specify exactly one (and only one) of the following: sequence file, guide alignment, or Nexus file.");
 }
 
 void Reconstructor::checkUniqueTreeFile() {
-  Require (treeFilename.empty() || nexusFilenames.empty(), "This program can't accept both a tree file and a Nexus file. If you have multiple datasets with trees, please encode each one in its own Nexus file.");
-  Require (treeFilename.empty() || (seqsFilenames.size() + guideFilenames.size() == 1), "To indicate which sequence dataset is associated with the tree, please use Nexus format to encode the tree and sequence data directly into the same file.");
+  Require (treeFilename.empty() || (nexusGuideFilenames.empty() && nexusReconFilenames.empty()), "This program can't accept both a tree file and a Nexus file. If you have multiple datasets with trees, please encode each one in its own Nexus file.");
+  Require (treeFilename.empty() || (seqFilenames.size() + fastaGuideFilenames.size() + (fastaReconFilename.empty() ? 0 : 1) == 1), "If you specify a tree file, there can be one and only one sequence file, otherwise matching up trees to sequence files involves too much guesswork for my liking. To avoid complication, I recommend that if you want to analyze multiple datasets, you please use Nexus format to encode the tree and sequence data directly into the same file.");
 }
 
 bool Reconstructor::parsePostArgs (deque<string>& argvec) {
@@ -70,21 +70,21 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-seqs") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      seqsFilenames.push_back (argvec[1]);
+      seqFilenames.push_back (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
 
     } else if (arg == "-guide") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      guideFilenames.push_back (argvec[1]);
+      fastaGuideFilenames.push_back (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
 
     } else if (arg == "-nexus") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      nexusFilenames.push_back (argvec[1]);
+      nexusGuideFilenames.push_back (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -153,15 +153,21 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-recon") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      reconFilename = argvec[1];
+      fastaReconFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-nexusrecon") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      nexusReconFilenames.push_back (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
     }
   }
 
-  return parseTreeArgs (argvec)
-    || parseModelArgs (argvec);
+  return parsePostArgs (argvec);
 }
 
 bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
@@ -249,32 +255,32 @@ void Reconstructor::seedGenerator() {
 }
 
 void Reconstructor::loadSeqs() {
-  for (const auto& fn : seqsFilenames)
+  for (const auto& fn : seqFilenames)
     loadSeqs (fn, string(), string());
-  for (const auto& fn : guideFilenames)
+  for (const auto& fn : fastaGuideFilenames)
     loadSeqs (string(), fn, string());
-  for (const auto& fn : nexusFilenames)
+  for (const auto& fn : nexusGuideFilenames)
     loadSeqs (string(), string(), fn);
 }
 
-void Reconstructor::loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename) {
-  Require (seqsFilename.size() || guideFilename.size() || nexusFilename.size(), "Must specify sequences");
+void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFilename, const string& nexusFilename) {
+  Require (seqFilename.size() || guideFilename.size() || nexusFilename.size(), "Must specify sequences");
   checkUniqueTreeFile();
 
   datasets.push_back (Dataset());
   Dataset& dataset = datasets.back();
 
   if (nexusFilename.size()) {
-    LogThisAt(1,"Loading Nexus data from " << nexusFilename << endl);
+    LogThisAt(1,"Loading guide alignment and tree from " << nexusFilename << endl);
     ifstream nexIn (nexusFilename);
     NexusData nex (nexIn);
     dataset.tree = nex.tree;
     dataset.initGuide (nex.gapped);
     
   } else {
-    if (seqsFilename.size()) {
-      LogThisAt(1,"Loading sequences from " << seqsFilename << endl);
-      dataset.seqs = readFastSeqs (seqsFilename.c_str());
+    if (seqFilename.size()) {
+      LogThisAt(1,"Loading sequences from " << seqFilename << endl);
+      dataset.seqs = readFastSeqs (seqFilename.c_str());
       if (maxDistanceFromGuide < 0 && treeFilename.size())
 	LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
       else {
@@ -305,8 +311,8 @@ void Reconstructor::loadSeqs (const string& seqsFilename, const string& guideFil
   }
 
   if (seqsSaveFilename.size()) {
-    ofstream seqsFile (seqsSaveFilename);
-    writeFastaSeqs (seqsFile, dataset.seqs);
+    ofstream seqFile (seqsSaveFilename);
+    writeFastaSeqs (seqFile, dataset.seqs);
   }
 
   if (guideSaveFilename.size()) {
@@ -502,30 +508,44 @@ void Reconstructor::writeModel (ostream& out) const {
 }
 
 void Reconstructor::loadRecon() {
-  datasets.push_back (Dataset());
-  Dataset& dataset = datasets.back();
+  if (fastaReconFilename.size()) {
 
-  loadTree (dataset);
+    datasets.push_back (Dataset());
+    Dataset& dataset = datasets.back();
 
-  Require (reconFilename.size() > 0, "Must specify a reconstruction file");
-  LogThisAt(1,"Loading reconstruction from " << reconFilename << endl);
+    loadTree (dataset);
 
-  dataset.gappedRecon = readFastSeqs (reconFilename.c_str());
-  dataset.tree.reorder (dataset.gappedRecon);
+    LogThisAt(1,"Loading reconstruction from " << fastaReconFilename << endl);
+    dataset.gappedRecon = readFastSeqs (fastaReconFilename.c_str());
 
-  dataset.reconstruction = Alignment (dataset.gappedRecon);
+    dataset.tree.reorder (dataset.gappedRecon);
+    dataset.reconstruction = Alignment (dataset.gappedRecon);
+  }
+
+  for (const auto& nexusReconFilename : nexusReconFilenames) {
+    datasets.push_back (Dataset());
+    Dataset& dataset = datasets.back();
+
+    LogThisAt(1,"Loading reconstruction and tree from " << nexusReconFilename << endl);
+
+    ifstream nexIn (nexusReconFilename);
+    NexusData nex (nexIn);
+    dataset.tree = nex.tree;
+    dataset.gappedRecon = nex.gapped;
+
+    dataset.tree.reorder (dataset.gappedRecon);
+    dataset.reconstruction = Alignment (dataset.gappedRecon);
+  }
 }
 
 void Reconstructor::loadCounts() {
-  for (size_t n = 0; n < countFilenames.size(); ++n) {
-    ifstream in (countFilenames[n]);
+  initCounts = EventCounts (model);
+  for (const auto& countFilename : countFilenames) {
+    ifstream in (countFilename);
     ParsedJson pj (in);
     EventCounts c;
     c.read (pj.value);
-    if (n == 0)
-      eventCounts = c;
-    else
-      eventCounts += c;
+    initCounts += c;
   }
 }
 
@@ -541,8 +561,12 @@ void Reconstructor::reconstructAll() {
 }
 
 void Reconstructor::countAll() {
+  eventCounts = initCounts;
   for (auto& ds : datasets)
-    count (ds);
+    if (ds.hasReconstruction())
+      count (ds);
+    else
+      reconstruct (ds);
 }
 
 void Reconstructor::fit() {

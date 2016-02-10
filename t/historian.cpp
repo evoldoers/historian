@@ -18,7 +18,7 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{reconstruct,count,post,sum,fit,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{reconstruct,count,fit,help,version} [options]")
 {
   text = briefText
     + "\n"
@@ -27,16 +27,14 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "Reconstruction:\n"
     + "  " + prog + " reconstruct seqs.fa [-tree tree.nh] >reconstruction.fa\n"
     + "  " + prog + " reconstruct -guide guide.fa [-tree tree.nh] >reconstruction.fa\n"
+    + "  " + prog + " reconstruct -nexus data.nex >reconstruction.fa\n"
     + "\n"
     + "Event counting:\n"
-    + "  " + prog + " count reconstruction.fa tree.nh [-model model.json] >counts.json\n"
-    + "  " + prog + " post seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
-    + "\n"
-    + "The former (count) obtains a point estimate from a single reconstruction.\n"
-    + "The latter (post) averages over (a subset of) the posterior distribution.\n"
+    + "  " + prog + " count seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
+    + "  " + prog + " count -guide guide.fa [-tree tree.nh] >counts.json\n"
+    + "  " + prog + " count -recon reconstruction.fa -tree tree.nh >counts.json\n"
     + "\n"
     + "Model fitting:\n"
-    + "  " + prog + " sum counts.json pseudocounts.json [morecounts.json...] >sum.json\n"
     + "  " + prog + " fit counts.json >newmodel.json\n"
     + "\n"
     + "All commands can be abbreviated to single letters, like so:\n"
@@ -138,30 +136,11 @@ int main (int argc, char** argv) {
 
     recon.reconstructAll();
     recon.writeRecon (cout);
-
-  } else if (command == "posterior" || command == "post" || command == "p") {
-
-    recon.reconstructRoot = false;
-    recon.accumulateCounts = true;
-
-    usage.implicitSwitches.push_back (string ("-seqs"));
-    usage.unlimitImplicitSwitches = true;
-
-    while (logger.parseLogArgs (argvec)
-	   || recon.parsePostArgs (argvec)
-	   || usage.parseUnknown())
-      { }
-
-    recon.loadModel();
-    recon.loadSeqs();
-
-    recon.reconstructAll();
-    recon.writeCounts (cout);
     
   } else if (command == "count" || command == "c") {
 
-    usage.implicitSwitches.push_back (string ("-recon"));
-    usage.implicitSwitches.push_back (string ("-tree"));
+    usage.implicitSwitches.push_back (string ("-nexusrecon"));
+    usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parseCountArgs (argvec)
@@ -169,7 +148,9 @@ int main (int argc, char** argv) {
       { }
 
     recon.loadModel();
+    recon.loadSeqs();
     recon.loadRecon();
+    recon.loadCounts();
 
     recon.countAll();
     recon.writeCounts (cout);
