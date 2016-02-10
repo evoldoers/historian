@@ -18,16 +18,16 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{reconstruct,count,fit,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon[struct],count,fit,help,version} [options]")
 {
   text = briefText
     + "\n"
     + "COMMANDS\n"
     + "\n"
     + "Reconstruction:\n"
-    + "  " + prog + " reconstruct seqs.fa [-tree tree.nh] >reconstruction.fa\n"
-    + "  " + prog + " reconstruct -guide guide.fa [-tree tree.nh] >reconstruction.fa\n"
-    + "  " + prog + " reconstruct -nexus data.nex >reconstruction.fa\n"
+    + "  " + prog + " recon seqs.fa [-tree tree.nh] >reconstruction.fa\n"
+    + "  " + prog + " recon -guide guide.fa [-tree tree.nh] >reconstruction.fa\n"
+    + "  " + prog + " recon -nexus data.nex >reconstruction.fa\n"
     + "\n"
     + "Event counting:\n"
     + "  " + prog + " count seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
@@ -39,7 +39,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "All commands can be abbreviated to single letters, like so:\n"
     + "  " + prog + " r seqs.fa >reconstruction.fa\n"
-    + "  " + prog + " p seqs.fa >counts.json\n"
+    + "  " + prog + " c seqs.fa >counts.json\n"
     + "  " + prog + " f counts.json >model.json\n"
     + "(etc.)\n"
     + "\n"
