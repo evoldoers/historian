@@ -61,7 +61,7 @@ void FastSeq::writeFasta (ostream& out) const {
   if (comment.size())
     out << ' ' << comment;
   out << endl;
-  const size_t width = 50;
+  const size_t width = DefaultFastaCharsPerLine;
   for (size_t i = 0; i < seq.size(); i += width)
     out << seq.substr(i,width) << endl;
 }

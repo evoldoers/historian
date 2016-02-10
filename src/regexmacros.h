@@ -19,7 +19,8 @@ using namespace std;
 // NB literal hyphens must appear at the start of a character class.
 
 #define RE_CHAR_CLASS(STR) "[" STR "]"
-#define RE_PLUS(CLASS) CLASS CLASS "*"
+#define RE_STAR(CLASS) CLASS "*"
+#define RE_PLUS(CLASS) CLASS RE_STAR(CLASS)
 #define RE_GROUP(EXPR) "\\(" EXPR "\\)"
 
 #define RE_NUMERIC_RANGE "0-9"
@@ -42,5 +43,10 @@ using namespace std;
 #define RE_DNS_GROUP RE_GROUP(RE_PLUS(RE_DNS_CHAR_CLASS))
 #define RE_FLOAT_GROUP RE_GROUP(RE_PLUS(RE_FLOAT_CHAR_CLASS))
 #define RE_DOT_GROUP RE_GROUP(RE_PLUS(RE_DOT))
+
+#define RE_WHITE_CHARS " \t\n"
+#define RE_WHITE_CHAR_CLASS RE_CHAR_CLASS(RE_WHITE_CHARS)
+#define RE_WHITE_OR_EMPTY RE_STAR(RE_WHITE_CHAR_CLASS)
+#define RE_WHITE_NONEMPTY RE_PLUS(RE_WHITE_CHAR_CLASS)
 
 #endif /* REGEXMACROS_INCLUDED */

@@ -11,6 +11,7 @@ typedef size_t AlignColIndex;
 typedef vguard<bool> AlignRowPath;
 typedef map<AlignRowIndex,AlignRowPath> AlignPath;
 
+AlignColIndex gappedSeqColumns (const vguard<FastSeq>& gapped);
 AlignColIndex alignPathColumns (const AlignPath& a);
 SeqIdx alignPathResiduesInRow (const AlignRowPath& r);
 

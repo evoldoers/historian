@@ -11,6 +11,8 @@
 
 using namespace std;
 
+#define DefaultFastaCharsPerLine 50
+
 typedef unsigned int SeqIdx;
 typedef unsigned int AlphTok;
 typedef int UnvalidatedAlphTok;

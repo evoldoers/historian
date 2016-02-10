@@ -1,0 +1,34 @@
+#ifndef STOCKHOLM_INCLUDED
+#define STOCKHOLM_INCLUDED
+
+#include <map>
+#include "fastseq.h"
+#include "tree.h"
+#include "alignpath.h"
+
+#define StockholmNewHampshireTag "NH"
+
+#define DefaultStockholmRowLength 80
+#define MinStockholmCharsPerRow 10
+
+struct Stockholm {
+  vguard<FastSeq> gapped;
+  map<string,string> gc;  // gc[tag][col]
+  map<string,vguard<string> > gf;  // gf[tag][line]
+  map<string,map<string,string> > gr;  // gr[tag][seqname][col]
+  map<string,map<string,vguard<string> > > gs;  // gs[tag][seqname][line]
+
+  Stockholm() { }
+
+  void read (istream& in);
+  void write (ostream& out, size_t charsPerRow = DefaultStockholmRowLength) const;
+
+  void setTree (const Tree& tree, const char* tag = StockholmNewHampshireTag);
+
+  size_t rows() const;
+  size_t columns() const;
+  AlignPath path() const;
+};
+
+
+#endif /* STOCKHOLM_INCLUDED */

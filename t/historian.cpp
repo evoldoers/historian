@@ -171,6 +171,8 @@ int main (int argc, char** argv) {
 
   } else if (command == "sum" || command == "s") {
 
+    recon.useLaplacePseudocounts = false;
+    
     usage.implicitSwitches.push_back (string ("-counts"));
     usage.unlimitImplicitSwitches = true;
     

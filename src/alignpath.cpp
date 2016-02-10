@@ -17,6 +17,17 @@ struct AlignSeqMap {
   map<AlignNum,AlignColIndex> linkedColumns (AlignNum nAlign, AlignColIndex col) const;
 };
 
+AlignColIndex gappedSeqColumns (const vguard<FastSeq>& gapped) {
+  AlignColIndex cols = 0;
+  for (size_t row = 0; row < gapped.size(); ++row)
+    if (row == 0)
+      cols = gapped[row].length();
+    else
+      Assert (cols == gapped[row].length(), "Alignment is not flush: sequence %s has %u chars, but sequence %s has %u chars", gapped[0].name.c_str(), cols, gapped[row].name.c_str(), gapped[row].length());
+
+  return cols;
+}
+
 AlignColIndex alignPathColumns (const AlignPath& a) {
   AlignColIndex cols = 0;
   bool first = true;
