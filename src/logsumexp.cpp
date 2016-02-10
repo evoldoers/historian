@@ -1,5 +1,7 @@
 #include <iostream>
+#include <gsl/gsl_randist.h>
 #include "logsumexp.h"
+#include "util.h"
 
 LogSumExpLookupTable logSumExpLookupTable = LogSumExpLookupTable();
 
@@ -53,4 +55,24 @@ std::vector<LogProb> log_gsl_vector (gsl_vector* v) {
   for (size_t i = 0; i < v->size; ++i)
     l[i] = log (gsl_vector_get (v, i));
   return l;
+}
+
+std::vector<double> gsl_vector_to_stl (gsl_vector* v) {
+  std::vector<double> stlv (v->size);
+  for (size_t i = 0; i < v->size; ++i)
+    stlv[i] = gsl_vector_get (v, i);
+  return stlv;
+}
+
+double logBetaPdf (double prob, double yesCount, double noCount) {
+  return log (gsl_ran_beta_pdf (prob, yesCount + 1, noCount + 1));
+}
+
+double logGammaPdf (double rate, double eventCount, double waitTime) {
+  return log (gsl_ran_gamma_pdf (rate, eventCount + 1, waitTime));
+}
+
+double logDirichletPdf (const vector<double>& prob, const vector<double>& count) {
+  Assert (prob.size() == count.size(), "Dimensionality of Dirichlet counts vector does not match that of probability parameter vector");
+  return log (gsl_ran_dirichlet_pdf (prob.size(), count.data(), prob.data()));
 }

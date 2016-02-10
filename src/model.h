@@ -75,7 +75,7 @@ struct LogProbModel {
 struct IndelCounts {
   double ins, del, insExt, delExt, matchTime, delTime;
   LogProb lp;
-  IndelCounts();
+  IndelCounts (double pseudocount = 0, double pseudotime = 0);
   IndelCounts operator+ (const IndelCounts& c) const;
   IndelCounts operator* (double w) const;
   IndelCounts& operator+= (const IndelCounts& c);
@@ -92,7 +92,7 @@ struct EventCounts : AlphabetOwner {
   vguard<vguard<double> > subCount;
 
   EventCounts() { }
-  EventCounts (const AlphabetOwner& alph);
+  EventCounts (const AlphabetOwner& alph, double pseudo = 0);
 
   EventCounts operator+ (const EventCounts& c) const;
   EventCounts operator* (double w) const;
@@ -103,6 +103,9 @@ struct EventCounts : AlphabetOwner {
   
   void writeJson (ostream& out) const;
   void read (const JsonValue& json);
+
+  double logPrior (const RateModel& model) const;
+  double expectedLogLikelihood (const RateModel& model) const;
 };
 
 struct EigenCounts {

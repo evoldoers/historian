@@ -20,7 +20,11 @@ Reconstructor::Reconstructor()
     reconstructRoot (true),
     accumulateCounts (false),
     predictAncestralSequence (false),
-    minPostProb (DefaultProfilePostProb)
+    gotPrior (false),
+    useLaplacePseudocounts (true),
+    minPostProb (DefaultProfilePostProb),
+    maxEMIterations (DefaultMaxEMIterations),
+    minEMImprovement (DefaultMinEMImprovement)
 { }
 
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
@@ -164,6 +168,25 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-maxiter") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      maxEMIterations = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-mininc") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      minEMImprovement = atof (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-nolaplace") {
+      useLaplacePseudocounts = false;
+      argvec.pop_front();
+      return true;
     }
   }
 
@@ -233,7 +256,7 @@ void Reconstructor::loadModel() {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
   }
-  eventCounts = EventCounts (model);
+  dataCounts = EventCounts (model);
 }
 
 void Reconstructor::loadTree (Dataset& dataset) {
@@ -484,7 +507,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
   }
 
   if (accumulateCounts)
-    eventCounts += dataset.eigenCounts.transform (model);
+    dataCounts += dataset.eigenCounts.transform (model);
   
   if (sumProd)
     delete sumProd;
@@ -500,7 +523,7 @@ void Reconstructor::writeRecon (ostream& out) const {
 }
 
 void Reconstructor::writeCounts (ostream& out) const {
-  eventCounts.writeJson (out);
+  dataCounts.writeJson (out);
 }
 
 void Reconstructor::writeModel (ostream& out) const {
@@ -540,7 +563,7 @@ void Reconstructor::loadRecon() {
 
 void Reconstructor::loadCounts() {
   if (countFilenames.empty())
-    initCounts = EventCounts (model);
+    priorCounts = EventCounts (model);
   else
     for (auto iter = countFilenames.begin(); iter != countFilenames.end(); ++iter) {
       ifstream in (*iter);
@@ -548,17 +571,20 @@ void Reconstructor::loadCounts() {
       EventCounts c;
       c.read (pj.value);
       if (iter == countFilenames.begin())
-	initCounts = c;
+	priorCounts = c;
       else
-	initCounts += c;
+	priorCounts += c;
+      gotPrior = true;
     }
-  eventCounts = initCounts;
+  if (useLaplacePseudocounts)
+    priorCounts += EventCounts (model, 1);
+  dataCounts = priorCounts;
 }
 
 void Reconstructor::count (Dataset& dataset) {
   dataset.eigenCounts = EigenCounts (model.alphabetSize());
   dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree);
-  eventCounts += dataset.eigenCounts.transform (model);
+  dataCounts += dataset.eigenCounts.transform (model);
 }
 
 void Reconstructor::reconstructAll() {
@@ -567,14 +593,35 @@ void Reconstructor::reconstructAll() {
 }
 
 void Reconstructor::countAll() {
-  eventCounts = initCounts;
+  dataCounts = EventCounts (model);
   for (auto& ds : datasets)
     if (ds.hasReconstruction())
       count (ds);
     else
       reconstruct (ds);
+  dataPlusPriorCounts = dataCounts + priorCounts;
 }
 
 void Reconstructor::fit() {
-  eventCounts.optimize (model);
+  if (datasets.empty()) {
+    Require (gotPrior, "Please specify some data, or pseudocounts, in order to fit a model.");
+    priorCounts.optimize (model);
+  } else {
+    LogProb lpLast = -numeric_limits<double>::infinity();
+
+    priorCounts.indelCounts.lp = 0;
+    for (size_t iter = 0; iter < maxEMIterations; ++iter) {
+      countAll();
+      const LogProb lpData = dataCounts.indelCounts.lp, lpPrior = gotPrior ? priorCounts.logPrior (model) : 0;
+      const LogProb lpWithPrior = lpData + lpPrior;
+      LogThisAt (1, "EM iteration #" << iter + 1 << ": log-likelihood" << (gotPrior ? (string(" (") + to_string(lpData) + ") + log-prior (" + to_string(lpPrior) + ")") : string()) << " = " << lpWithPrior << endl);
+      if (lpWithPrior <= lpLast + abs(lpLast)*minEMImprovement)
+	break;
+      const LogProb oldExpectedLogLike = dataCounts.expectedLogLikelihood (model) + lpPrior;
+      dataPlusPriorCounts.optimize (model);
+      const LogProb newExpectedLogLike = dataCounts.expectedLogLikelihood (model) + (gotPrior ? priorCounts.logPrior(model) : 0);
+      LogThisAt(5, "Expected log-likelihood went from " << oldExpectedLogLike << " to " << newExpectedLogLike << " during M-step" << endl);
+      lpLast = lpWithPrior;
+    }
+  }
 }

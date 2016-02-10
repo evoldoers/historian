@@ -464,8 +464,14 @@ void AlphabetOwner::writeSubCounts (ostream& out, const vguard<double>& rootCoun
   out << ind << "}";
 }
 
-IndelCounts::IndelCounts()
-  : ins(0), del(0), insExt(0), delExt(0), matchTime(0), delTime(0), lp(0)
+IndelCounts::IndelCounts (double pseudocount, double pseudotime)
+  : ins(pseudocount),
+    del(pseudocount),
+    insExt(pseudocount),
+    delExt(pseudocount),
+    matchTime(pseudotime),
+    delTime(0),
+    lp(0)
 { }
 
 IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
@@ -553,11 +559,11 @@ EigenCounts EigenCounts::operator* (double w) const {
   return result;
 }
 
-EventCounts::EventCounts (const AlphabetOwner& alph)
+EventCounts::EventCounts (const AlphabetOwner& alph, double pseudo)
   : AlphabetOwner (alph),
-    indelCounts(),
-    rootCount (alph.alphabetSize(), 0),
-    subCount (alph.alphabetSize(), vguard<double> (alph.alphabetSize(), 0))
+    indelCounts (pseudo, pseudo),
+    rootCount (alph.alphabetSize(), pseudo),
+    subCount (alph.alphabetSize(), vguard<double> (alph.alphabetSize(), pseudo))
 { }
 
 EventCounts& EventCounts::operator+= (const EventCounts& c) {
@@ -754,4 +760,36 @@ void EventCounts::optimize (RateModel& model) const {
   model.delRate = indelCounts.del / (indelCounts.matchTime + indelCounts.delTime);
   model.insExtProb = indelCounts.insExt / (indelCounts.insExt + indelCounts.ins);
   model.delExtProb = indelCounts.delExt / (indelCounts.delExt + indelCounts.del);
+}
+
+double EventCounts::logPrior (const RateModel& model) const {
+  double lp = logGammaPdf (model.insRate, indelCounts.ins, indelCounts.matchTime)
+    + logGammaPdf (model.delRate, indelCounts.del, indelCounts.matchTime + indelCounts.delTime)
+    + logBetaPdf (model.insExtProb, indelCounts.insExt, indelCounts.ins)
+    + logBetaPdf (model.delExtProb, indelCounts.delExt, indelCounts.del)
+    + logDirichletPdf (gsl_vector_to_stl(model.insProb), rootCount);
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (i != j)
+	lp += logGammaPdf (gsl_matrix_get (model.subRate, i, j), subCount[i][j], subCount[i][i]);
+  return lp;
+}
+
+double EventCounts::expectedLogLikelihood (const RateModel& model) const {
+  double lp = -model.insRate * indelCounts.matchTime
+    -model.delRate * (indelCounts.matchTime + indelCounts.delTime)
+    + indelCounts.insExt * log (model.insExtProb)
+    + indelCounts.ins * log (1 - model.insExtProb)
+    + indelCounts.delExt * log (model.delExtProb)
+    + indelCounts.del * log (1 - model.delExtProb);
+  //    + logDirichletPdf (gsl_vector_to_stl(model.insProb), rootCount);
+  for (AlphTok i = 0; i < alphabetSize(); ++i) {
+    const double exit_i = -gsl_matrix_get (model.subRate, i, i);
+    lp += rootCount[i] * log (gsl_vector_get (model.insProb, i));
+    lp -= exit_i * subCount[i][i];
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (i != j)
+	lp += subCount[i][j] * log (gsl_matrix_get (model.subRate, i, j) / exit_i);
+  }
+  return lp;
 }

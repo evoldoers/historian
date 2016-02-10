@@ -54,6 +54,14 @@ Guide alignment construction options:
   -kmatchmax      Set kmer threshold to use all available memory (default)
   -kmatchoff      No kmer threshold, do full DP
 
+Model-fitting and event-counting options:
+  -recon &lt;file&gt;, -nexusrecon&lt;file&gt;
+                  Use precomputed reconstruction (FASTA/NEXUS, respectively)
+  -mininc &lt;n&gt;     EM convergence threshold as relative log-likelihood increase
+                    (default is .01)
+  -maxiter &lt;n&gt;    Max number of EM iterations (default 100)
+  -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting
+
 General options:
   -verbose, -vv, -vvv, -v4, -v5, etc.
                    Various levels of logging (-nocolor for monochrome)

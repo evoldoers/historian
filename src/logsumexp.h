@@ -98,6 +98,7 @@ void log_accum_exp_slow (double& a, double b);
 
 typedef double LogProb;
 std::vector<LogProb> log_gsl_vector (gsl_vector* v);
+std::vector<double> gsl_vector_to_stl (gsl_vector* v);
 
 inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>& v2) {
   LogProb lip = -numeric_limits<double>::infinity();
@@ -105,5 +106,9 @@ inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>
     lip = log_sum_exp (lip, *iter1 + *iter2);
   return lip;
 }
+
+double logBetaPdf (double prob, double yesCount, double noCount);
+double logGammaPdf (double rate, double eventCount, double waitTime);
+double logDirichletPdf (const vector<double>& prob, const vector<double>& count);
 
 #endif /* LOGSUMEXP_INCLUDED */

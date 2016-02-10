@@ -11,16 +11,18 @@
 #define DefaultProfileSamples 100
 #define DefaultProfilePostProb .1
 #define DefaultMaxDistanceFromGuide 10
+#define DefaultMaxEMIterations 100
+#define DefaultMinEMImprovement .01
 
 class Reconstructor {
 public:
   string fastaReconFilename, treeFilename, modelFilename;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, nexusReconFilenames, countFilenames;
   string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
-  size_t profileSamples, profileNodeLimit;
+  size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
-  bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts;
-  double minPostProb;
+  bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
+  double minPostProb, minEMImprovement;
   
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
@@ -49,7 +51,7 @@ public:
     bool hasReconstruction() const { return !gappedRecon.empty(); }
   };
   list<Dataset> datasets;
-  EventCounts initCounts, eventCounts;
+  EventCounts priorCounts, dataCounts, dataPlusPriorCounts;
   
   Reconstructor();
 

@@ -80,6 +80,14 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -kmatchmax      Set kmer threshold to use all available memory (default)\n"
     + "  -kmatchoff      No kmer threshold, do full DP\n"
     + "\n"
+    + "Model-fitting and event-counting options:\n"
+    + "  -recon <file>, -nexusrecon<file>\n"
+    + "                  Use precomputed reconstruction (FASTA/NEXUS, respectively)\n"
+    + "  -mininc <n>     EM convergence threshold as relative log-likelihood increase\n"
+    + "                    (default is " + TOSTRING(DefaultMinEMImprovement) + ")\n"
+    + "  -maxiter <n>    Max number of EM iterations (default " + to_string(DefaultMaxEMIterations) + ")\n"
+    + "  -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting\n"
+    + "\n"
     + "General options:\n"
     + "  -verbose, -vv, -vvv, -v4, -v5, etc.\n"
     // uncomment to document debug logging:
@@ -173,15 +181,20 @@ int main (int argc, char** argv) {
 
   } else if (command == "fit" || command == "f") {
 
+    recon.reconstructRoot = false;
+    recon.accumulateCounts = true;
+
     usage.implicitSwitches.push_back (string ("-counts"));
     usage.unlimitImplicitSwitches = true;
     
     while (logger.parseLogArgs (argvec)
-	   || recon.parseSumArgs (argvec)
+	   || recon.parseCountArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
     recon.loadModel();
+    recon.loadSeqs();
+    recon.loadRecon();
     recon.loadCounts();
     recon.fit();
     recon.writeModel (cout);
