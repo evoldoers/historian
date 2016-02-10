@@ -5,13 +5,22 @@
 #include "util.h"
 
 // POSIX basic regular expressions
+const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
 const regex seq_re (RE_WHITE_OR_EMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_OR_EMPTY, regex_constants::basic);
-const regex gf_re (RE_WHITE_OR_EMPTY "#=GF" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_DOT_STAR), regex_constants::basic);
-const regex gc_re (RE_WHITE_OR_EMPTY "#=GC" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_DOT_STAR), regex_constants::basic);
-const regex gr_re (RE_WHITE_OR_EMPTY "#=GR" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_DOT_STAR), regex_constants::basic);
-const regex gs_re (RE_WHITE_OR_EMPTY "#=GS" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_DOT_STAR), regex_constants::basic);
+const regex gf_re (RE_WHITE_OR_EMPTY "#=GF" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_NONWHITE_CHAR_CLASS RE_DOT_STAR), regex_constants::basic);
+const regex gc_re (RE_WHITE_OR_EMPTY "#=GC" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)), regex_constants::basic);
+const regex gr_re (RE_WHITE_OR_EMPTY "#=GR" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)), regex_constants::basic);
+const regex gs_re (RE_WHITE_OR_EMPTY "#=GS" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(RE_NONWHITE_CHAR_CLASS)) RE_WHITE_NONEMPTY RE_GROUP(RE_NONWHITE_CHAR_CLASS RE_DOT_STAR), regex_constants::basic);
 const regex hash_re (RE_WHITE_OR_EMPTY "#" RE_DOT_STAR, regex_constants::basic);
 const regex divider_re (RE_WHITE_OR_EMPTY "//" RE_WHITE_OR_EMPTY, regex_constants::basic);
+
+
+Stockholm::Stockholm()
+{ }
+
+Stockholm::Stockholm (istream& in) {
+  read (in);
+}
 
 void Stockholm::read (istream& in) {
   gf.clear();
@@ -42,7 +51,7 @@ void Stockholm::read (istream& in) {
       continue;
     else if (regex_match (line, divider_re))
       break;
-    else
+    else if (regex_match (line, nonwhite_re))
       Warn ("Unrecognized line in Stockholm file: %s", line.c_str());
   }
   for (const auto& name : rowName) {
@@ -54,16 +63,16 @@ void Stockholm::read (istream& in) {
 }
 
 void Stockholm::write (ostream& out, size_t charsPerRow) const {
-  int nw = 0, tw = 0, cols = columns();
+  int nw = 0, tw = 0, w = 0, cols = columns();
   set<string> names;
   for (auto& fs : gapped) {
-    nw = max (nw, (int) fs.name.size());
+    w = max (w, (int) fs.name.size());
     names.insert (fs.name);
   }
   for (auto& tag_gf : gf)
-    tw = max (tw, (int) tag_gf.first.size());
+    w = max (w, (int) tag_gf.first.size() + 5);
   for (auto& tag_gc : gc) {
-    tw = max (tw, (int) tag_gc.first.size());
+    w = max (w, (int) tag_gc.first.size() + 5);
     cols = max (cols, (int) tag_gc.second.size());
   }
   for (auto& tag_gs : gs) {
@@ -78,36 +87,48 @@ void Stockholm::write (ostream& out, size_t charsPerRow) const {
       cols = max (cols, (int) name_gr.second.size());
     }
   }
-  const int w = tw > 0 ? (nw + tw + 6) : nw;
+  if (tw > 0)
+    w = max (w, nw + tw + 6);
   
   out << "# STOCKHOLM 1.0" << endl;
   for (auto& tag_gf : gf)
     for (auto& line : tag_gf.second)
-      out << setw(tw+6) << left << (string("#=GF ") + tag_gf.first) << line << endl;
+      out << "#=GF " << left << setw(w-5) << tag_gf.first << " " << line << endl;
+
   for (auto& tag_gs : gs) {
     for (auto& fs : gapped)
       if (tag_gs.second.count (fs.name))
 	for (auto& line : tag_gs.second.at(fs.name))
-	  out << "#=GS" << right << setw(nw+1) << fs.name << " " << left << setw(tw+1) << tag_gs.first << line << endl;
+	  out << "#=GS " << left << setw(nw+1) << fs.name << left << setw(tw+1) << tag_gs.first << line << endl;
     for (auto& name_gs : tag_gs.second)
       if (!names.count (name_gs.first))
 	for (auto& line : name_gs.second)
-	  out << "#=GS" << right << setw(nw+1) << name_gs.first << " " << left << setw(tw+1) << tag_gs.first << line << endl;
+	  out << "#=GS " << left << setw(nw+1) << name_gs.first << left << setw(tw+1) << tag_gs.first << line << endl;
   }
-  const int colStep = min (MinStockholmCharsPerRow, DefaultStockholmRowLength - w - 1);
+
+  const int colStep = max (MinStockholmCharsPerRow, ((int) charsPerRow) - w - 1);
   for (int col = 0; col < cols; col += colStep) {
     for (auto& tag_gc : gc)
-      out << "#=GC" << right << setw(w-4) << tag_gc.first << " " << tag_gc.second.substr(col,colStep) << endl;
+      if (col < tag_gc.second.size())
+	out << "#=GC " << left << setw(w-5) << tag_gc.first << " " << tag_gc.second.substr(col,colStep) << endl;
+
     for (auto& fs : gapped) {
-      out << left << setw(w+1) << fs.name << fs.seq.substr(col,colStep) << endl;
+      if (col < fs.seq.size())
+	out << left << setw(w+1) << fs.name << fs.seq.substr(col,colStep) << endl;
       for (auto& tag_gr : gr)
 	if (tag_gr.second.count (fs.name))
-	  out << "#=GR" << right << setw(nw+1) << fs.name << " " << left << setw(tw+1) << tag_gr.first << tag_gr.second.at(fs.name).substr(col,colStep) << endl;
+	  if (col < tag_gr.second.at(fs.name).size())
+	    out << "#=GR " << left << setw(nw+1) << fs.name << left << setw(tw+1) << tag_gr.first << tag_gr.second.at(fs.name).substr(col,colStep) << endl;
     }
+
     for (auto& tag_gr : gr)
       for (auto& name_gr : tag_gr.second)
 	if (!names.count (name_gr.first))
-	  out << "#=GR" << right << setw(nw+1) << name_gr.first << " " << left << setw(tw+1) << tag_gr.first << tag_gr.second.at(name_gr.first).substr(col,colStep) << endl;
+	  if (col < name_gr.second.size())
+	    out << "#=GR " << left << setw(nw+1) << name_gr.first << left << setw(tw+1) << tag_gr.first << name_gr.second.substr(col,colStep) << endl;
+
+    if (col + colStep < cols)
+      out << endl;
   }
   out << "//" << endl;
 }

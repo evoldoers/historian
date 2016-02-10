@@ -18,7 +18,8 @@ struct Stockholm {
   map<string,map<string,string> > gr;  // gr[tag][seqname][col]
   map<string,map<string,vguard<string> > > gs;  // gs[tag][seqname][line]
 
-  Stockholm() { }
+  Stockholm();
+  Stockholm (istream& in);
 
   void read (istream& in);
   void write (ostream& out, size_t charsPerRow = DefaultStockholmRowLength) const;
