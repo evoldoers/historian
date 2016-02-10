@@ -539,16 +539,19 @@ void Reconstructor::loadRecon() {
 }
 
 void Reconstructor::loadCounts() {
-  for (auto iter = countFilenames.begin(); iter != countFilenames.end(); ++iter) {
-    ifstream in (*iter);
-    ParsedJson pj (in);
-    EventCounts c;
-    c.read (pj.value);
-    if (iter == countFilenames.begin())
-      initCounts = c;
-    else
-      initCounts += c;
-  }
+  if (countFilenames.empty())
+    initCounts = EventCounts (model);
+  else
+    for (auto iter = countFilenames.begin(); iter != countFilenames.end(); ++iter) {
+      ifstream in (*iter);
+      ParsedJson pj (in);
+      EventCounts c;
+      c.read (pj.value);
+      if (iter == countFilenames.begin())
+	initCounts = c;
+      else
+	initCounts += c;
+    }
   eventCounts = initCounts;
 }
 
