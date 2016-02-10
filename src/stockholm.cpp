@@ -149,3 +149,14 @@ AlignPath Stockholm::path() const {
   Alignment a (gapped);
   return a.path;
 }
+
+Tree Stockholm::getTree() const {
+  Tree tree;
+  if (hasTree())
+    tree.parse (gf.at (string (StockholmNewHampshireTag)).front());
+  return tree;
+}
+
+bool Stockholm::hasTree() const {
+  return gf.count (string (StockholmNewHampshireTag)) > 0 && gf.at (string (StockholmNewHampshireTag)).size() > 0;
+}

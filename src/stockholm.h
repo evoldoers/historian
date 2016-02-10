@@ -25,7 +25,9 @@ struct Stockholm {
   void write (ostream& out, size_t charsPerRow = DefaultStockholmRowLength) const;
 
   void setTree (const Tree& tree, const char* tag = StockholmNewHampshireTag);
-
+  Tree getTree() const;
+  bool hasTree() const;
+  
   size_t rows() const;
   size_t columns() const;
   AlignPath path() const;
