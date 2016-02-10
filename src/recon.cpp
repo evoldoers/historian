@@ -539,14 +539,17 @@ void Reconstructor::loadRecon() {
 }
 
 void Reconstructor::loadCounts() {
-  initCounts = EventCounts (model);
-  for (const auto& countFilename : countFilenames) {
-    ifstream in (countFilename);
+  for (auto iter = countFilenames.begin(); iter != countFilenames.end(); ++iter) {
+    ifstream in (*iter);
     ParsedJson pj (in);
     EventCounts c;
     c.read (pj.value);
-    initCounts += c;
+    if (iter == countFilenames.begin())
+      initCounts = c;
+    else
+      initCounts += c;
   }
+  eventCounts = initCounts;
 }
 
 void Reconstructor::count (Dataset& dataset) {
