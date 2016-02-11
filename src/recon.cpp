@@ -336,6 +336,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
       LogThisAt(1,"Loading guide alignment and tree from " << nexusFilename << endl);
       ifstream nexIn (nexusFilename);
       NexusData nex (nexIn);
+      nex.convertNexusToAlignment();
       dataset.tree = nex.tree;
       dataset.initGuide (nex.gapped);
       dataset.prepareRecon (*this);
@@ -551,6 +552,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
       if (isReconstruction)
 	t.assignInternalNodeNames (g);
       NexusData nexus (g, t);
+      nexus.convertAlignmentToNexus();
       nexus.write (out);
       out << endl;
     }
@@ -610,6 +612,7 @@ void Reconstructor::loadRecon() {
 
     ifstream nexIn (nexusReconFilename);
     NexusData nex (nexIn);
+    nex.convertNexusToAlignment();
     dataset.tree = nex.tree;
     dataset.gappedRecon = nex.gapped;
 

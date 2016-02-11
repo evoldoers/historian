@@ -16,12 +16,15 @@ struct NexusData {
   string treeName;
   Tree tree;
 
-  NexusData (const vguard<FastSeq>& matrix, const Tree& tree, bool convertGapsAndWildcards = true);
+  NexusData (const vguard<FastSeq>& matrix, const Tree& tree);
   NexusData (const string& nexusString);
   NexusData (istream& in);
 
   void read (const string& nexusString);
   void write (ostream& out) const;
+
+  void convertNexusToAlignment();
+  void convertAlignmentToNexus();
 };
 
 #endif /* NEXUS_INCLUDED */

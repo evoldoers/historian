@@ -8,19 +8,28 @@
 const char NexusData::gapChar = '-';
 const char NexusData::wildcardChar = '?';
 
-NexusData::NexusData (const vguard<FastSeq>& matrix, const Tree& tree, bool convertGapsAndWildcards)
+NexusData::NexusData (const vguard<FastSeq>& matrix, const Tree& tree)
   : gapped (matrix),
     tree (tree),
     treeName (DefaultNexusTreeName)
-{
-  if (convertGapsAndWildcards) {
-    for (auto& fs : gapped)
-      for (auto& c : fs.seq)
-	if (c == Alignment::gapChar)
-	  c = gapChar;
-	else if (c == Alignment::wildcardChar)
-	  c = wildcardChar;
-  }
+{ }
+
+void NexusData::convertNexusToAlignment() {
+  for (auto& fs : gapped)
+    for (auto& c : fs.seq)
+      if (c == gapChar)
+	c = Alignment::gapChar;
+      else if (c == wildcardChar)
+	c = Alignment::wildcardChar;
+}
+
+void NexusData::convertAlignmentToNexus() {
+  for (auto& fs : gapped)
+    for (auto& c : fs.seq)
+      if (c == Alignment::gapChar)
+	c = gapChar;
+      else if (c == Alignment::wildcardChar)
+	c = wildcardChar;
 }
 
 NexusData::NexusData (const string& nexusString) {
