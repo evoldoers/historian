@@ -52,7 +52,6 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -tree <file>    Specify phylogeny (New Hampshire)\n"
     + "  -nexus <file>, -stockholm <file>\n"
     + "                  Specify phylogeny & guide alignment together\n"
-    + "                   in (respectively) Nexus & Stockholm format\n"
     + "\n"
     + "  -saveguide <file>, -savemodel <file>\n"
     + "                  Save guide alignment/model to files\n"

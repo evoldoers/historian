@@ -35,7 +35,6 @@ Reconstruction file I/O options:
   -tree &lt;file&gt;    Specify phylogeny (New Hampshire)
   -nexus &lt;file&gt;, -stockholm &lt;file&gt;
                   Specify phylogeny & guide alignment together
-                   in (respectively) Nexus & Stockholm format
 
   -saveguide &lt;file&gt;, -savemodel &lt;file&gt;
                   Save guide alignment/model to files
