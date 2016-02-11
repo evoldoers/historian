@@ -5,12 +5,12 @@ Reconstruction of phylogenetic insertion-deletion histories using the transducer
 <pre><code>
 Usage: historian {recon[struct],count,fit,help,version} [options]
 
-COMMANDS
+EXAMPLES
 
 Reconstruction:
-  historian recon seqs.fa [-tree tree.nh] &gt;reconstruction.fa
-  historian recon -guide guide.fa [-tree tree.nh] &gt;reconstruction.fa
-  historian recon -nexus data.nex &gt;reconstruction.fa
+  historian recon seqs.fa [-tree tree.nh] -output fasta &gt;reconstruction.fa
+  historian recon -guide guide.fa [-tree tree.nh] &gt;reconstruction.stk
+  historian recon -nexus data.nex -output nexus &gt;reconstruction.nex
 
 Event counting:
   historian count seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
@@ -21,7 +21,7 @@ Model fitting:
   historian fit counts.json &gt;newmodel.json
 
 All commands can be abbreviated to single letters, like so:
-  historian r seqs.fa &gt;reconstruction.fa
+  historian r seqs.fa &gt;reconstruction.stk
   historian c seqs.fa &gt;counts.json
   historian f counts.json &gt;model.json
 (etc.)
@@ -35,11 +35,11 @@ Reconstruction file I/O options:
   -tree &lt;file&gt;    Specify phylogeny (New Hampshire)
   -nexus &lt;file&gt;   Specify phylogeny & guide alignment together (NEXUS)
 
-  -saveseqs &lt;file&gt;, -saveguide &lt;file&gt;, -savetree &lt;file&gt;, -savemodel &lt;file&gt;
-                  Save various intermediate analysis results to files
+  -saveguide &lt;file&gt;, -savemodel &lt;file&gt;
+                  Save guide alignment/analysis model to files
 
-  -output (nexus|fasta)
-                  Select output format for reconstruction
+  -output (nexus|fasta|stockholm)
+                  Select output format (default is Stockholm)
 
 Reconstruction algorithm options:
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)

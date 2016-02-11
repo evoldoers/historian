@@ -44,8 +44,6 @@ struct Tree {
   string toString (TreeNodeIndex root) const;  // Newick format, with trailing ";"
   string toString() const;
 
-  void assignInternalNodeNames (const char* prefix = DefaultNodeNamePrefix);
-  
   // neighbor-joining
   void buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
   void buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
@@ -55,6 +53,9 @@ struct Tree {
   static string pairParentName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 
   void reorder (vguard<FastSeq>& seq) const;  // reorders seq so that seq[n].name == seqName(n)
+
+  void assignInternalNodeNames (const char* prefix = DefaultNodeNamePrefix);
+  void assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix = DefaultNodeNamePrefix);
 };
 
 #endif /* TREE_INCLUDED */

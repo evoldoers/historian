@@ -274,3 +274,10 @@ void Tree::assignInternalNodeNames (const char* prefix) {
       node[i].name = nn;
     }
 }
+
+void Tree::assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix) {
+  reorder (seq);  // make sure that nodes match rows
+  assignInternalNodeNames (prefix);
+  for (size_t n = 0; n < nodes(); ++n)
+    seq[n].name = seqName(n);
+}

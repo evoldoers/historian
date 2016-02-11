@@ -20,7 +20,8 @@ struct Stockholm {
 
   Stockholm();
   Stockholm (istream& in);
-
+  Stockholm (const vguard<FastSeq>& seq, const Tree& tree);
+  
   void read (istream& in);
   void write (ostream& out, size_t charsPerRow = DefaultStockholmRowLength) const;
 
@@ -32,6 +33,5 @@ struct Stockholm {
   size_t columns() const;
   AlignPath path() const;
 };
-
 
 #endif /* STOCKHOLM_INCLUDED */

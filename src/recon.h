@@ -17,15 +17,16 @@
 class Reconstructor {
 public:
   string fastaReconFilename, treeFilename, modelFilename;
-  list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, nexusReconFilenames, countFilenames;
-  string treeSaveFilename, seqsSaveFilename, modelSaveFilename, guideSaveFilename;
+  list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
+  string modelSaveFilename, guideSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
   bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
   double minPostProb, minEMImprovement;
-  typedef enum { Fasta, Nexus } OutputFormat;
+  typedef enum { FastaFormat, NexusFormat, StockholmFormat } OutputFormat;
   OutputFormat outputFormat;
-
+  ofstream* guideFile;
+  
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
 
@@ -49,7 +50,7 @@ public:
     EigenCounts eigenCounts;
 
     void initGuide (const vguard<FastSeq>& gapped);
-    void buildReconIndices();
+    void prepareRecon (Reconstructor& recon);
     bool hasReconstruction() const { return !gappedRecon.empty(); }
   };
   list<Dataset> datasets;
@@ -70,7 +71,7 @@ public:
 
   void loadModel();
   void loadSeqs();
-  void loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename);
+  void loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename, const string& stockholmFilename);
   void loadRecon();
   void loadCounts();
 
@@ -81,12 +82,14 @@ public:
   void count (Dataset& dataset);
   void fit();
 
+  void writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction = false) const;
   void writeRecon (const Dataset& dataset, ostream& out) const;
   void writeRecon (ostream& out) const;
   void writeCounts (ostream& out) const;
   void writeModel (ostream& out) const;
   
 private:
+  Dataset& newDataset();
   void loadTree (Dataset& dataset);
   void buildTree (Dataset& dataset);
 

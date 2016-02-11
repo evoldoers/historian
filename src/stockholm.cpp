@@ -22,6 +22,12 @@ Stockholm::Stockholm (istream& in) {
   read (in);
 }
 
+Stockholm::Stockholm (const vguard<FastSeq>& seq, const Tree& tree)
+  : gapped (seq)
+{
+  setTree (tree);
+}
+
 void Stockholm::read (istream& in) {
   gf.clear();
   gc.clear();

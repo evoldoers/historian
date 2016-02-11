@@ -188,13 +188,13 @@ testcountio: bin/testcountio
 	$(TEST) bin/testcountio data/testcount.count.json data/testcount.count.json
 
 testhist: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) recon -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
-	$(TEST) bin/$(MAIN) recon -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
-	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -samples 100 data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json data/PF16593.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json data/PF16593.historian.fa
 
 testcount: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json

@@ -13,10 +13,6 @@ NexusData::NexusData (const vguard<FastSeq>& matrix, const Tree& tree, bool conv
     tree (tree),
     treeName (DefaultNexusTreeName)
 {
-  this->tree.reorder (gapped);  // make sure that nodes match rows
-  this->tree.assignInternalNodeNames();
-  for (size_t n = 0; n < tree.nodes(); ++n)
-    gapped[n].name = this->tree.seqName(n);
   if (convertGapsAndWildcards) {
     for (auto& fs : gapped)
       for (auto& c : fs.seq)

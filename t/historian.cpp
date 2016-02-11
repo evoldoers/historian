@@ -22,12 +22,12 @@ ProgUsage::ProgUsage (int argc, char** argv)
 {
   text = briefText
     + "\n"
-    + "COMMANDS\n"
+    + "EXAMPLES\n"
     + "\n"
     + "Reconstruction:\n"
-    + "  " + prog + " recon seqs.fa [-tree tree.nh] >reconstruction.fa\n"
-    + "  " + prog + " recon -guide guide.fa [-tree tree.nh] >reconstruction.fa\n"
-    + "  " + prog + " recon -nexus data.nex >reconstruction.fa\n"
+    + "  " + prog + " recon seqs.fa [-tree tree.nh] -output fasta >reconstruction.fa\n"
+    + "  " + prog + " recon -guide guide.fa [-tree tree.nh] >reconstruction.stk\n"
+    + "  " + prog + " recon -nexus data.nex -output nexus >reconstruction.nex\n"
     + "\n"
     + "Event counting:\n"
     + "  " + prog + " count seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
@@ -38,7 +38,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  " + prog + " fit counts.json >newmodel.json\n"
     + "\n"
     + "All commands can be abbreviated to single letters, like so:\n"
-    + "  " + prog + " r seqs.fa >reconstruction.fa\n"
+    + "  " + prog + " r seqs.fa >reconstruction.stk\n"
     + "  " + prog + " c seqs.fa >counts.json\n"
     + "  " + prog + " f counts.json >model.json\n"
     + "(etc.)\n"
@@ -52,11 +52,11 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -tree <file>    Specify phylogeny (New Hampshire)\n"
     + "  -nexus <file>   Specify phylogeny & guide alignment together (NEXUS)\n"
     + "\n"
-    + "  -saveseqs <file>, -saveguide <file>, -savetree <file>, -savemodel <file>\n"
-    + "                  Save various intermediate analysis results to files\n"
+    + "  -saveguide <file>, -savemodel <file>\n"
+    + "                  Save guide alignment/analysis model to files\n"
     + "\n"
-    + "  -output (nexus|fasta)\n"
-    + "                  Select output format for reconstruction\n"
+    + "  -output (nexus|fasta|stockholm)\n"
+    + "                  Select output format (default is Stockholm)\n"
     + "\n"
     + "Reconstruction algorithm options:\n"
     + "  -ancseq         Predict ancestral sequences (default is to leave them as " + Alignment::wildcardChar + "'s)\n"
@@ -141,7 +141,6 @@ int main (int argc, char** argv) {
 	   || usage.parseUnknown())
       { }
 
-    recon.checkUniqueSeqFile();
     recon.loadModel();
     recon.loadSeqs();
 
