@@ -33,13 +33,15 @@ Reconstruction file I/O options:
   -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
   -guide &lt;file&gt;   Specify guide alignment (gapped FASTA)
   -tree &lt;file&gt;    Specify phylogeny (New Hampshire)
-  -nexus &lt;file&gt;   Specify phylogeny & guide alignment together (NEXUS)
+  -nexus &lt;file&gt;, -stockholm &lt;file&gt;
+                  Specify phylogeny & guide alignment together
+                   in (respectively) Nexus & Stockholm format
 
   -saveguide &lt;file&gt;, -savemodel &lt;file&gt;
-                  Save guide alignment/analysis model to files
+                  Save guide alignment/model to files
 
   -output (nexus|fasta|stockholm)
-                  Select output format (default is Stockholm)
+                  Specify output format (default is Stockholm)
 
 Reconstruction algorithm options:
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
