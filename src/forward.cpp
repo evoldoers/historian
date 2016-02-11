@@ -526,12 +526,23 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
   const bool yNull = y.state[dest.ypos].isNull();
   switch (dest.state) {
   case PairHMM::IMM:
-    if (!xNull && !yNull)
-      c.indelCounts.matchTime += hmm.l.t + hmm.r.t;
+    if (!xNull && !yNull) {
+      if (src.state == PairHMM::IMM || src.state == PairHMM::IMD) {
+	c.indelCounts.insTime += hmm.l.t;
+	c.indelCounts.delTime += hmm.l.t;
+      }
+      if (src.state == PairHMM::IMM || src.state == PairHMM::IDM) {
+	c.indelCounts.insTime += hmm.r.t;
+	c.indelCounts.delTime += hmm.r.t;
+      }
+    }
     break;
   case PairHMM::IMD:
     if (!xNull) {
-      c.indelCounts.matchTime += hmm.l.t;
+      if (src.state == PairHMM::IMM || src.state == PairHMM::IMD) {
+	c.indelCounts.insTime += hmm.l.t;
+	c.indelCounts.delTime += hmm.l.t;
+      }
       if (src.state == dest.state)
 	c.indelCounts.delExt += 1;
       else {
@@ -552,7 +563,10 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
     break;
   case PairHMM::IDM:
     if (!yNull) {
-      c.indelCounts.matchTime += hmm.r.t;
+      if (src.state == PairHMM::IMM || src.state == PairHMM::IDM) {
+	c.indelCounts.insTime += hmm.r.t;
+	c.indelCounts.delTime += hmm.r.t;
+      }
       if (src.state == dest.state)
 	c.indelCounts.delExt += 1;
       else {

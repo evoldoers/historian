@@ -74,7 +74,7 @@ struct LogProbModel {
 };
 
 struct IndelCounts {
-  double ins, del, insExt, delExt, matchTime, delTime, insTime;
+  double ins, del, insExt, delExt, insTime, delTime;
   LogProb lp;
   IndelCounts (double pseudocount = 0, double pseudotime = 0);
   IndelCounts operator+ (const IndelCounts& c) const;

@@ -18,7 +18,7 @@ my $diff = `diff $fname $expected`;
 if (length $diff) {
     print "`$prog @args` does not match $expected:\n";
     print `diff -y $fname $expected`;
-    print "not ok\n";
+    print "not ok: `$prog @args`\n";
 } else {
     print "ok: `$prog @args` matches $expected\n";
 }
