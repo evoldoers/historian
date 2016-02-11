@@ -636,8 +636,10 @@ void Reconstructor::loadCounts() {
 	priorCounts += c;
       gotPrior = true;
     }
-  if (useLaplacePseudocounts)
+  if (useLaplacePseudocounts) {
     priorCounts += EventCounts (priorCounts, 1);
+    gotPrior = true;
+  }
   dataCounts = priorCounts;
 }
 

@@ -471,8 +471,8 @@ IndelCounts::IndelCounts (double pseudocount, double pseudotime)
     del(pseudocount),
     insExt(pseudocount),
     delExt(pseudocount),
-    insTime(0),
-    delTime(0),
+    insTime(pseudotime),
+    delTime(pseudotime),
     lp(0)
 { }
 
@@ -747,7 +747,8 @@ void EventCounts::read (const JsonValue& json) {
 }
 
 void EventCounts::optimize (RateModel& model) const {
-  model.init (alphabet);
+  if (model.alphabet != alphabet)
+    model.init (alphabet);
 
   const double insNorm = accumulate (rootCount.begin(), rootCount.end(), 0.);
   for (AlphTok i = 0; i < alphabetSize(); ++i)
@@ -783,20 +784,26 @@ double EventCounts::logPrior (const RateModel& model) const {
   return lp;
 }
 
+double xlogy (double x, double y) {
+  return x > 0 && y > 0 ? x*log(y) : 0;
+}
+
 double EventCounts::expectedLogLikelihood (const RateModel& model) const {
   double lp = -model.insRate * indelCounts.insTime
+    + xlogy (indelCounts.ins, model.insRate)
     -model.delRate * indelCounts.delTime
-    + indelCounts.insExt * log (model.insExtProb)
-    + indelCounts.ins * log (1 - model.insExtProb)
-    + indelCounts.delExt * log (model.delExtProb)
-    + indelCounts.del * log (1 - model.delExtProb);
+    + xlogy (indelCounts.del, model.delRate)
+    + xlogy (indelCounts.insExt, model.insExtProb)
+    + xlogy (indelCounts.ins, 1 - model.insExtProb)
+    + xlogy (indelCounts.delExt, model.delExtProb)
+    + xlogy (indelCounts.del, 1 - model.delExtProb);
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
     const double exit_i = -gsl_matrix_get (model.subRate, i, i);
-    lp += rootCount[i] * log (gsl_vector_get (model.insProb, i));
+    lp += xlogy (rootCount[i], gsl_vector_get (model.insProb, i));
     lp -= exit_i * subCount[i][i];
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
-	lp += subCount[i][j] * log (gsl_matrix_get (model.subRate, i, j) / exit_i);
+	lp += xlogy (subCount[i][j], gsl_matrix_get (model.subRate, i, j));
   }
   return lp;
 }

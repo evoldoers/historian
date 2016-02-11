@@ -69,10 +69,13 @@ double logBetaPdf (double prob, double yesCount, double noCount) {
 }
 
 double logGammaPdf (double rate, double eventCount, double waitTime) {
-  return log (gsl_ran_gamma_pdf (rate, eventCount + 1, waitTime));
+  return log (gsl_ran_gamma_pdf (rate, eventCount + 1, 1. / waitTime));
 }
 
 double logDirichletPdf (const vector<double>& prob, const vector<double>& count) {
   Assert (prob.size() == count.size(), "Dimensionality of Dirichlet counts vector does not match that of probability parameter vector");
-  return log (gsl_ran_dirichlet_pdf (prob.size(), count.data(), prob.data()));
+  vector<double> countPlusOne (count);
+  for (auto& c : countPlusOne)
+    ++c;
+  return log (gsl_ran_dirichlet_pdf (prob.size(), countPlusOne.data(), prob.data()));
 }

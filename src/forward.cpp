@@ -1001,7 +1001,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
     fwd.slowFillTest();
     slowFillTest();
     sourceDestTransTest();
-    Abort ("Forward log-likelihood is %g, Backward log-likelihood is %g", fwd.lpEnd, lpStart());
+    Warn ("Forward log-likelihood is %g, Backward log-likelihood is %g", fwd.lpEnd, lpStart());
   }
 }
 
