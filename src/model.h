@@ -55,6 +55,7 @@ class ProbModel : public AlphabetOwner {
 public:
   typedef enum { Match, Insert, Delete, End } State;
   double t, ins, del, insExt, delExt;
+  double insWait, delWait;
   gsl_vector* insVec;
   gsl_matrix* subMat;
   ProbModel (const RateModel& model, double t);
@@ -73,7 +74,7 @@ struct LogProbModel {
 };
 
 struct IndelCounts {
-  double ins, del, insExt, delExt, matchTime, delTime;
+  double ins, del, insExt, delExt, matchTime, delTime, insTime;
   LogProb lp;
   IndelCounts (double pseudocount = 0, double pseudotime = 0);
   IndelCounts operator+ (const IndelCounts& c) const;
@@ -84,6 +85,10 @@ struct IndelCounts {
   void accumulateIndelCounts (const RateModel& model, const Tree& tree, const AlignPath& align, double weight = 1.);
   void writeJson (ostream& out, const size_t indent = 0) const;
   void read (const JsonValue& json);
+
+  // helper to compute the expected wait time before an irreversible decay event,
+  // conditioned on the event being known to have taken place
+  static double decayWaitTime (double decayRate, double timeInterval);
 };
 
 struct EventCounts : AlphabetOwner {

@@ -536,7 +536,7 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
 	c.indelCounts.delExt += 1;
       else {
 	c.indelCounts.del += 1;
-	c.indelCounts.delTime += hmm.r.t;
+	c.indelCounts.delTime += hmm.r.delWait;
       }
     }
     break;
@@ -544,8 +544,10 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
     if (!xNull) {
       if (src.state == dest.state)
 	c.indelCounts.insExt += 1;
-      else
+      else {
 	c.indelCounts.ins += 1;
+	c.indelCounts.insTime += hmm.l.insWait;
+      }
     }
     break;
   case PairHMM::IDM:
@@ -555,7 +557,7 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
 	c.indelCounts.delExt += 1;
       else {
 	c.indelCounts.del += 1;
-	c.indelCounts.delTime += hmm.l.t;
+	c.indelCounts.delTime += hmm.l.delWait;
       }
     }
     break;
@@ -563,8 +565,10 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
     if (!yNull) {
       if (src.state == dest.state)
 	c.indelCounts.insExt += 1;
-      else
+      else {
 	c.indelCounts.ins += 1;
+	c.indelCounts.insTime += hmm.r.insWait;
+      }
     }
     break;
   default:

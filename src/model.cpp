@@ -242,6 +242,8 @@ ProbModel::ProbModel (const RateModel& model, double t)
     del (1 - exp (-model.delRate * t)),
     insExt (model.insExtProb),
     delExt (model.delExtProb),
+    insWait (IndelCounts::decayWaitTime (model.insRate, t)),
+    delWait (IndelCounts::decayWaitTime (model.delRate, t)),
     insVec (model.newAlphabetVector()),
     subMat (model.getSubProbMatrix (t))
 {
@@ -471,6 +473,7 @@ IndelCounts::IndelCounts (double pseudocount, double pseudotime)
     delExt(pseudocount),
     matchTime(pseudotime),
     delTime(0),
+    insTime(0),
     lp(0)
 { }
 
@@ -481,6 +484,7 @@ IndelCounts& IndelCounts::operator+= (const IndelCounts& c) {
   delExt += c.delExt;
   matchTime += c.matchTime;
   delTime += c.delTime;
+  insTime += c.insTime;
   lp += c.lp;
   return *this;
 }
@@ -492,6 +496,7 @@ IndelCounts& IndelCounts::operator*= (double w) {
   delExt *= w;
   matchTime *= w;
   delTime *= w;
+  insTime *= w;
   lp *= w;
   return *this;
 }
@@ -604,6 +609,7 @@ EventCounts EventCounts::operator* (double w) const {
 }
 
 void IndelCounts::accumulateIndelCounts (const RateModel& model, double time, const AlignRowPath& parent, const AlignRowPath& child, double weight) {
+  const double insWait = decayWaitTime (model.insRate, time), delWait = decayWaitTime (model.delRate, time);
   ProbModel pm (model, time);
   ProbModel::State state, next;
   state = ProbModel::Match;
@@ -623,15 +629,17 @@ void IndelCounts::accumulateIndelCounts (const RateModel& model, double time, co
     case ProbModel::Insert:
       if (state == next)
 	insExt += weight;
-      else
+      else {
 	ins += weight;
+	insTime += weight * insWait;
+      }
       break;
     case ProbModel::Delete:
       if (state == next)
 	delExt += weight;
       else {
 	del += weight;
-	delTime += weight * time;
+	delTime += weight * delWait;
       }
       break;
     default:
@@ -700,6 +708,7 @@ void IndelCounts::writeJson (ostream& out, const size_t indent) const {
   out << ind << " \"insExt\": " << insExt << "," << endl;
   out << ind << " \"delExt\": " << delExt << "," << endl;
   out << ind << " \"matchTime\": " << matchTime << "," << endl;
+  out << ind << " \"insTime\": " << insTime << endl;
   out << ind << " \"delTime\": " << delTime << endl;
   out << ind << "}";
 }
@@ -711,6 +720,7 @@ void IndelCounts::read (const JsonValue& json) {
   insExt = jm.getNumber("insExt");
   delExt = jm.getNumber("delExt");
   matchTime = jm.getNumber("matchTime");
+  insTime = jm.getNumber("insTime");
   delTime = jm.getNumber("delTime");
 }
 
@@ -756,14 +766,14 @@ void EventCounts::optimize (RateModel& model) const {
     gsl_matrix_set (model.subRate, i, i, r_ii);
   }
 
-  model.insRate = indelCounts.ins / indelCounts.matchTime;
+  model.insRate = indelCounts.ins / (indelCounts.matchTime + indelCounts.insTime);
   model.delRate = indelCounts.del / (indelCounts.matchTime + indelCounts.delTime);
   model.insExtProb = indelCounts.insExt / (indelCounts.insExt + indelCounts.ins);
   model.delExtProb = indelCounts.delExt / (indelCounts.delExt + indelCounts.del);
 }
 
 double EventCounts::logPrior (const RateModel& model) const {
-  double lp = logGammaPdf (model.insRate, indelCounts.ins, indelCounts.matchTime)
+  double lp = logGammaPdf (model.insRate, indelCounts.ins, indelCounts.matchTime + indelCounts.insTime)
     + logGammaPdf (model.delRate, indelCounts.del, indelCounts.matchTime + indelCounts.delTime)
     + logBetaPdf (model.insExtProb, indelCounts.insExt, indelCounts.ins)
     + logBetaPdf (model.delExtProb, indelCounts.delExt, indelCounts.del)
@@ -776,13 +786,12 @@ double EventCounts::logPrior (const RateModel& model) const {
 }
 
 double EventCounts::expectedLogLikelihood (const RateModel& model) const {
-  double lp = -model.insRate * indelCounts.matchTime
+  double lp = -model.insRate * (indelCounts.matchTime + indelCounts.insTime)
     -model.delRate * (indelCounts.matchTime + indelCounts.delTime)
     + indelCounts.insExt * log (model.insExtProb)
     + indelCounts.ins * log (1 - model.insExtProb)
     + indelCounts.delExt * log (model.delExtProb)
     + indelCounts.del * log (1 - model.delExtProb);
-  //    + logDirichletPdf (gsl_vector_to_stl(model.insProb), rootCount);
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
     const double exit_i = -gsl_matrix_get (model.subRate, i, i);
     lp += rootCount[i] * log (gsl_vector_get (model.insProb, i));
@@ -792,4 +801,8 @@ double EventCounts::expectedLogLikelihood (const RateModel& model) const {
 	lp += subCount[i][j] * log (gsl_matrix_get (model.subRate, i, j) / exit_i);
   }
   return lp;
+}
+
+double IndelCounts::decayWaitTime (double decayRate, double timeInterval) {
+  return 1 / decayRate - timeInterval / (exp (decayRate*timeInterval) - 1);
 }
