@@ -52,6 +52,7 @@ Reconstruction algorithm options:
   -keepgapsopen   Keep gaps open (c.f. PRANK's +F option)
 
 Guide alignment construction options:
+  -allvsall       Try all pairwise alignments, not just a random spanning graph
   -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
   -kmatchn &lt;n&gt;    Threshold# of kmer matches to seed a diagonal
   -kmatchband &lt;n&gt; Size of DP band around kmer-matching diagonals (default 64)

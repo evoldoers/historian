@@ -78,6 +78,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     //    + "Both strategies are subject to the state limit imposed by -states.\n"
     //    + "\n"
     + "Guide alignment construction options:\n"
+    + "  -allvsall       Try all pairwise alignments, not just a random spanning graph\n"
     + "  -kmatch <k>     Length of kmers for pre-filtering heuristic (default " + to_string(DEFAULT_KMER_LENGTH) + ")\n"
     + "  -kmatchn <n>    Threshold# of kmer matches to seed a diagonal\n"
     + "  -kmatchband <n> Size of DP band around kmer-matching diagonals (default " + to_string(DEFAULT_BAND_SIZE) + ")\n"

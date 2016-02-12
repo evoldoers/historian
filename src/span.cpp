@@ -12,11 +12,11 @@ AlignGraph::Partition::Partition (size_t n)
   }
 }
 
-bool AlignGraph::Partition::inSameSet (const AlignGraph::Edge& e) const {
+bool AlignGraph::Partition::inSameSet (const AlignGraph::TrialEdge& e) const {
   return seqSetIdx[e.row1] == seqSetIdx[e.row2];
 }
 
-void AlignGraph::Partition::merge (const AlignGraph::Edge& e) {
+void AlignGraph::Partition::merge (const AlignGraph::TrialEdge& e) {
   if (!inSameSet(e)) {
     size_t idx1 = seqSetIdx[e.row1];
     size_t idx2 = seqSetIdx[e.row2];
@@ -36,11 +36,36 @@ AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, con
   : seqs (seqs),
     model (model),
     time (time),
+    diagEnvParams (diagEnvParams),
     edges (seqs.size()),
     edgePath (seqs.size())
 {
-  Partition part (seqs.size());
+  buildSparseRandomGraph (generator);
+}
 
+AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, const double time, const DiagEnvParams& diagEnvParams)
+  : seqs (seqs),
+    model (model),
+    time (time),
+    diagEnvParams (diagEnvParams),
+    edges (seqs.size()),
+    edgePath (seqs.size())
+{
+  buildDenseGraph();
+}
+
+void AlignGraph::buildDenseGraph() {
+  list<TrialEdge> e;
+  for (AlignRowIndex src = 0; src + 1 < seqs.size(); ++src)
+    for (AlignRowIndex dest = src + 1; dest < seqs.size(); ++dest)
+      e.push_back (TrialEdge (src, dest));
+  buildGraph (e);
+}
+
+void AlignGraph::buildSparseRandomGraph (ForwardMatrix::random_engine& generator) {
+  list<TrialEdge> trialEdges;
+  map<AlignRowIndex,set<AlignRowIndex> > targets;
+  Partition part (seqs.size());
   const size_t nEdges = min ((size_t) (seqs.size() * (seqs.size() - 1) / 2),
 			     (size_t) ceil (log(seqs.size()) * (double) seqs.size() / log(2)));
   
@@ -52,7 +77,20 @@ AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, con
       dest = dist (generator);
       if (dest < src)
 	swap (src, dest);
-    } while (src == dest || edgePath[src].find(dest) != edgePath[src].end());
+    } while (src == dest || targets[src].count(dest));
+    targets[src].insert (dest);
+    trialEdges.push_back (TrialEdge (src, dest));
+    part.merge (trialEdges.back());
+    LogThisAt(7,"Queueing alignment of " << seqs[src].name << " and " << seqs[dest].name << " (" << plural(n+1,"edge") << ", " << plural(part.nSets,"disjoint set") << ")" << endl);
+  }
+
+  buildGraph (trialEdges);
+}
+
+void AlignGraph::buildGraph (const list<TrialEdge>& trialEdges) {
+  size_t n = 0;
+  for (auto& trialEdge : trialEdges) {
+    const size_t src = trialEdge.row1, dest = trialEdge.row2;
 
     DiagonalEnvelope env (seqs[src], seqs[dest]);
     if (diagEnvParams.sparse) {
@@ -72,9 +110,7 @@ AlignGraph::AlignGraph (const vguard<FastSeq>& seqs, const RateModel& model, con
     edges[src].push (e);
     edges[dest].push (e);
 
-    part.merge (e);
-
-    LogThisAt(3,"Aligned " << seqs[src].name << " and " << seqs[dest].name << " (" << plural(n+1,"edge") << ", " << plural(part.nSets,"disconnected set") << ")" << endl);
+    LogThisAt(5,"Aligned " << seqs[src].name << " and " << seqs[dest].name << " (" << plural(++n,"edge") << ")" << endl);
   }
 }
 
@@ -96,7 +132,7 @@ list<AlignPath> AlignGraph::minSpanTree() {
     paths.push_back (edgePath[best.row1][best.row2]);
     part.merge (best);
 
-    LogThisAt(3,"Joined " << seqs[best.row1].name << " and " << seqs[best.row2].name << " (" << plural(paths.size(),"edge") << ", " << plural(part.nSets,"disconnected set") << ")" << endl);
+    LogThisAt(6,"Joined " << seqs[best.row1].name << " and " << seqs[best.row2].name << " (" << plural(paths.size(),"edge") << ", " << plural(part.nSets,"disconnected set") << ")" << endl);
   }
 
   return paths;

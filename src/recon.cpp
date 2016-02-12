@@ -15,6 +15,7 @@ Reconstructor::Reconstructor()
     profileNodeLimit (0),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
+    guideAlignTryAllPairs (false),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
@@ -154,6 +155,11 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       rndSeed = atoi (argvec[1].c_str());
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-allvsall") {
+      guideAlignTryAllPairs = true;
       argvec.pop_front();
       return true;
     }
@@ -349,9 +355,15 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
 	  LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
 	else {
 	  LogThisAt(1,"Building guide alignment" << endl);
-	  seedGenerator();
-	  AlignGraph ag (dataset.seqs, model, 1, diagEnvParams, generator);
-	  Alignment align = ag.mstAlign();
+	  AlignGraph* ag = NULL;
+	  if (guideAlignTryAllPairs)
+	    ag = new AlignGraph (dataset.seqs, model, 1, diagEnvParams);
+	  else {
+	    seedGenerator();
+	    ag = new AlignGraph (dataset.seqs, model, 1, diagEnvParams, generator);
+	  }
+	  Alignment align = ag->mstAlign();
+	  delete ag;
 	  dataset.guide = align.path;
 	  dataset.gappedGuide = align.gapped();
 	}
@@ -437,7 +449,8 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
 void Reconstructor::reconstruct (Dataset& dataset) {
   LogThisAt(1,"Starting reconstruction on " << dataset.tree.nodes() << "-node tree" << endl);
 
-  seedGenerator();  // re-seed generator, in case it was used during prealignment
+  if (!usePosteriorsForProfile)
+    seedGenerator();  // re-seed generator, in case it was used during prealignment
 
   gsl_vector* rootProb = model.insProb;
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();

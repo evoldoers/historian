@@ -21,7 +21,7 @@ public:
   string modelSaveFilename, guideSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
-  bool includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
+  bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
   double minPostProb, minEMImprovement;
   typedef enum { FastaFormat, NexusFormat, StockholmFormat } OutputFormat;
   OutputFormat outputFormat;
