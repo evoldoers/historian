@@ -482,6 +482,9 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 
       ForwardMatrix forward (lProf, rProf, hmm, node, dataset.guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (dataset.guide, dataset.closestLeaf[lChildNode], dataset.closestLeaf[rChildNode], maxDistanceFromGuide), sumProd);
 
+      if (reconstructRoot)
+	LogThisAt(5,"Best alignment of " << lProf.name << " and " << rProf.name << ":\n" << makeAlignmentString (dataset, forward.bestAlignPath(), node, true));
+
       BackwardMatrix *backward = NULL;
       if ((accumulateCounts && node == dataset.tree.root()) || (usePosteriorsForProfile && node != dataset.tree.root()))
 	backward = new BackwardMatrix (forward, minPostProb);
@@ -513,7 +516,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	if (node == dataset.tree.root())
 	  lpFinalTrace = lpTrace;
 
-	LogThisAt(5,nodeProf.toJson());
+	LogThisAt(7,nodeProf.toJson());
       }
     }
   }
@@ -521,17 +524,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
   LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << (reconstructRoot ? (string(", final alignment log-likelihood is ") + to_string(lpFinalTrace)) : string()) << endl);
 
   if (reconstructRoot) {
-    vguard<FastSeq> ungapped (dataset.tree.nodes());
-    for (TreeNodeIndex node = 0; node < dataset.tree.nodes(); ++node) {
-      if (dataset.tree.isLeaf(node)) 
-	ungapped[node] = dataset.seqs[dataset.seqIndex.at(dataset.rowName[node])];
-      else {
-	ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), Alignment::wildcardChar);
-	ungapped[node].name = dataset.rowName[node];
-      }
-    }
-
-    dataset.reconstruction = Alignment (ungapped, path);
+    dataset.reconstruction = makeAlignment (dataset, path, dataset.tree.root());
     dataset.gappedRecon = dataset.reconstruction.gapped();
 
     if (predictAncestralSequence) {
@@ -700,3 +693,35 @@ void Reconstructor::fit() {
     }
   }
 }
+
+Alignment Reconstructor::makeAlignment (const Dataset& dataset, const AlignPath& path, TreeNodeIndex root) const {
+  vguard<FastSeq> ungapped (dataset.tree.nodes());
+  for (TreeNodeIndex node : dataset.tree.nodeAndDescendants(root)) {
+    if (dataset.tree.isLeaf(node))
+      ungapped[node] = dataset.seqs[dataset.seqIndex.at(dataset.rowName[node])];
+    else {
+      ungapped[node].seq = string (alignPathResiduesInRow(path.at(node)), Alignment::wildcardChar);
+      ungapped[node].name = dataset.rowName[node];
+    }
+  }
+  return Alignment (ungapped, path);
+}
+
+string Reconstructor::makeAlignmentString (const Dataset& dataset, const AlignPath& path, TreeNodeIndex root, bool assignInternalNodeNames) const {
+  vguard<FastSeq> g = makeAlignment(dataset,path,root).gapped();
+  for (TreeNodeIndex node = 0; node < dataset.tree.nodes(); ++node)
+    if (g[node].name.empty())
+      g[node].name = dataset.tree.seqName(node);
+  Tree tbig = dataset.tree;
+  if (assignInternalNodeNames)
+    tbig.assignInternalNodeNames (g);
+  Tree t (tbig.toString (root));
+  vguard<FastSeq> gt;
+  for (auto n : dataset.tree.nodeAndDescendants(root))
+    gt.push_back (g[n]);
+  Stockholm stock (gt, t);
+  ostringstream out;
+  stock.write (out);
+  return out.str();
+}
+

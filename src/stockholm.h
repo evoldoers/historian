@@ -20,6 +20,7 @@ struct Stockholm {
 
   Stockholm();
   Stockholm (istream& in);
+  Stockholm (const vguard<FastSeq>& seq);
   Stockholm (const vguard<FastSeq>& seq, const Tree& tree);
   
   void read (istream& in);

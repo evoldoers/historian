@@ -36,6 +36,8 @@ struct Tree {
   TreeNodeIndex getChild (TreeNodeIndex node, size_t childNum) const;
   TreeNodeIndex getSibling (TreeNodeIndex node) const;
 
+  vguard<TreeNodeIndex> nodeAndDescendants (TreeNodeIndex node) const;
+  
   // I/O
   void parse (const string& nhx);
   void validateBranchLengths() const;

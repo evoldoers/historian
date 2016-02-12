@@ -22,6 +22,10 @@ Stockholm::Stockholm (istream& in) {
   read (in);
 }
 
+Stockholm::Stockholm (const vguard<FastSeq>& seq)
+  : gapped (seq)
+{ }
+
 Stockholm::Stockholm (const vguard<FastSeq>& seq, const Tree& tree)
   : gapped (seq)
 {

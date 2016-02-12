@@ -93,6 +93,9 @@ private:
   void loadTree (Dataset& dataset);
   void buildTree (Dataset& dataset);
 
+  Alignment makeAlignment (const Dataset& dataset, const AlignPath& path, TreeNodeIndex root) const;
+  string makeAlignmentString (const Dataset& dataset, const AlignPath& path, TreeNodeIndex root, bool assignInternalNodeNames) const;
+  
   void seedGenerator();
 };
 

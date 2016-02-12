@@ -7,9 +7,9 @@ Tree::Tree (const string& nhx) {
 }
 
 void Tree::parse (const string& nhx) {
-  LogThisAt(5,"Parsing tree: " << nhx << endl);
+  LogThisAt(8,"Parsing tree: " << nhx << endl);
   ktree_t *tree = kn_parse (nhx.c_str());
-  LogThisAt(6,"Tree has " << plural(tree->n,"node") << endl);
+  LogThisAt(8,"Tree has " << plural(tree->n,"node") << endl);
   node = vguard<TreeNode> (tree->n);
   set<string> names;
   for (int n = 0; n < tree->n; ++n) {
@@ -280,4 +280,15 @@ void Tree::assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix) {
   assignInternalNodeNames (prefix);
   for (size_t n = 0; n < nodes(); ++n)
     seq[n].name = seqName(n);
+}
+
+vguard<TreeNodeIndex> Tree::nodeAndDescendants (TreeNodeIndex node) const {
+  vguard<TreeNodeIndex> d;
+  vguard<bool> inClade (nodes(), false);
+  for (TreeNodeIndex n = nodes() - 1; n >= 0; --n)
+    if (n == node || (n < nodes() - 1 && inClade[parentNode(n)])) {
+      inClade[n] = true;
+      d.push_back (n);
+    }
+  return d;
 }
