@@ -49,7 +49,7 @@ Reconstruction algorithm options:
   -noband         Turn off band, ignore guide alignment
   -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .1)
   -states &lt;n&gt;     Limit max number of states per profile
-  -keepgapsopen   Keep gaps open
+  -keepgapsopen   Postpone insert/delete resolution until grandparent reached
 
 Guide alignment construction options:
   -allvsall       Try all pairwise alignments, not just a random spanning graph
