@@ -202,7 +202,7 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
     }
   }
 
-  return parsePostArgs (argvec);
+  return parseSumArgs (argvec) || parsePostArgs (argvec);
 }
 
 bool Reconstructor::parseTreeArgs (deque<string>& argvec) {

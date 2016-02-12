@@ -18,7 +18,8 @@ Event counting:
   historian count -recon reconstruction.fa -tree tree.nh &gt;counts.json
 
 Model fitting:
-  historian fit counts.json &gt;newmodel.json
+  historian fit seqs.fa &gt;newmodel.json
+  historian fit -counts counts.json &gt;newmodel.json
 
 All commands can be abbreviated to single letters, like so:
   historian r seqs.fa &gt;reconstruction.stk

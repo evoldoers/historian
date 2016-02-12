@@ -35,7 +35,8 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  " + prog + " count -recon reconstruction.fa -tree tree.nh >counts.json\n"
     + "\n"
     + "Model fitting:\n"
-    + "  " + prog + " fit counts.json >newmodel.json\n"
+    + "  " + prog + " fit seqs.fa >newmodel.json\n"
+    + "  " + prog + " fit -counts counts.json >newmodel.json\n"
     + "\n"
     + "All commands can be abbreviated to single letters, like so:\n"
     + "  " + prog + " r seqs.fa >reconstruction.stk\n"
@@ -153,7 +154,7 @@ int main (int argc, char** argv) {
     recon.reconstructRoot = false;
     recon.accumulateCounts = true;
 
-    usage.implicitSwitches.push_back (string ("-nexusrecon"));
+    usage.implicitSwitches.push_back (string ("-seqs"));
     usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
@@ -189,7 +190,7 @@ int main (int argc, char** argv) {
     recon.reconstructRoot = false;
     recon.accumulateCounts = true;
 
-    usage.implicitSwitches.push_back (string ("-counts"));
+    usage.implicitSwitches.push_back (string ("-seqs"));
     usage.unlimitImplicitSwitches = true;
     
     while (logger.parseLogArgs (argvec)
