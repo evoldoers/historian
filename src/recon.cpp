@@ -487,7 +487,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 
       BackwardMatrix *backward = NULL;
       if ((accumulateCounts && node == dataset.tree.root()) || (usePosteriorsForProfile && node != dataset.tree.root()))
-	backward = new BackwardMatrix (forward, minPostProb);
+	backward = new BackwardMatrix (forward);
 
       Profile& nodeProf = prof[node];
       if (node == dataset.tree.root()) {
@@ -496,7 +496,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	  nodeProf = forward.bestProfile();
 	}
       } else if (usePosteriorsForProfile)
-	nodeProf = backward->buildProfile (profileNodeLimit, strategy);
+	nodeProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);
       else
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
 

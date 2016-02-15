@@ -872,7 +872,7 @@ map<AlignRowIndex,char> ForwardMatrix::getAlignmentColumn (const CellCoords& cel
   return col;
 }
 
-BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
+BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd)
   : DPMatrix (fwd.x, fwd.y, fwd.hmm, fwd.envelope),
     fwd (fwd)
 {
@@ -893,10 +893,6 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
       }
     }
   }
-
-  const LogProb fwdEnd = fwd.lpEnd;
-  const LogProb lppThreshold = log(minPostProb);
-  const auto states = hmm.states();
 
   ProgressLog (plog, 4);
   plog.initProgress ("Backward algorithm (%s vs %s)", x.name.c_str(), y.name.c_str());
@@ -983,14 +979,6 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd, double minPostProb)
 	  log_accum_exp (idm, yTrans.lpTrans + dest(PairHMM::IDM));
 	  log_accum_exp (imi, yTrans.lpTrans + dest(PairHMM::IMI));
 	  log_accum_exp (imm, yTrans.lpTrans + dest(PairHMM::IMM));
-	}
-
-	// track cells above posterior probability threshold
-	const XYCell& fwdSrc = fwd.xyCell(i,j);
-	for (auto s : states) {
-	  const LogProb lpp = src(s) + fwdSrc(s) - fwdEnd;
-	  if (lpp >= lppThreshold)
-	    bestCells.push (CellPostProb (i, j, s, lpp));
 	}
       }
     }
@@ -1200,16 +1188,36 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
   return path;
 }
 
-Profile BackwardMatrix::buildProfile (size_t maxCells, ProfilingStrategy strategy) {
+priority_queue<BackwardMatrix::CellPostProb> BackwardMatrix::bestCells (double minPostProb) const {
+  priority_queue<CellPostProb> bc;
+  const LogProb lppThreshold = log(minPostProb);
+  const LogProb fwdEnd = fwd.lpEnd;
+  const auto states = hmm.states();
+  for (int i = xSize - 2; i >= 0; --i)
+    for (int j = ySize - 2; j >= 0; --j)
+      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+	const XYCell& backSrc = xyCell(i,j);
+	const XYCell& fwdSrc = fwd.xyCell(i,j);
+	for (auto s : states) {
+	  const LogProb lpp = backSrc(s) + fwdSrc(s) - fwdEnd;
+	  if (lpp >= lppThreshold)
+	    bc.push (CellPostProb (i, j, s, lpp));
+	}
+      }
+  return bc;
+}
+
+Profile BackwardMatrix::buildProfile (double minPostProb, size_t maxCells, ProfilingStrategy strategy) {
+  priority_queue<CellPostProb> bc = bestCells (minPostProb);
   set<CellCoords> cells;
-  if (bestCells.empty() || (strategy & IncludeBestTrace)) {
+  if (bc.empty() || (strategy & IncludeBestTrace)) {
     const list<CellCoords> fwdBestTrace = fwd.bestTrace();
     cells.insert (fwdBestTrace.begin(), fwdBestTrace.end());
   }
-  while ((maxCells == 0 || cells.size() < maxCells) && !bestCells.empty()) {
-    const CellCoords& best = bestCells.top();
+  while ((maxCells == 0 || cells.size() < maxCells) && !bc.empty()) {
+    const CellCoords& best = bc.top();
     if (cells.count (best))
-      bestCells.pop();
+      bc.pop();
     else {
       LogThisAt(5,"Starting traceback/forward from " << cellName(best) << endl);
       const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);

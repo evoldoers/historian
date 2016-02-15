@@ -176,10 +176,9 @@ public:
     bool operator< (const CellPostProb& cpp) const
     { return logPostProb < cpp.logPostProb; }
   };
-  priority_queue<CellPostProb> bestCells;
   ForwardMatrix& fwd;
   
-  BackwardMatrix (ForwardMatrix& fwd, double minPostProb);
+  BackwardMatrix (ForwardMatrix& fwd);
 
   // posterior probabilities & counts
   double cellPostProb (const CellCoords& cell) const;
@@ -191,7 +190,8 @@ public:
   Path bestTrace (const CellCoords& start);
 
   // profile construction
-  Profile buildProfile (size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
+  priority_queue<CellPostProb> bestCells (double minPostProb) const;
+  Profile buildProfile (double minPostProb, size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
 
   map<CellCoords,LogProb> destTransitions (const CellCoords& srcCell);
 

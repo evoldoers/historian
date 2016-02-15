@@ -27,14 +27,15 @@ int main (int argc, char **argv) {
   Profile xprof (rates.alphabet, seqs[0], 1);
   Profile yprof (rates.alphabet, seqs[1], 2);
   ForwardMatrix forward (xprof, yprof, hmm, 0, GuideAlignmentEnvelope());
-  BackwardMatrix backward (forward, .5);
+  BackwardMatrix backward (forward);
 
   cout << "Forward score: " << forward.lpEnd << endl;
   cout << "Backward score: " << backward.lpStart() << endl;
 
-  while (!backward.bestCells.empty()) {
-    cout << "P" << backward.cellName (backward.bestCells.top()) << " = " << exp(backward.bestCells.top().logPostProb) << endl;
-    backward.bestCells.pop();
+  auto bestCells = backward.bestCells (.5);
+  while (!bestCells.empty()) {
+    cout << "P" << backward.cellName (bestCells.top()) << " = " << exp(bestCells.top().logPostProb) << endl;
+    bestCells.pop();
   }
   
   exit (EXIT_SUCCESS);
