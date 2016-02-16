@@ -25,8 +25,11 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
     }
   for (const auto& trans : prof.trans)
     for (auto s : stateNodes[trans.src])
-      for (auto d : stateNodes[trans.dest])
+      for (auto d : stateNodes[trans.dest]) {
+	node[s].out.push_back (edge.size());
+	node[d].in.push_back (edge.size());
 	edge.push_back (Edge (s, d));
+      }
 }
 
 void SeqGraph::writeDot (ostream& out) const {
