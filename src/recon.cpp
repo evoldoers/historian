@@ -9,6 +9,7 @@
 #include "amino.h"
 #include "nexus.h"
 #include "stockholm.h"
+#include "seqgraph.h"
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
@@ -36,6 +37,13 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-ancseq") {
       predictAncestralSequence = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-savedot") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      dotSaveFilename = argvec[1];
+      argvec.pop_front();
       argvec.pop_front();
       return true;
 
@@ -486,7 +494,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	LogThisAt(5,"Best alignment of " << lProf.name << " and " << rProf.name << ":\n" << makeAlignmentString (dataset, forward.bestAlignPath(), node, true));
 
       BackwardMatrix *backward = NULL;
-      if ((accumulateCounts && node == dataset.tree.root()) || (usePosteriorsForProfile && node != dataset.tree.root()))
+      if ((accumulateCounts && node == dataset.tree.root()) || (usePosteriorsForProfile && node != dataset.tree.root()) || !dotSaveFilename.empty())
 	backward = new BackwardMatrix (forward);
 
       Profile& nodeProf = prof[node];
@@ -494,6 +502,12 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	if (reconstructRoot) {
 	  path = forward.bestAlignPath();
 	  nodeProf = forward.bestProfile();
+	}
+	if (!dotSaveFilename.empty()) {
+	  Profile rootProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);
+	  SeqGraph rootSeqGraph (rootProf, model.alphabet, log_gsl_vector(rootProb), minPostProb);
+	  ofstream dotFile (dotSaveFilename);
+	  rootSeqGraph.writeDot (dotFile);
 	}
       } else if (usePosteriorsForProfile)
 	nodeProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);

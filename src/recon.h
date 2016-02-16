@@ -18,7 +18,7 @@ class Reconstructor {
 public:
   string fastaReconFilename, treeFilename, modelFilename;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
-  string modelSaveFilename, guideSaveFilename;
+  string modelSaveFilename, guideSaveFilename, dotSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
   bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
