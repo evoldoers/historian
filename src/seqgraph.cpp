@@ -6,11 +6,11 @@
 struct SeqGraphNodeSummary {
   string seq;
   set<SeqGraph::NodeIndex> dest;
-  SeqGraphNodeSummary (const SeqGraph::Node& node)
+  SeqGraphNodeSummary (const SeqGraph::Node& node, const map<SeqGraph::NodeIndex,SeqGraph::NodeIndex>& equiv)
     : seq (node.seq)
   {
     for (const auto& e : node.out)
-      dest.insert (e.dest);
+      dest.insert (equiv.count(e.dest) ? equiv.at(e.dest) : e.dest);
   }
   bool operator== (const SeqGraphNodeSummary& summ) const {
     return seq == summ.seq && dest == summ.dest;
@@ -123,11 +123,11 @@ SeqGraph SeqGraph::eliminateNull() const {
   return g;
 }
 
-SeqGraph SeqGraph::eliminateRedundant() const {
+SeqGraph SeqGraph::eliminateDuplicates() const {
   map<NodeIndex,NodeIndex> equiv, old2new;
   map<SeqGraphNodeSummary,NodeIndex> unique;
   for (auto n : reverseNodeIndices()) {
-    const SeqGraphNodeSummary summ (node[n]);
+    const SeqGraphNodeSummary summ (node[n], equiv);
     if (unique.count(summ))
       equiv[n] = unique[summ];
     else
@@ -147,19 +147,8 @@ SeqGraph SeqGraph::eliminateRedundant() const {
       if (old2new.count(e.src))
 	g.edge.insert (Edge (old2new.at(e.src),
 			     old2new.at (equiv.count(e.dest) ? equiv.at(e.dest) : e.dest)));
-    LogThisAt(3,"Eliminated " << plural(nodes() - g.nodes(),"redundant node") << endl);
+    LogThisAt(3,"Eliminated " << plural(nodes() - g.nodes(),"duplicate node") << endl);
     g.buildIndices();
-  }
-  return g;
-}
-
-SeqGraph SeqGraph::iterateEliminateRedundant() const {
-  SeqGraph g = *this;
-  while (true) {
-    SeqGraph ge = g.eliminateRedundant();
-    if (ge.nodes() == g.nodes())
-      break;
-    g = ge;
   }
   return g;
 }
@@ -201,5 +190,5 @@ SeqGraph SeqGraph::collapseChains() const {
 }
 
 SeqGraph SeqGraph::simplify() const {
-  return eliminateNull().iterateEliminateRedundant().collapseChains();
+  return eliminateNull().eliminateDuplicates().collapseChains();
 }

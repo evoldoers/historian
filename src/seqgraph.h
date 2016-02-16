@@ -35,8 +35,7 @@ struct SeqGraph {
   void assertToposort() const;
   
   SeqGraph eliminateNull() const;
-  SeqGraph eliminateRedundant() const;
-  SeqGraph iterateEliminateRedundant() const;
+  SeqGraph eliminateDuplicates() const;
   SeqGraph collapseChains() const;
 
   SeqGraph simplify() const;
