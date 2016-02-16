@@ -1,4 +1,6 @@
+#include <algorithm>
 #include "seqgraph.h"
+#include "util.h"
 
 SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<LogProb>& logInsProb, double minPostProb) {
   const LogProb minLogPostProb = log (minPostProb);
@@ -25,18 +27,83 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
     }
   for (const auto& trans : prof.trans)
     for (auto s : stateNodes[trans.src])
-      for (auto d : stateNodes[trans.dest]) {
-	node[s].out.push_back (edge.size());
-	node[d].in.push_back (edge.size());
-	edge.push_back (Edge (s, d));
-      }
+      for (auto d : stateNodes[trans.dest])
+	edge.insert (Edge (s, d));
+  buildIndices();
+  assertToposort();
 }
+
+void SeqGraph::buildIndices() {
+  for (const auto& e : edge) {
+    node[e.src].out.push_back (e);
+    node[e.dest].in.push_back (e);
+  }
+}
+
 
 void SeqGraph::writeDot (ostream& out) const {
   out << "digraph profile {" << endl;
   for (NodeIndex n = 0; n < nodes(); ++n)
     out << "  n" << n+1 << " [ label = \"" << node[n].seq << "\" ];" << endl;
-  for (EdgeIndex e = 0; e < edges(); ++e)
-    out << "  n" << edge[e].src+1 << " -> n" << edge[e].dest+1 << ";" << endl;
+  for (auto& e : edge)
+    out << "  n" << e.src+1 << " -> n" << e.dest+1 << ";" << endl;
   out << "}" << endl;
+}
+
+void SeqGraph::assertToposort() const {
+  for (auto& e : edge)
+    Assert (e.dest > e.src, "SeqGraph is not topologically sorted");
+}
+
+vguard<SeqGraph::NodeIndex> SeqGraph::nodeIndices() const {
+  vguard<NodeIndex> nl (nodes());
+  iota (nl.begin(), nl.end(), 0);
+  return nl;
+}
+
+vguard<SeqGraph::NodeIndex> SeqGraph::reverseNodeIndices() const {
+  auto nl = nodeIndices();
+  reverse (nl.begin(), nl.end());
+  return nl;
+}
+
+SeqGraph SeqGraph::eliminateNull() const {
+  map<NodeIndex,set<Edge> > elim;
+  set<Edge> keep;
+  for (auto src : reverseNodeIndices()) {
+    set<Edge> srcOut;
+    for (auto& e : node[src].out)
+      if (elim.count (e.dest))
+	for (auto& e2 : elim[e.dest])
+	  srcOut.insert (Edge (src, e2.dest));
+      else
+	srcOut.insert (e);
+    if (node[src].seq.empty())
+      elim[src] = srcOut;
+    else
+      keep.insert (srcOut.begin(), srcOut.end());
+  }
+  SeqGraph g;
+  map<NodeIndex,NodeIndex> old2new;
+  for (auto n : nodeIndices())
+    if (!node[n].seq.empty()) {
+      old2new[n] = g.node.size();
+      g.node.push_back (Node());
+      g.node.back().seq = node[n].seq;
+    }
+  for (const auto& e : keep)
+    g.edge.insert (Edge (old2new.at(e.src), old2new.at(e.dest)));
+  g.buildIndices();
+  g.assertToposort();
+  return g;
+}
+
+SeqGraph SeqGraph::eliminateRedundant() const {
+  SeqGraph g;
+  return g;
+}
+
+SeqGraph SeqGraph::collapseChains() const {
+  SeqGraph g;
+  return g;
 }
