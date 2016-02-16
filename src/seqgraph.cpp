@@ -1,6 +1,27 @@
 #include <algorithm>
 #include "seqgraph.h"
 #include "util.h"
+#include "logger.h"
+
+struct SeqGraphNodeSummary {
+  string seq;
+  set<SeqGraph::NodeIndex> dest;
+  SeqGraphNodeSummary (const SeqGraph::Node& node)
+    : seq (node.seq)
+  {
+    for (const auto& e : node.out)
+      dest.insert (e.dest);
+  }
+  bool operator== (const SeqGraphNodeSummary& summ) const {
+    return seq == summ.seq && dest == summ.dest;
+  }
+  bool operator< (const SeqGraphNodeSummary& summ) const {
+    return seq == summ.seq ? (dest < summ.dest) : (seq < summ.seq);
+  }
+  string str() const {
+    return seq + " " + to_string_join (dest);
+  }
+};
 
 SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<LogProb>& logInsProb, double minPostProb) {
   const LogProb minLogPostProb = log (minPostProb);
@@ -30,7 +51,6 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
       for (auto d : stateNodes[trans.dest])
 	edge.insert (Edge (s, d));
   buildIndices();
-  assertToposort();
 }
 
 void SeqGraph::buildIndices() {
@@ -38,8 +58,9 @@ void SeqGraph::buildIndices() {
     node[e.src].out.push_back (e);
     node[e.dest].in.push_back (e);
   }
+  LogThisAt(3,"Sequence graph has " << plural(nodes(),"node") << " and " << plural(edges(),"edge") << endl);
+  assertToposort();
 }
-
 
 void SeqGraph::writeDot (ostream& out) const {
   out << "digraph profile {" << endl;
@@ -84,22 +105,62 @@ SeqGraph SeqGraph::eliminateNull() const {
       keep.insert (srcOut.begin(), srcOut.end());
   }
   SeqGraph g;
-  map<NodeIndex,NodeIndex> old2new;
-  for (auto n : nodeIndices())
-    if (!node[n].seq.empty()) {
-      old2new[n] = g.node.size();
-      g.node.push_back (Node());
-      g.node.back().seq = node[n].seq;
-    }
-  for (const auto& e : keep)
-    g.edge.insert (Edge (old2new.at(e.src), old2new.at(e.dest)));
-  g.buildIndices();
-  g.assertToposort();
+  if (elim.empty())
+    g = *this;
+  else {
+    map<NodeIndex,NodeIndex> old2new;
+    for (auto n : nodeIndices())
+      if (!node[n].seq.empty()) {
+	old2new[n] = g.node.size();
+	g.node.push_back (Node());
+	g.node.back().seq = node[n].seq;
+      }
+    for (const auto& e : keep)
+      g.edge.insert (Edge (old2new.at(e.src), old2new.at(e.dest)));
+    LogThisAt(3,"Eliminated " << plural(nodes() - g.nodes(),"null node") << endl);
+    g.buildIndices();
+  }
   return g;
 }
 
 SeqGraph SeqGraph::eliminateRedundant() const {
+  map<NodeIndex,NodeIndex> equiv, old2new;
+  map<SeqGraphNodeSummary,NodeIndex> unique;
+  for (auto n : reverseNodeIndices()) {
+    const SeqGraphNodeSummary summ (node[n]);
+    if (unique.count(summ))
+      equiv[n] = unique[summ];
+    else
+      unique[summ] = n;
+  }
   SeqGraph g;
+  if (equiv.empty())
+    g = *this;
+  else {
+    for (auto n : nodeIndices())
+      if (!equiv.count(n)) {
+	old2new[n] = g.node.size();
+	g.node.push_back (Node());
+	g.node.back().seq = node[n].seq;
+      }
+    for (auto& e : edge)
+      if (old2new.count(e.src))
+	g.edge.insert (Edge (old2new.at(e.src),
+			     old2new.at (equiv.count(e.dest) ? equiv.at(e.dest) : e.dest)));
+    LogThisAt(3,"Eliminated " << plural(nodes() - g.nodes(),"redundant node") << endl);
+    g.buildIndices();
+  }
+  return g;
+}
+
+SeqGraph SeqGraph::iterateEliminateRedundant() const {
+  SeqGraph g = *this;
+  while (true) {
+    SeqGraph ge = g.eliminateRedundant();
+    if (ge.nodes() == g.nodes())
+      break;
+    g = ge;
+  }
   return g;
 }
 

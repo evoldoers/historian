@@ -1,6 +1,7 @@
 #ifndef SEQGRAPH_INCLUDED
 #define SEQGRAPH_INCLUDED
 
+#include <list>
 #include "profile.h"
 
 struct SeqGraph {
@@ -13,7 +14,7 @@ struct SeqGraph {
   };
 
   struct Node {
-    vguard<Edge> in, out;
+    list<Edge> in, out;
     string seq;
   };
 
@@ -35,6 +36,7 @@ struct SeqGraph {
   
   SeqGraph eliminateNull() const;
   SeqGraph eliminateRedundant() const;
+  SeqGraph iterateEliminateRedundant() const;
   SeqGraph collapseChains() const;
   
   void writeDot (ostream& out) const;
