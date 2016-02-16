@@ -165,6 +165,41 @@ SeqGraph SeqGraph::iterateEliminateRedundant() const {
 }
 
 SeqGraph SeqGraph::collapseChains() const {
+  map<NodeIndex,NodeIndex> chainEnd, old2new;
+  map<NodeIndex,string> chainSeq;
+  set<NodeIndex> elim;
+  NodeIndex dest;
+  for (auto n : reverseNodeIndices())
+    if (node[n].out.size() == 1
+	&& chainEnd.count(dest = node[n].out.front().dest)
+	&& node[dest].in.size() == 1) {
+      chainEnd[n] = chainEnd.at(dest);
+      chainSeq[chainEnd[n]] = node[n].seq + chainSeq[chainEnd[n]];
+      elim.insert (n);
+    } else if (node[n].in.size() == 1) {
+      chainEnd[n] = n;
+      chainSeq[n] = node[n].seq;
+    }
   SeqGraph g;
+  if (elim.empty())
+    g = *this;
+  else {
+    for (auto n : nodeIndices())
+      if (!elim.count(n)) {
+	old2new[n] = g.node.size();
+	g.node.push_back (Node());
+	g.node.back().seq = chainSeq.count(n) ? chainSeq.at(n) : node[n].seq;
+      }
+    for (auto& e : edge)
+      if (old2new.count (e.src))
+	g.edge.insert (Edge (old2new.at(e.src),
+			     old2new.at (chainEnd.count(e.dest) ? chainEnd.at(e.dest) : e.dest)));
+    LogThisAt(3,"Eliminated " << plural(nodes() - g.nodes(),"chained node") << endl);
+    g.buildIndices();
+  }
   return g;
+}
+
+SeqGraph SeqGraph::simplify() const {
+  return eliminateNull().iterateEliminateRedundant().collapseChains();
 }

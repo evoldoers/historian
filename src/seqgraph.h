@@ -38,7 +38,9 @@ struct SeqGraph {
   SeqGraph eliminateRedundant() const;
   SeqGraph iterateEliminateRedundant() const;
   SeqGraph collapseChains() const;
-  
+
+  SeqGraph simplify() const;
+
   void writeDot (ostream& out) const;
 };
 

@@ -507,7 +507,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	  Profile rootProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);
 	  SeqGraph rootSeqGraph (rootProf, model.alphabet, log_gsl_vector(rootProb), minPostProb);
 	  ofstream dotFile (dotSaveFilename);
-	  rootSeqGraph.eliminateNull().iterateEliminateRedundant().writeDot (dotFile);
+	  rootSeqGraph.simplify().writeDot (dotFile);
 	}
       } else if (usePosteriorsForProfile)
 	nodeProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);
