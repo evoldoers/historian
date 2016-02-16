@@ -609,13 +609,13 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& origCells, ProfilingS
   set<CellCoords> cells (origCells);
   if (strategy & KeepGapsOpen) {
     for (auto& cell : origCells)
-      if (cell.state == PairHMM::IIW)
+      if (cell.state == PairHMM::IIW && !x.state[cell.xpos].isNull())
 	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IMD));
-      else if (cell.state == PairHMM::IMI)
+      else if (cell.state == PairHMM::IMI && !x.state[cell.xpos].isNull())
 	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IDM));
-      else if (cell.state == PairHMM::IMD)
+      else if (cell.state == PairHMM::IMD && !y.state[cell.ypos].isNull())
 	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IIW));
-      else if (cell.state == PairHMM::IDM)
+      else if (cell.state == PairHMM::IDM && !y.state[cell.ypos].isNull())
 	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IMI));
     LogThisAt(5,"Added " << plural(cells.size() - origCells.size(), "state") << " to " << origCells.size() << "-state profile using 'keep gaps open' heuristic" << endl);
   }
