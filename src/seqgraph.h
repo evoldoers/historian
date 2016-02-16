@@ -36,6 +36,7 @@ struct SeqGraph {
   
   SeqGraph eliminateNull() const;
   SeqGraph eliminateDuplicates() const;
+  SeqGraph mergeCharClasses() const;
   SeqGraph collapseChains() const;
 
   SeqGraph simplify() const;

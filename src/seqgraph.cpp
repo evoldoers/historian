@@ -3,26 +3,6 @@
 #include "util.h"
 #include "logger.h"
 
-struct SeqGraphNodeSummary {
-  string seq;
-  set<SeqGraph::NodeIndex> dest;
-  SeqGraphNodeSummary (const SeqGraph::Node& node, const map<SeqGraph::NodeIndex,SeqGraph::NodeIndex>& equiv)
-    : seq (node.seq)
-  {
-    for (const auto& e : node.out)
-      dest.insert (equiv.count(e.dest) ? equiv.at(e.dest) : e.dest);
-  }
-  bool operator== (const SeqGraphNodeSummary& summ) const {
-    return seq == summ.seq && dest == summ.dest;
-  }
-  bool operator< (const SeqGraphNodeSummary& summ) const {
-    return seq == summ.seq ? (dest < summ.dest) : (seq < summ.seq);
-  }
-  string str() const {
-    return seq + " " + to_string_join (dest);
-  }
-};
-
 SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<LogProb>& logInsProb, double minPostProb) {
   const LogProb minLogPostProb = log (minPostProb);
   vguard<vguard<NodeIndex> > stateNodes (prof.size());
@@ -39,6 +19,7 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
 	if (i == 0 || lp[i] > lp[iMax])
 	  iMax = i;
       }
+      vguard<char> variants;
       for (AlphTok i = 0; i < logInsProb.size(); ++i)
 	if (i == iMax || lp[i] > minLogPostProb) {
 	  stateNodes[s].push_back (node.size());
@@ -124,6 +105,27 @@ SeqGraph SeqGraph::eliminateNull() const {
 }
 
 SeqGraph SeqGraph::eliminateDuplicates() const {
+
+  struct SeqGraphNodeSummary {
+    string seq;
+    set<NodeIndex> dest;
+    SeqGraphNodeSummary (const Node& node, const map<NodeIndex,NodeIndex>& equiv)
+      : seq (node.seq)
+    {
+      for (const auto& e : node.out)
+	dest.insert (equiv.count(e.dest) ? equiv.at(e.dest) : e.dest);
+    }
+    bool operator== (const SeqGraphNodeSummary& summ) const {
+      return seq == summ.seq && dest == summ.dest;
+    }
+    bool operator< (const SeqGraphNodeSummary& summ) const {
+      return seq == summ.seq ? (dest < summ.dest) : (seq < summ.seq);
+    }
+    string str() const {
+      return seq + " " + to_string_join (dest);
+    }
+  };
+
   map<NodeIndex,NodeIndex> equiv, old2new;
   map<SeqGraphNodeSummary,NodeIndex> unique;
   for (auto n : reverseNodeIndices()) {
@@ -189,6 +191,66 @@ SeqGraph SeqGraph::collapseChains() const {
   return g;
 }
 
+SeqGraph SeqGraph::mergeCharClasses() const {
+
+  struct SeqGraphNodeSummary {
+    set<NodeIndex> src, dest;
+    SeqGraphNodeSummary (const Node& node, const map<NodeIndex,NodeIndex>& equiv)
+    {
+      for (const auto& e : node.in)
+	src.insert (equiv.count(e.src) ? equiv.at(e.src) : e.src);
+      for (const auto& e : node.out)
+	dest.insert (equiv.count(e.dest) ? equiv.at(e.dest) : e.dest);
+    }
+    bool operator== (const SeqGraphNodeSummary& summ) const {
+      return src == summ.src && dest == summ.dest;
+    }
+    bool operator< (const SeqGraphNodeSummary& summ) const {
+      return src == summ.src ? (dest < summ.dest) : (src < summ.src);
+    }
+    string str() const {
+      return to_string_join (src) + " " + to_string_join (dest);
+    }
+  };
+
+  map<NodeIndex,NodeIndex> equiv, old2new;
+  map<SeqGraphNodeSummary,NodeIndex> classRep;
+  map<NodeIndex,string> classChars;
+  for (auto n : reverseNodeIndices())
+    if (node[n].seq.size() == 1) {
+      const SeqGraphNodeSummary summ (node[n], equiv);
+      if (classRep.count(summ)) {
+	equiv[n] = classRep[summ];
+	classChars[classRep[summ]] = node[n].seq + classChars[classRep[summ]];
+      } else {
+	classRep[summ] = n;
+	classChars[n] = node[n].seq;
+      }
+    }
+
+  SeqGraph g;
+  if (equiv.empty())
+    g = *this;
+  else {
+    for (auto n : nodeIndices())
+      if (!equiv.count(n)) {
+	old2new[n] = g.node.size();
+	g.node.push_back (Node());
+	if (classChars.count(n) && classChars[n].size() > 1)
+	  (g.node.back().seq += "[") += classChars[n] + "]";
+	else
+	  g.node.back().seq = node[n].seq;
+      }
+    for (auto& e : edge)
+      if (old2new.count(e.src) && old2new.count(e.dest))
+	g.edge.insert (Edge (old2new[e.src], old2new[e.dest]));
+    LogThisAt(3,"Eliminated " << plural(nodes() - g.nodes(),"class node") << endl);
+    g.buildIndices();
+  }
+
+  return g;
+}
+
 SeqGraph SeqGraph::simplify() const {
-  return eliminateNull().eliminateDuplicates().collapseChains();
+  return eliminateNull().eliminateDuplicates().mergeCharClasses().collapseChains();
 }
