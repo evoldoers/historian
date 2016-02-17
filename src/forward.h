@@ -192,8 +192,9 @@ public:
   Path bestTrace (const CellCoords& start);
 
   // profile construction
-  priority_queue<CellPostProb> bestCells (double minPostProb) const;
-  Profile buildProfile (double minPostProb, size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
+  priority_queue<CellPostProb> cellsAbovePostProbThreshold (double minPostProb) const;
+  Profile postProbProfile (double minPostProb, size_t maxCells = 0, ProfilingStrategy strategy = CollapseChains);  // maxCells=0 to unlimit
+  Profile bestProfile (ProfilingStrategy strategy = CollapseChains);
 
   map<CellCoords,LogProb> destTransitions (const CellCoords& srcCell);
 

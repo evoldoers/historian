@@ -1197,7 +1197,7 @@ BackwardMatrix::Path BackwardMatrix::bestTrace (const CellCoords& traceStart) {
   return path;
 }
 
-priority_queue<BackwardMatrix::CellPostProb> BackwardMatrix::bestCells (double minPostProb) const {
+priority_queue<BackwardMatrix::CellPostProb> BackwardMatrix::cellsAbovePostProbThreshold (double minPostProb) const {
   priority_queue<CellPostProb> bc;
   const LogProb lppThreshold = log(minPostProb);
   const LogProb fwdEnd = fwd.lpEnd;
@@ -1216,8 +1216,14 @@ priority_queue<BackwardMatrix::CellPostProb> BackwardMatrix::bestCells (double m
   return bc;
 }
 
-Profile BackwardMatrix::buildProfile (double minPostProb, size_t maxCells, ProfilingStrategy strategy) {
-  priority_queue<CellPostProb> bc = bestCells (minPostProb);
+Profile BackwardMatrix::bestProfile (ProfilingStrategy strategy) {
+  set<CellCoords> cells;
+  addTrace (endCell, cells, 0, (strategy & KeepGapsOpen) != 0);
+  return fwd.makeProfile (cells, strategy);
+}
+
+Profile BackwardMatrix::postProbProfile (double minPostProb, size_t maxCells, ProfilingStrategy strategy) {
+  priority_queue<CellPostProb> bc = cellsAbovePostProbThreshold (minPostProb);
   set<CellCoords> cells;
   if (bc.empty() || (strategy & IncludeBestTrace))
     addCells (cells, 0, fwd.bestTrace(), list<CellCoords>(), (strategy & KeepGapsOpen) != 0);

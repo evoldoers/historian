@@ -504,13 +504,13 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	  nodeProf = forward.bestProfile();
 	}
 	if (!dotSaveFilename.empty()) {
-	  Profile rootProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);
+	  Profile rootProf = backward->bestProfile (strategy);
 	  SeqGraph rootSeqGraph (rootProf, model.alphabet, log_gsl_vector(rootProb), minPostProb);
 	  ofstream dotFile (dotSaveFilename);
 	  rootSeqGraph.simplify().writeDot (dotFile);
 	}
       } else if (usePosteriorsForProfile)
-	nodeProf = backward->buildProfile (minPostProb, profileNodeLimit, strategy);
+	nodeProf = backward->postProbProfile (minPostProb, profileNodeLimit, strategy);
       else
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
 
