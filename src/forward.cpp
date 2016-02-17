@@ -670,7 +670,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
     for (const auto& c : cells)
       if (!isAbsorbing(c) && profStateIndex.count(c)) {
 	const auto equiv = equivAbsorbCells (c);
-	if (equiv.size())
+	if (equiv.size() && profStateIndex.count(equiv.front()))
 	  prof.equivAbsorbState[profStateIndex[c]] = profStateIndex[equiv.front()];
       }
 
