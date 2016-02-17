@@ -111,6 +111,8 @@ protected:
   bool changesX (const CellCoords& c) const;
   bool changesY (const CellCoords& c) const;
   
+  list<CellCoords> equivAbsorbCells (const CellCoords& c) const;
+  
   CellCoords sampleCell (const map<CellCoords,LogProb>& cellLogProb, random_engine& generator) const;
   static CellCoords bestCell (const map<CellCoords,LogProb>& cellLogProb);
 };
@@ -200,6 +202,9 @@ public:
 
 private:
   map<CellCoords,LogProb> destCells (const CellCoords& srcCell);
+
+  bool addCells (set<CellCoords>& cells, size_t maxCells, const list<CellCoords>& fwdTrace, const list<CellCoords>& backTrace, bool keepGapsOpen);
+  bool addTrace (const CellCoords& cell, set<CellCoords>& cells, size_t maxCells, bool keepGapsOpen);
 };
 
 #endif /* FORWARD_INCLUDED */

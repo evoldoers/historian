@@ -53,8 +53,10 @@ void SeqGraph::writeDot (ostream& out) const {
 }
 
 void SeqGraph::assertToposort() const {
-  for (auto& e : edge)
+  for (auto& e : edge) {
+    Assert (e.dest != e.src, "SeqGraph has a self-looping state");
     Assert (e.dest > e.src, "SeqGraph is not topologically sorted");
+  }
 }
 
 vguard<SeqGraph::NodeIndex> SeqGraph::nodeIndices() const {

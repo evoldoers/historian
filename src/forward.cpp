@@ -440,6 +440,19 @@ bool DPMatrix::changesY (const CellCoords& c) const {
     || c.state == PairHMM::EEE;
 }
 
+list<DPMatrix::CellCoords> DPMatrix::equivAbsorbCells (const CellCoords& c) const {
+  list<CellCoords> eq;
+  if (c.state == PairHMM::IIW && !x.state[c.xpos].isNull())
+    eq.push_back (CellCoords (c.xpos, c.ypos, PairHMM::IMD));
+  else if (c.state == PairHMM::IMI && !y.state[c.ypos].isNull())
+    eq.push_back (CellCoords (c.xpos, c.ypos, PairHMM::IDM));
+  else if (changesX(c) && x.state[c.xpos].isNull() && x.equivAbsorbState.count(c.xpos))
+    eq.push_back (CellCoords (x.equivAbsorbState.at(c.xpos), c.ypos, PairHMM::IMD));
+  else if (changesY(c) && y.state[c.ypos].isNull() && y.equivAbsorbState.count(c.ypos))
+    eq.push_back (CellCoords (c.xpos, y.equivAbsorbState.at(c.ypos), PairHMM::IDM));
+  return eq;
+}
+
 LogProb ForwardMatrix::eliminatedLogProbInsert (const CellCoords& cell) const {
   switch (cell.state) {
   case PairHMM::IIW:
@@ -605,21 +618,7 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
   return p;
 }
 
-Profile ForwardMatrix::makeProfile (const set<CellCoords>& origCells, ProfilingStrategy strategy) {
-  set<CellCoords> cells (origCells);
-  if (strategy & KeepGapsOpen) {
-    for (auto& cell : origCells)
-      if (cell.state == PairHMM::IIW && !x.state[cell.xpos].isNull())
-	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IMD));
-      else if (cell.state == PairHMM::IMI && !x.state[cell.xpos].isNull())
-	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IDM));
-      else if (cell.state == PairHMM::IMD && !y.state[cell.ypos].isNull())
-	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IIW));
-      else if (cell.state == PairHMM::IDM && !y.state[cell.ypos].isNull())
-	cells.insert (CellCoords (cell.xpos, cell.ypos, PairHMM::IMI));
-    LogThisAt(5,"Added " << plural(cells.size() - origCells.size(), "state") << " to " << origCells.size() << "-state profile using 'keep gaps open' heuristic" << endl);
-  }
-
+Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrategy strategy) {
   Profile prof (alphSize);
   prof.name = Tree::pairParentName (x.name, hmm.l.t, y.name, hmm.r.t);
   prof.meta["node"] = to_string(parentRowIndex);
@@ -640,7 +639,8 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& origCells, ProfilingS
     if (isAbsorbing(c)
 	|| c == startCell
 	|| c == endCell
-	|| ((strategy & CollapseChains) != 0 && outgoingTransitionCount[c] > 1)
+	|| outgoingTransitionCount[c] > 1
+	|| (strategy & KeepGapsOpen) != 0
 	|| (strategy & CollapseChains) == 0) {
       // cell is to be retained
       profStateIndex[c] = prof.state.size();
@@ -666,7 +666,16 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& origCells, ProfilingS
       prof.state.back().meta["fwdLogProb"] = to_string(c.state == PairHMM::EEE ? lpEnd : cell(c.xpos,c.ypos,c.state));
     }
 
-  LogThisAt(5,"Eliminated " << plural(cells.size() - prof.state.size(), "state") << " from " << cells.size() << "-state profile using 'collapse chains' heuristic" << endl);
+  if (strategy & KeepGapsOpen)
+    for (const auto& c : cells)
+      if (!isAbsorbing(c) && profStateIndex.count(c)) {
+	const auto equiv = equivAbsorbCells (c);
+	if (equiv.size())
+	  prof.equivAbsorbState[profStateIndex[c]] = profStateIndex[equiv.front()];
+      }
+
+  if (strategy & CollapseChains)
+    LogThisAt(5,"Eliminated " << plural(cells.size() - prof.state.size(), "state") << " from " << cells.size() << "-state profile using 'collapse chains' heuristic" << endl);
   
   // Calculate log-probabilities of "effective transitions" from cells to retained-cells.
   // Each effective transition represents a sum over paths.
@@ -1218,30 +1227,47 @@ Profile BackwardMatrix::buildProfile (double minPostProb, size_t maxCells, Profi
     const CellCoords& best = bc.top();
     if (cells.count (best))
       bc.pop();
-    else {
-      LogThisAt(5,"Starting traceback/forward from " << cellName(best) << endl);
-      const list<CellCoords> fwdTrace = fwd.bestTrace(best), backTrace = bestTrace(best);
-      list<CellCoords> newCells;
-      for (auto cellIter = fwdTrace.rbegin(); cellIter != fwdTrace.rend(); ++cellIter)
-	if (cells.count (*cellIter))
-	  break;
-	else
-	  newCells.push_back (*cellIter);
-      for (const auto& cell : backTrace)
-	if (cells.count (cell))
-	  break;
-	else
-	  newCells.push_back (cell);
-      if (maxCells > 0 && cells.size() > 0 && cells.size() + newCells.size() > maxCells)
+    else
+      if (!addTrace (best, cells, maxCells, (strategy & KeepGapsOpen) != 0))
 	break;
-      if (LoggingThisAt(6)) {
-	LogThisAt(6,"Adding the following cells to profile:");
-	for (const auto& c : newCells)
-	  LogThisAt(6," " << cellName(c));
-	LogThisAt(6,endl);
-      }
-      cells.insert (newCells.begin(), newCells.end());
-    }
   }
   return fwd.makeProfile (cells, strategy);
+}
+
+bool BackwardMatrix::addCells (set<CellCoords>& cells, size_t maxCells, const list<CellCoords>& fwdTrace, const list<CellCoords>& backTrace, bool keepGapsOpen) {
+  list<CellCoords> newCells;
+  for (auto cellIter = fwdTrace.rbegin(); cellIter != fwdTrace.rend(); ++cellIter)
+    if (cells.count (*cellIter))
+      break;
+    else
+      newCells.push_back (*cellIter);
+  for (const auto& cell : backTrace)
+    if (cells.count (cell))
+      break;
+    else
+      newCells.push_back (cell);
+  if (maxCells > 0 && cells.size() > 0 && cells.size() + newCells.size() > maxCells)
+    return false;
+  if (LoggingThisAt(6)) {
+    LogThisAt(6,"Adding the following cells to profile:");
+    for (const auto& c : newCells)
+      LogThisAt(6," " << cellName(c));
+    LogThisAt(6,endl);
+  }
+  cells.insert (newCells.begin(), newCells.end());
+  if (keepGapsOpen)
+    for (const auto& newCell : newCells) {
+      const list<CellCoords>& eqvCells = equivAbsorbCells (newCell);
+      for (auto& eqvCell : eqvCells)
+	if (!cells.count (eqvCell) && cellPostProb(eqvCell) > 0 && envelope.inRange (xClosestLeafPos[eqvCell.xpos], yClosestLeafPos[eqvCell.ypos]))
+	  addTrace (eqvCell, cells, maxCells, false);
+    }
+  return true;
+}
+
+bool BackwardMatrix::addTrace (const CellCoords& cell, set<CellCoords>& cells, size_t maxCells, bool keepGapsOpen) {
+  LogThisAt(5,"Starting traceback/forward from " << cellName(cell) << endl);
+  const list<CellCoords> fwdTrace = fwd.bestTrace(cell), backTrace = bestTrace(cell);
+  return addCells (cells, maxCells, fwdTrace, backTrace, keepGapsOpen);
+  return true;
 }

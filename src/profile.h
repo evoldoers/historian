@@ -37,6 +37,7 @@ struct Profile {
   vguard<ProfileState> state;
   vguard<ProfileTransition> trans;
   map<AlignRowIndex,string> seq;
+  map<ProfileStateIndex,ProfileStateIndex> equivAbsorbState;
   Profile() { }
   Profile (AlphTok alphSize) : alphSize(alphSize) { }
   Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowIndex);

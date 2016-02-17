@@ -68,7 +68,6 @@ ProgUsage::ProgUsage (int argc, char** argv)
     // Uncomment to show help for obsolescent random-sampling profile option:
     //    + "  -samples <n>    Sample profile states randomly\n"
     + "  -states <n>     Limit max number of states per profile\n"
-    + "  -keepgapsopen   Postpone insert/delete resolution until grandparent reached\n"
     + "\n"
     // Uncomment to show help for obsolescent random-sampling profile option:
     //    + "Note -minpost and -samples select different profile construction strategies.\n"
