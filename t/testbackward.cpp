@@ -32,7 +32,7 @@ int main (int argc, char **argv) {
   cout << "Forward score: " << forward.lpEnd << endl;
   cout << "Backward score: " << backward.lpStart() << endl;
 
-  auto bestCells = backward.bestCells (.5);
+  auto bestCells = backward.cellsAbovePostProbThreshold (.5);
   while (!bestCells.empty()) {
     cout << "P" << backward.cellName (bestCells.top()) << " = " << exp(bestCells.top().logPostProb) << endl;
     bestCells.pop();
