@@ -16,6 +16,7 @@ struct SeqGraph {
   struct Node {
     list<Edge> in, out;
     string seq;
+    bool isNull() const { return seq.empty(); }
   };
 
   vguard<Node> node;

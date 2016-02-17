@@ -82,7 +82,7 @@ SeqGraph SeqGraph::eliminateNull() const {
 	  srcOut.insert (Edge (src, e2.dest));
       else
 	srcOut.insert (e);
-    if (node[src].seq.empty())
+    if (node[src].isNull())
       elim[src] = srcOut;
     else
       keep.insert (srcOut.begin(), srcOut.end());
@@ -93,7 +93,7 @@ SeqGraph SeqGraph::eliminateNull() const {
   else {
     map<NodeIndex,NodeIndex> old2new;
     for (auto n : nodeIndices())
-      if (!node[n].seq.empty()) {
+      if (!node[n].isNull()) {
 	old2new[n] = g.node.size();
 	g.node.push_back (Node());
 	g.node.back().seq = node[n].seq;

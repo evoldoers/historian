@@ -8,6 +8,7 @@
 using namespace std;
 
 #define DefaultNodeNamePrefix "node"
+#define DefaultNewRootName "root"
 
 typedef int TreeNodeIndex;
 typedef double TreeBranchLength;
@@ -28,6 +29,7 @@ struct Tree {
   // accessors
   string nodeName (TreeNodeIndex node) const;  // returns empty string if node is unnamed
   TreeBranchLength branchLength (TreeNodeIndex node) const;
+  TreeBranchLength branchLength (TreeNodeIndex node1, TreeNodeIndex node2) const;
   TreeNodeIndex nodes() const;
   TreeNodeIndex root() const;
   TreeNodeIndex parentNode (TreeNodeIndex node) const;
@@ -37,14 +39,29 @@ struct Tree {
   TreeNodeIndex getSibling (TreeNodeIndex node) const;
 
   vguard<TreeNodeIndex> nodeAndDescendants (TreeNodeIndex node) const;
+  TreeNodeIndex findNode (const string& name) const;
+
+  bool isBinary() const;
+  void assertBinary() const;
+
+  vguard<TreeNodeIndex> rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const;
   
   // I/O
   void parse (const string& nhx);
   void validateBranchLengths() const;
 
-  string nodeToString (TreeNodeIndex n) const;  // Newick format, without trailing ";"
-  string toString (TreeNodeIndex root) const;  // Newick format, with trailing ";"
+  static string branchLengthString (TreeBranchLength d);
+
+  pair<string,TreeBranchLength> nodeDescriptor (TreeNodeIndex n, TreeNodeIndex parent) const;
+  string nodeToString (TreeNodeIndex n, TreeNodeIndex parent) const;  // Newick format, without trailing ";"
+  string nodeToString (TreeNodeIndex n) const;  // does not re-root
+  string toString (TreeNodeIndex root, TreeNodeIndex parent) const;  // Newick format, with trailing ";"
+  string toString (TreeNodeIndex root) const;  // does not re-root
   string toString() const;
+
+  string toStringRerootedAbove (TreeNodeIndex node, const char* newRootName = DefaultNewRootName) const;
+  Tree rerootAbove (TreeNodeIndex node, const char* newRootName = DefaultNewRootName) const;
+  Tree rerootAbove (const string& name, const char* newRootName = DefaultNewRootName) const;
 
   // neighbor-joining
   void buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);

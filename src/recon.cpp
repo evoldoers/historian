@@ -25,6 +25,9 @@ Reconstructor::Reconstructor()
     predictAncestralSequence (false),
     gotPrior (false),
     useLaplacePseudocounts (true),
+    usePosteriorsForDot (false),
+    useSeparateSubPosteriorsForDot (false),
+    keepDotGapsOpen (false),
     minPostProb (DefaultProfilePostProb),
     maxEMIterations (DefaultMaxEMIterations),
     minEMImprovement (DefaultMinEMImprovement),
@@ -43,6 +46,27 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
     } else if (arg == "-savedot") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       dotSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-dotpost") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      minDotPostProb = atof (argvec[1].c_str());
+      usePosteriorsForDot = true;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-dotgapsopen") {
+      keepDotGapsOpen = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-dotsubpost") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      minDotSubPostProb = atof (argvec[1].c_str());
+      useSeparateSubPosteriorsForDot = true;
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -229,6 +253,13 @@ bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-reroot") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      treeRoot = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
     }
   }
 
@@ -295,6 +326,10 @@ void Reconstructor::loadTree (Dataset& dataset) {
   LogThisAt(1,"Loading tree from " << treeFilename << endl);
   ifstream treeFile (treeFilename);
   dataset.tree.parse (JsonUtil::readStringFromStream (treeFile));
+  if (treeRoot.size()) {
+    LogThisAt(1,"Re-rooting tree above node " << treeRoot << endl);
+    dataset.tree = dataset.tree.rerootAbove (treeRoot);
+  }
 }
 
 void Reconstructor::buildTree (Dataset& dataset) {
@@ -411,9 +446,7 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
     seqIndex[seqs[n].name] = n;
   }
 
-  for (TreeNodeIndex node = 0; node < tree.nodes(); ++node)
-    if (!tree.isLeaf(node))
-      Assert (tree.nChildren(node) == 2, "Tree is not binary: node %d has %s\nSubtree rooted at %d: %s\n", node, plural(tree.nChildren(node),"child","children").c_str(), node, tree.toString(node).c_str());
+  tree.assertBinary();
 
   AlignPath reorderedGuide;
   for (TreeNodeIndex node = 0; node < tree.nodes(); ++node)
@@ -494,20 +527,30 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	LogThisAt(5,"Best alignment of " << lProf.name << " and " << rProf.name << ":\n" << makeAlignmentString (dataset, forward.bestAlignPath(), node, true));
 
       BackwardMatrix *backward = NULL;
-      if ((accumulateCounts && node == dataset.tree.root()) || (usePosteriorsForProfile && node != dataset.tree.root()) || !dotSaveFilename.empty())
+      if (((accumulateCounts || !dotSaveFilename.empty()) && node == dataset.tree.root())
+	  || (usePosteriorsForProfile && node != dataset.tree.root()))
 	backward = new BackwardMatrix (forward);
 
       Profile& nodeProf = prof[node];
       if (node == dataset.tree.root()) {
+
+	if (!dotSaveFilename.empty()) {
+	  LogThisAt(3,"Building sequence graph for root node" << endl);
+	  const ForwardMatrix::ProfilingStrategy dotStrategy =
+	    (ForwardMatrix::ProfilingStrategy)
+	    (ForwardMatrix::IncludeBestTrace
+	     | (keepDotGapsOpen ? ForwardMatrix::KeepGapsOpen : ForwardMatrix::DontKeepGapsOpen));
+	  Profile dotProf = usePosteriorsForDot
+	    ? backward->postProbProfile (minDotPostProb, 0, dotStrategy)
+	    : backward->bestProfile (dotStrategy);
+	  SeqGraph dotSeqGraph (dotProf, model.alphabet, log_gsl_vector(rootProb), useSeparateSubPosteriorsForDot ? minDotSubPostProb : (usePosteriorsForDot ? minDotPostProb : minPostProb));
+	  ofstream dotFile (dotSaveFilename);
+	  dotSeqGraph.simplify().writeDot (dotFile);
+	}
+
 	if (reconstructRoot) {
 	  path = forward.bestAlignPath();
 	  nodeProf = forward.bestProfile();
-	}
-	if (!dotSaveFilename.empty()) {
-	  Profile rootProf = backward->bestProfile (strategy);
-	  SeqGraph rootSeqGraph (rootProf, model.alphabet, log_gsl_vector(rootProb), minPostProb);
-	  ofstream dotFile (dotSaveFilename);
-	  rootSeqGraph.simplify().writeDot (dotFile);
 	}
       } else if (usePosteriorsForProfile)
 	nodeProf = backward->postProbProfile (minPostProb, profileNodeLimit, strategy);

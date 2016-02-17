@@ -18,11 +18,12 @@ class Reconstructor {
 public:
   string fastaReconFilename, treeFilename, modelFilename;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
+  string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts;
-  double minPostProb, minEMImprovement;
+  bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
+  double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, NexusFormat, StockholmFormat } OutputFormat;
   OutputFormat outputFormat;
   ofstream* guideFile;

@@ -32,29 +32,76 @@ void Tree::validateBranchLengths() const {
     Require (branchLength(n) >= 0, "Node in tree is missing branch length: %s", seqName(n).c_str());
 }
 
-string Tree::nodeToString (TreeNodeIndex root) const {
-  if (isLeaf(root))
-    return nodeName(root);
+vguard<TreeNodeIndex> Tree::rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const {
+  vguard<TreeNodeIndex> children;
+  for (int c = 0; c < nChildren(node); ++c)
+    if (getChild(node,c) != parent)
+      children.push_back (getChild(node,c));
+  if (parentNode(node) >= 0 && parentNode(node) != parent)
+    children.push_back (parentNode(node));
+  return children;
+}
+
+string Tree::branchLengthString (TreeBranchLength d) {
+  ostringstream ds;
+  if (d >= 0)
+    ds << ':' << defaultfloat << d;
+  return ds.str();
+}
+
+pair<string,TreeBranchLength> Tree::nodeDescriptor (TreeNodeIndex n, TreeNodeIndex parent) const {
+  const vguard<TreeNodeIndex> children = rerootedChildren (n, parent);
+  if (children.empty())
+    return pair<string,TreeBranchLength> (nodeName(n), branchLength(parent,n));
+  if (children.size() == 1) {
+    pair<string,TreeBranchLength> cd = nodeDescriptor (children.front(), n);
+    return pair<string,TreeBranchLength> (cd.first, cd.second + branchLength(parent,n));
+  }
   string s = "(";
-  for (int c = 0; c < nChildren(root); ++c) {
-    ostringstream ds;
-    const double d = branchLength(getChild(root,c));
-    if (d >= 0)
-      ds << ':' << defaultfloat << branchLength(getChild(root,c));
+  for (size_t c = 0; c < children.size(); ++c) {
+    pair<string,TreeBranchLength> cd = nodeDescriptor (children[c], n);
     if (c > 0)
       s += ",";
-    s += nodeToString(getChild(root,c)) + ds.str();
+    s += cd.first + branchLengthString (cd.second);
   }
-  s += ")" + nodeName(root);
-  return s;
+  s += ")" + nodeName(n);
+  return pair<string,TreeBranchLength> (s, branchLength(parent,n));
+}
+
+string Tree::nodeToString (TreeNodeIndex root) const {
+  return nodeToString (root, parentNode(root));
+}
+
+string Tree::nodeToString (TreeNodeIndex root, TreeNodeIndex parent) const {
+  return nodeDescriptor(root,parent).first;
 }
 
 string Tree::toString() const {
   return toString(root());
 }
 
+string Tree::toString (TreeNodeIndex n, TreeNodeIndex p) const {
+  return nodeToString(n,p) + ";";
+}
+
 string Tree::toString (TreeNodeIndex n) const {
-  return nodeToString(n) + ";";
+  return toString (n, parentNode(n));
+}
+
+string Tree::toStringRerootedAbove (TreeNodeIndex node, const char* newRootName) const {
+  if (node == root() || parentNode(node) == root())
+    return toString();
+  const TreeNodeIndex parent = parentNode(node);
+  auto nd = nodeDescriptor(node,parent), pd = nodeDescriptor(parent,node);
+  return string("(") + nd.first + branchLengthString(nd.second/2) + "," + pd.first + branchLengthString(pd.second/2) + ")" + newRootName + ";";
+}
+
+Tree Tree::rerootAbove (TreeNodeIndex node, const char* newRootName) const {
+  return Tree (toStringRerootedAbove (node, newRootName));
+}
+
+Tree Tree::rerootAbove (const string& name, const char* newRootName) const {
+  return rerootAbove (findNode (name), newRootName);
 }
 
 string Tree::nodeName (TreeNodeIndex n) const {
@@ -63,6 +110,15 @@ string Tree::nodeName (TreeNodeIndex n) const {
 
 TreeBranchLength Tree::branchLength (TreeNodeIndex n) const {
   return node[n].d;
+}
+
+TreeBranchLength Tree::branchLength (TreeNodeIndex node1, TreeNodeIndex node2) const {
+  if (node1 == parentNode(node2))
+    return branchLength(node2);
+  else if (node2 == parentNode(node1))
+    return branchLength(node1);
+  Abort ("Nodes %d and %d are not connected by a branch", node1, node2);
+  return -1;
 }
 
 TreeNodeIndex Tree::nodes() const {
@@ -94,6 +150,27 @@ TreeNodeIndex Tree::getSibling (TreeNodeIndex node) const {
   Assert (parent >= 0, "Attempt to find sibling of root node");
   Assert (nChildren(parent) == 2, "Attempt to find sibling in non-binary tree");
   return getChild(parent,0) == node ? getChild(parent,1) : getChild(parent,0);
+}
+
+bool Tree::isBinary() const {
+  for (TreeNodeIndex node = 0; node < nodes(); ++node)
+    if (!isLeaf(node) && nChildren(node) != 2)
+      return false;
+  return true;
+}
+
+void Tree::assertBinary() const {
+  for (TreeNodeIndex node = 0; node < nodes(); ++node)
+    if (!isLeaf(node))
+      Assert (nChildren(node) == 2, "Tree is not binary: node %d has %s\nSubtree rooted at %d: %s\n", node, plural(nChildren(node),"child","children").c_str(), node, toString(node).c_str());
+}
+
+TreeNodeIndex Tree::findNode (const string& name) const {
+  for (TreeNodeIndex n = 0; n < nodes(); ++n)
+    if (nodeName(n) == name)
+      return n;
+  Abort ("Couldn't find tree node %s", name.c_str());
+  return 0;
 }
 
 void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
