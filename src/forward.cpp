@@ -1219,10 +1219,8 @@ priority_queue<BackwardMatrix::CellPostProb> BackwardMatrix::bestCells (double m
 Profile BackwardMatrix::buildProfile (double minPostProb, size_t maxCells, ProfilingStrategy strategy) {
   priority_queue<CellPostProb> bc = bestCells (minPostProb);
   set<CellCoords> cells;
-  if (bc.empty() || (strategy & IncludeBestTrace)) {
-    const list<CellCoords> fwdBestTrace = fwd.bestTrace();
-    cells.insert (fwdBestTrace.begin(), fwdBestTrace.end());
-  }
+  if (bc.empty() || (strategy & IncludeBestTrace))
+    addCells (cells, 0, fwd.bestTrace(), list<CellCoords>(), (strategy & KeepGapsOpen) != 0);
   while ((maxCells == 0 || cells.size() < maxCells) && !bc.empty()) {
     const CellCoords& best = bc.top();
     if (cells.count (best))
