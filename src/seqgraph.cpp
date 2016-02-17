@@ -46,7 +46,7 @@ void SeqGraph::buildIndices() {
 void SeqGraph::writeDot (ostream& out) const {
   out << "digraph profile {" << endl;
   for (NodeIndex n = 0; n < nodes(); ++n)
-    out << "  n" << n+1 << " [ label = \"" << node[n].seq << "\" ];" << endl;
+    out << "  n" << n+1 << " [ shape = rect, label = \"" << node[n].seq << "\" ];" << endl;
   for (auto& e : edge)
     out << "  n" << e.src+1 << " -> n" << e.dest+1 << ";" << endl;
   out << "}" << endl;
