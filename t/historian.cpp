@@ -27,7 +27,8 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "Reconstruction:\n"
     + "  " + prog + " recon seqs.fa [-tree tree.nh] -output fasta >reconstruction.fa\n"
     + "  " + prog + " recon -guide guide.fa [-tree tree.nh] >reconstruction.stk\n"
-    + "  " + prog + " recon -nexus data.nex -output nexus >reconstruction.nex\n"
+    + "  " + prog + " recon guide.stk >reconstruction.stk\n"
+    + "  " + prog + " recon data.nex -output nexus >reconstruction.nex\n"
     + "\n"
     + "Event counting:\n"
     + "  " + prog + " count seqs.fa [-tree tree.nh] [-model model.json] >counts.json\n"
@@ -38,15 +39,16 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  " + prog + " fit seqs.fa >newmodel.json\n"
     + "  " + prog + " fit -counts counts.json >newmodel.json\n"
     + "\n"
-    + "All commands can be abbreviated to single letters, like so:\n"
+    + "Commands can be abbreviated to single letters, like so:\n"
     + "  " + prog + " r seqs.fa >reconstruction.stk\n"
     + "  " + prog + " c seqs.fa >counts.json\n"
-    + "  " + prog + " f counts.json >model.json\n"
+    + "  " + prog + " f -counts counts.json >model.json\n"
     + "(etc.)\n"
     + "\n"
     + "OPTIONS\n"
     + "\n"
     + "Reconstruction file I/O options:\n"
+    + "  -auto <file>    Auto-detect file format and purpose\n"
     + "  -model <file>   Specify substitution & indel model (JSON)\n"
     + "  -seqs <file>    Specify unaligned sequences (FASTA)\n"
     + "  -guide <file>   Specify guide alignment (gapped FASTA)\n"
@@ -135,7 +137,7 @@ int main (int argc, char** argv) {
     recon.reconstructRoot = true;
     recon.accumulateCounts = false;
 
-    usage.implicitSwitches.push_back (string ("-seqs"));
+    usage.implicitSwitches.push_back (string ("-auto"));
     usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
@@ -154,7 +156,7 @@ int main (int argc, char** argv) {
     recon.reconstructRoot = false;
     recon.accumulateCounts = true;
 
-    usage.implicitSwitches.push_back (string ("-seqs"));
+    usage.implicitSwitches.push_back (string ("-auto"));
     usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
@@ -190,7 +192,7 @@ int main (int argc, char** argv) {
     recon.reconstructRoot = false;
     recon.accumulateCounts = true;
 
-    usage.implicitSwitches.push_back (string ("-seqs"));
+    usage.implicitSwitches.push_back (string ("-auto"));
     usage.unlimitImplicitSwitches = true;
     
     while (logger.parseLogArgs (argvec)

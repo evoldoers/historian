@@ -14,7 +14,6 @@ const regex gs_re (RE_WHITE_OR_EMPTY "#=GS" RE_WHITE_NONEMPTY RE_GROUP(RE_PLUS(R
 const regex hash_re (RE_WHITE_OR_EMPTY "#" RE_DOT_STAR, regex_constants::basic);
 const regex divider_re (RE_WHITE_OR_EMPTY "//" RE_WHITE_OR_EMPTY, regex_constants::basic);
 
-
 Stockholm::Stockholm()
 { }
 

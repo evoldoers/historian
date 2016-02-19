@@ -10,6 +10,14 @@
 #include "nexus.h"
 #include "stockholm.h"
 #include "seqgraph.h"
+#include "regexmacros.h"
+
+const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
+const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
+const regex nexus_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "NEXUS" RE_DOT_STAR);
+const regex fasta_re (RE_WHITE_OR_EMPTY ">" RE_DOT_STAR);
+const regex newick_re (RE_WHITE_OR_EMPTY "\\(" RE_DOT_STAR);
+const regex json_re (RE_WHITE_OR_EMPTY "{" RE_DOT_STAR);
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
@@ -110,7 +118,38 @@ void Reconstructor::checkUniqueTreeFile() {
 bool Reconstructor::parsePostArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
-    if (arg == "-seqs") {
+    if (arg == "-auto") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const string filename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      switch (detectFormat (filename)) {
+      case FastaFormat:
+	seqFilenames.push_back (filename);
+	break;
+      case GappedFastaFormat:
+	fastaGuideFilenames.push_back (filename);
+	break;
+      case NexusFormat:
+	nexusGuideFilenames.push_back (filename);
+	break;
+      case StockholmFormat:
+	stockholmGuideFilenames.push_back (filename);
+	break;
+      case NewickFormat:
+	setTreeFilename (filename);
+	break;
+      case JsonFormat:
+	setModelFilename (filename);
+	break;
+      case UnknownFormat:
+      default:
+	Fail ("Could not detect format of file %s; please specify it explicitly");
+	break;
+      }
+      return true;
+
+    } else if (arg == "-seqs") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       seqFilenames.push_back (argvec[1]);
       argvec.pop_front();
@@ -219,6 +258,13 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-stockrecon") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      stockholmReconFilenames.push_back (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-maxiter") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       maxEMIterations = atoi (argvec[1].c_str());
@@ -243,13 +289,22 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
   return parseSumArgs (argvec) || parsePostArgs (argvec);
 }
 
+void Reconstructor::setTreeFilename (const string& fn) {
+  Require (treeFilename.empty(), "To specify multiple trees, please encode each one in its own Nexus file, together with the associated sequence data.");
+  treeFilename = fn;
+}
+
+void Reconstructor::setModelFilename (const string& fn) {
+  Require (modelFilename.empty(), "Please specify one model only.");
+  modelFilename = fn;
+}
+
 bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-tree") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      Require (treeFilename.empty(), "To specify multiple trees, please encode each one in its own Nexus file, together with the associated sequence data.");
-      treeFilename = argvec[1];
+      setTreeFilename (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -271,7 +326,7 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-model") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      modelFilename = argvec[1];
+      setModelFilename (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -668,8 +723,7 @@ void Reconstructor::loadRecon() {
   }
 
   for (const auto& nexusReconFilename : nexusReconFilenames) {
-    datasets.push_back (Dataset());
-    Dataset& dataset = datasets.back();
+    Dataset& dataset = newDataset();
 
     LogThisAt(1,"Loading reconstruction and tree from " << nexusReconFilename << endl);
 
@@ -681,6 +735,23 @@ void Reconstructor::loadRecon() {
 
     dataset.tree.reorder (dataset.gappedRecon);
     dataset.reconstruction = Alignment (dataset.gappedRecon);
+  }
+
+  for (const auto& stockholmReconFilename : stockholmReconFilenames) {
+
+    LogThisAt(1,"Loading reconstructions and trees from " << stockholmReconFilename << endl);
+
+    ifstream stockIn (stockholmReconFilename);
+    while (stockIn && !stockIn.eof()) {
+      Stockholm stock (stockIn);
+      if (stock.rows() == 0)
+	break;
+      Require (stock.hasTree(), "Stockholm alignment lacks tree");
+      Dataset& dataset = newDataset();
+      dataset.gappedRecon = stock.gapped;
+      dataset.tree = stock.getTree();
+      dataset.tree.reorder (dataset.gappedRecon);
+    }
   }
 }
 
@@ -782,3 +853,39 @@ string Reconstructor::makeAlignmentString (const Dataset& dataset, const AlignPa
   return out.str();
 }
 
+Reconstructor::FileFormat Reconstructor::detectFormat (const string& filename) {
+  LogThisAt(3,"Auto-detecting format for file " << filename << endl);
+  ifstream in (filename);
+  string line;
+  do {
+    getline(in,line);
+  } while (!regex_match (line, nonwhite_re));
+
+  if (regex_match (line, stockholm_re)) {
+    LogThisAt(3,"Detected Stockholm format" << endl);
+    return StockholmFormat;
+  } else if (regex_match (line, nexus_re)) {
+    LogThisAt(3,"Detected Nexus format" << endl);
+    return NexusFormat;
+  } else if (regex_match (line, newick_re)) {
+    LogThisAt(3,"Detected Newick format" << endl);
+    return NewickFormat;
+  } else if (regex_match (line, json_re)) {
+    LogThisAt(3,"Detected JSON format" << endl);
+    return JsonFormat;
+  } else if (regex_match (line, fasta_re)) {
+    in.close();
+    const vguard<FastSeq> seqs = readFastSeqs (filename.c_str());
+    for (auto& fs : seqs)
+      for (char c : fs.seq)
+	if (Alignment::isGap(c)) {
+	  LogThisAt(3,"Detected gapped FASTA format" << endl);
+	  return GappedFastaFormat;
+	}
+    LogThisAt(3,"Detected FASTA format" << endl);
+    return FastaFormat;
+  }
+
+  LogThisAt(3,"Format unknown" << endl);
+  return UnknownFormat;
+}

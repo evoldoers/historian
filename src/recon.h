@@ -24,8 +24,8 @@ public:
   int maxDistanceFromGuide;
   bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
-  typedef enum { FastaFormat, NexusFormat, StockholmFormat } OutputFormat;
-  OutputFormat outputFormat;
+  typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
+  FileFormat outputFormat;
   ofstream* guideFile;
   
   ForwardMatrix::random_engine generator;
@@ -70,6 +70,9 @@ public:
   bool parseTreeArgs (deque<string>& argvec);
   bool parseModelArgs (deque<string>& argvec);
 
+  void setTreeFilename (const string& fn);
+  void setModelFilename (const string& fn);
+  
   void loadModel();
   void loadSeqs();
   void loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename, const string& stockholmFilename);
@@ -88,6 +91,8 @@ public:
   void writeRecon (ostream& out) const;
   void writeCounts (ostream& out) const;
   void writeModel (ostream& out) const;
+
+  static FileFormat detectFormat (const string& filename);
   
 private:
   Dataset& newDataset();

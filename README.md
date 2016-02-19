@@ -10,7 +10,8 @@ EXAMPLES
 Reconstruction:
   historian recon seqs.fa [-tree tree.nh] -output fasta &gt;reconstruction.fa
   historian recon -guide guide.fa [-tree tree.nh] &gt;reconstruction.stk
-  historian recon -nexus data.nex -output nexus &gt;reconstruction.nex
+  historian recon guide.stk &gt;reconstruction.stk
+  historian recon data.nex -output nexus &gt;reconstruction.nex
 
 Event counting:
   historian count seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
@@ -21,15 +22,16 @@ Model fitting:
   historian fit seqs.fa &gt;newmodel.json
   historian fit -counts counts.json &gt;newmodel.json
 
-All commands can be abbreviated to single letters, like so:
+Commands can be abbreviated to single letters, like so:
   historian r seqs.fa &gt;reconstruction.stk
   historian c seqs.fa &gt;counts.json
-  historian f counts.json &gt;model.json
+  historian f -counts counts.json &gt;model.json
 (etc.)
 
 OPTIONS
 
 Reconstruction file I/O options:
+  -auto &lt;file&gt;    Auto-detect file format and purpose
   -model &lt;file&gt;   Specify substitution & indel model (JSON)
   -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
   -guide &lt;file&gt;   Specify guide alignment (gapped FASTA)

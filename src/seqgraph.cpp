@@ -19,7 +19,6 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
 	if (i == 0 || lp[i] > lp[iMax])
 	  iMax = i;
       }
-      vguard<char> variants;
       for (AlphTok i = 0; i < logInsProb.size(); ++i)
 	if (i == iMax || lp[i] > minLogPostProb) {
 	  stateNodes[s].push_back (node.size());

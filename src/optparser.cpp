@@ -72,3 +72,4 @@ int OptParser::parseUnknownCommand (const string& command, const char* version) 
   
   return EXIT_FAILURE;
 }
+
