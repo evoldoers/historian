@@ -57,7 +57,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 {
   lpStart() = 0;
 
-  ProgressLog (plog, 4);
+  ProgressLog (plog, 5);
   plog.initProgress ("Forward algorithm (%s vs %s)", x.name.c_str(), y.name.c_str());
 
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
@@ -903,7 +903,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd)
     }
   }
 
-  ProgressLog (plog, 4);
+  ProgressLog (plog, 5);
   plog.initProgress ("Backward algorithm (%s vs %s)", x.name.c_str(), y.name.c_str());
 
   for (int i = xSize - 2; i >= 0; --i) {
@@ -1086,7 +1086,7 @@ EigenCounts BackwardMatrix::getCounts() const {
   
   const auto states = hmm.states();
 
-  ProgressLog (plog, 4);
+  ProgressLog (plog, 5);
   plog.initProgress ("Forward-Backward counts (%s vs %s)", x.name.c_str(), y.name.c_str());
 
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {

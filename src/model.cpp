@@ -359,9 +359,16 @@ double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterati
 
 vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations) const {
   vguard<vguard<double> > dist (gappedSeq.size(), vguard<double> (gappedSeq.size()));
+  ProgressLog (plog, 4);
+  plog.initProgress ("Distance matrix (%d rows)", gappedSeq.size());
+  const size_t pairs = (gappedSeq.size() - 1) * gappedSeq.size() / 2;
+  size_t n = 0;
   for (size_t i = 0; i < gappedSeq.size() - 1; ++i)
-    for (size_t j = i + 1; j < gappedSeq.size(); ++j)
+    for (size_t j = i + 1; j < gappedSeq.size(); ++j) {
+      plog.logProgress (n / (double) pairs, "computing entry %d/%d", n + 1, pairs);
+      ++n;
       dist[i][j] = dist[j][i] = mlDistance (gappedSeq[i], gappedSeq[j]);
+    }
   if (LoggingThisAt(3)) {
     LogThisAt(3,"Distance matrix (" << dist.size() << " rows):" << endl);
     for (const auto& row : dist)

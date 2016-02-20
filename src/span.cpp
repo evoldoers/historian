@@ -88,10 +88,15 @@ void AlignGraph::buildSparseRandomGraph (ForwardMatrix::random_engine& generator
 }
 
 void AlignGraph::buildGraph (const list<TrialEdge>& trialEdges) {
+  ProgressLog (plog, 4);
+  plog.initProgress ("Guide alignment (%d sequences)", seqs.size());
+
   size_t n = 0;
   for (auto& trialEdge : trialEdges) {
-    const size_t src = trialEdge.row1, dest = trialEdge.row2;
+    plog.logProgress (n / (double) trialEdges.size(), "pairwise alignment %d/%d", n + 1, trialEdges.size());
+    ++n;
 
+    const size_t src = trialEdge.row1, dest = trialEdge.row2;
     DiagonalEnvelope env (seqs[src], seqs[dest]);
     if (diagEnvParams.sparse) {
       KmerIndex yKmerIndex (seqs[dest], model.alphabet, diagEnvParams.kmerLen);

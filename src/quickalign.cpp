@@ -53,7 +53,7 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
   const FastSeq& x (*px);
   const FastSeq& y (*py);
 
-  ProgressLog (plog, 4);
+  ProgressLog (plog, 5);
   plog.initProgress ("Viterbi algorithm (%s vs %s)", x.name.c_str(), y.name.c_str());
 
   start = 0;
@@ -95,7 +95,7 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
 
   result = end;
 
-  LogThisAt(4, "Viterbi score: " << result << endl);
+  LogThisAt(6, "Viterbi score: " << result << endl);
 }
 
 LogProb QuickAlignMatrix::cellScore (SeqIdx i, SeqIdx j, State state) const {
