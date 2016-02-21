@@ -93,7 +93,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "                   (default is " + TOSTRING(DefaultMinEMImprovement) + ")\n"
     + "  -maxiter <n>    Max number of EM iterations (default " + to_string(DefaultMaxEMIterations) + ")\n"
     + "  -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting\n"
-    + "  -fixsubrates    Do not estimate substitution rate matrix or root distribution\n"
+    + "  -fixsubrates    Do not estimate substitution rates or initial composition\n"
     + "  -fixgaprates    Do not estimate indel rates or length distributions\n"
     + "\n"
     + "General options:\n"

@@ -67,7 +67,7 @@ Model-fitting and event-counting options:
                    (default is .001)
   -maxiter &lt;n&gt;    Max number of EM iterations (default 100)
   -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting
-  -fixsubrates    Do not estimate substitution rate matrix or root distribution
+  -fixsubrates    Do not estimate substitution rates or initial composition
   -fixgaprates    Do not estimate indel rates or length distributions
 
 General options:
