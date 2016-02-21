@@ -1,5 +1,5 @@
 # Indel Historian
-Reconstruction of phylogenetic insertion-deletion histories using the transducer method
+Reconstruction of evolutionary indel & substitution histories using the phylogenetic transducer method
 (see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
 <pre><code>
