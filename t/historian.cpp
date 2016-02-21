@@ -88,7 +88,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "Model-fitting and event-counting options:\n"
     + "  -recon <file>, -nexusrecon <file>, -stockrecon <file>\n"
-    + "                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm, respectively)\n"
+    + "                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm)\n"
     + "  -mininc <n>     EM convergence threshold as relative log-likelihood increase\n"
     + "                   (default is " + TOSTRING(DefaultMinEMImprovement) + ")\n"
     + "  -maxiter <n>    Max number of EM iterations (default " + to_string(DefaultMaxEMIterations) + ")\n"

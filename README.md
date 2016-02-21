@@ -62,7 +62,7 @@ Guide alignment & tree estimation options:
 
 Model-fitting and event-counting options:
   -recon &lt;file&gt;, -nexusrecon &lt;file&gt;, -stockrecon &lt;file&gt;
-                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm, respectively)
+                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm)
   -mininc &lt;n&gt;     EM convergence threshold as relative log-likelihood increase
                    (default is .001)
   -maxiter &lt;n&gt;    Max number of EM iterations (default 100)
