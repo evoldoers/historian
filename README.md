@@ -65,7 +65,7 @@ Model-fitting and event-counting options:
   -recon &lt;file&gt;, -nexusrecon &lt;file&gt;, -stockrecon &lt;file&gt;
                   Use precomputed reconstruction (FASTA/NEXUS/Stockholm, respectively)
   -mininc &lt;n&gt;     EM convergence threshold as relative log-likelihood increase
-                    (default is .001)
+                   (default is .001)
   -maxiter &lt;n&gt;    Max number of EM iterations (default 100)
   -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting
   -fixsubrates    Do not estimate substitution rate matrix or root distribution
@@ -73,7 +73,7 @@ Model-fitting and event-counting options:
 
 General options:
   -verbose, -vv, -vvv, -v4, -v5, etc.
-                   Various levels of logging (-nocolor for monochrome)
+                  Various levels of logging (-nocolor for monochrome)
   -V, --version   Print GNU-style version info
   -h, --help      Print help message
   -seed &lt;n&gt;       Seed random number generator

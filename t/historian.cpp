@@ -91,7 +91,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -recon <file>, -nexusrecon <file>, -stockrecon <file>\n"
     + "                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm, respectively)\n"
     + "  -mininc <n>     EM convergence threshold as relative log-likelihood increase\n"
-    + "                    (default is " + TOSTRING(DefaultMinEMImprovement) + ")\n"
+    + "                   (default is " + TOSTRING(DefaultMinEMImprovement) + ")\n"
     + "  -maxiter <n>    Max number of EM iterations (default " + to_string(DefaultMaxEMIterations) + ")\n"
     + "  -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting\n"
     + "  -fixsubrates    Do not estimate substitution rate matrix or root distribution\n"
@@ -101,7 +101,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -verbose, -vv, -vvv, -v4, -v5, etc.\n"
     // uncomment to document debug logging:
     //    + "  -log <function_name>\n"
-    + "                   Various levels of logging (-nocolor for monochrome)\n"
+    + "                  Various levels of logging (-nocolor for monochrome)\n"
     + "  -V, --version   Print GNU-style version info\n"
     + "  -h, --help      Print help message\n"
     + "  -seed <n>       Seed random number generator\n"
