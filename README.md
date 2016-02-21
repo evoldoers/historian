@@ -49,7 +49,7 @@ Reconstruction algorithm options:
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
   -band &lt;n&gt;       Size of band around guide alignment (default 10)
   -noband         Turn off band, ignore guide alignment
-  -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .1)
+  -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .01)
   -states &lt;n&gt;     Limit max number of states per profile
 
 Guide alignment construction options:
@@ -62,12 +62,14 @@ Guide alignment construction options:
   -kmatchoff      No kmer threshold, do full DP
 
 Model-fitting and event-counting options:
-  -recon &lt;file&gt;, -nexusrecon&lt;file&gt;
-                  Use precomputed reconstruction (FASTA/NEXUS, respectively)
+  -recon &lt;file&gt;, -nexusrecon &lt;file&gt;, -stockrecon &lt;file&gt;
+                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm, respectively)
   -mininc &lt;n&gt;     EM convergence threshold as relative log-likelihood increase
-                    (default is .01)
+                    (default is .001)
   -maxiter &lt;n&gt;    Max number of EM iterations (default 100)
   -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting
+  -fixsubrates    Do not estimate substitution rate matrix or root distribution
+  -fixgaprates    Do not estimate indel rates or length distributions
 
 General options:
   -verbose, -vv, -vvv, -v4, -v5, etc.

@@ -680,9 +680,11 @@ void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
   *this += c;
 }
 
-void EigenCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight) {
-  indelCounts.accumulateIndelCounts (model, tree, align.path, weight);
-  accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
+void EigenCounts::accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, bool updateIndelCounts, bool updateSubstCounts, double weight) {
+  if (updateIndelCounts)
+    indelCounts.accumulateIndelCounts (model, tree, align.path, weight);
+  if (updateSubstCounts)
+    accumulateSubstitutionCounts (model, tree, align.gapped(), weight);
 }
 
 EventCounts EigenCounts::transform (const RateModel& model) const {
@@ -753,41 +755,49 @@ void EventCounts::read (const JsonValue& json) {
   }
 }
 
-void EventCounts::optimize (RateModel& model) const {
+void EventCounts::optimize (RateModel& model, bool fitIndelRates, bool fitSubstRates) const {
   if (model.alphabet != alphabet)
     model.init (alphabet);
 
-  const double insNorm = accumulate (rootCount.begin(), rootCount.end(), 0.);
-  for (AlphTok i = 0; i < alphabetSize(); ++i)
-    gsl_vector_set (model.insProb, i, rootCount[i] / insNorm);
+  if (fitSubstRates) {
+    const double insNorm = accumulate (rootCount.begin(), rootCount.end(), 0.);
+    for (AlphTok i = 0; i < alphabetSize(); ++i)
+      gsl_vector_set (model.insProb, i, rootCount[i] / insNorm);
 
-  for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    double r_ii = 0;
-    for (AlphTok j = 0; j < alphabetSize(); ++j)
-      if (j != i) {
-	const double r_ij = subCount[i][j] / subCount[i][i];
-	gsl_matrix_set (model.subRate, i, j, r_ij);
-	r_ii -= r_ij;
-      }
-    gsl_matrix_set (model.subRate, i, i, r_ii);
+    for (AlphTok i = 0; i < alphabetSize(); ++i) {
+      double r_ii = 0;
+      for (AlphTok j = 0; j < alphabetSize(); ++j)
+	if (j != i) {
+	  const double r_ij = subCount[i][j] / subCount[i][i];
+	  gsl_matrix_set (model.subRate, i, j, r_ij);
+	  r_ii -= r_ij;
+	}
+      gsl_matrix_set (model.subRate, i, i, r_ii);
+    }
   }
 
-  model.insRate = indelCounts.ins / indelCounts.insTime;
-  model.delRate = indelCounts.del / indelCounts.delTime;
-  model.insExtProb = indelCounts.insExt / (indelCounts.insExt + indelCounts.ins);
-  model.delExtProb = indelCounts.delExt / (indelCounts.delExt + indelCounts.del);
+  if (fitIndelRates) {
+    model.insRate = indelCounts.ins / indelCounts.insTime;
+    model.delRate = indelCounts.del / indelCounts.delTime;
+    model.insExtProb = indelCounts.insExt / (indelCounts.insExt + indelCounts.ins);
+    model.delExtProb = indelCounts.delExt / (indelCounts.delExt + indelCounts.del);
+  }
 }
 
-double EventCounts::logPrior (const RateModel& model) const {
-  double lp = logGammaPdf (model.insRate, indelCounts.ins, indelCounts.insTime)
-    + logGammaPdf (model.delRate, indelCounts.del, indelCounts.delTime)
-    + logBetaPdf (model.insExtProb, indelCounts.insExt, indelCounts.ins)
-    + logBetaPdf (model.delExtProb, indelCounts.delExt, indelCounts.del)
-    + logDirichletPdf (gsl_vector_to_stl(model.insProb), rootCount);
-  for (AlphTok i = 0; i < alphabetSize(); ++i)
-    for (AlphTok j = 0; j < alphabetSize(); ++j)
-      if (i != j)
-	lp += logGammaPdf (gsl_matrix_get (model.subRate, i, j), subCount[i][j], subCount[i][i]);
+double EventCounts::logPrior (const RateModel& model, bool includeIndelRates, bool includeSubstRates) const {
+  double lp = 0;
+  if (includeIndelRates)
+    lp += logGammaPdf (model.insRate, indelCounts.ins, indelCounts.insTime)
+      + logGammaPdf (model.delRate, indelCounts.del, indelCounts.delTime)
+      + logBetaPdf (model.insExtProb, indelCounts.insExt, indelCounts.ins)
+      + logBetaPdf (model.delExtProb, indelCounts.delExt, indelCounts.del);
+  if (includeSubstRates) {
+    lp += logDirichletPdf (gsl_vector_to_stl(model.insProb), rootCount);
+    for (AlphTok i = 0; i < alphabetSize(); ++i)
+      for (AlphTok j = 0; j < alphabetSize(); ++j)
+	if (i != j)
+	  lp += logGammaPdf (gsl_matrix_get (model.subRate, i, j), subCount[i][j], subCount[i][i]);
+  }
   return lp;
 }
 

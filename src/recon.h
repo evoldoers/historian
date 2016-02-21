@@ -9,10 +9,10 @@
 #include "diagenv.h"
 
 #define DefaultProfileSamples 100
-#define DefaultProfilePostProb .1
+#define DefaultProfilePostProb .01
 #define DefaultMaxDistanceFromGuide 10
 #define DefaultMaxEMIterations 100
-#define DefaultMinEMImprovement .01
+#define DefaultMinEMImprovement .001
 
 class Reconstructor {
 public:
@@ -22,7 +22,7 @@ public:
   string modelSaveFilename, guideSaveFilename, dotSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
+  bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;

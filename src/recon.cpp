@@ -29,7 +29,8 @@ Reconstructor::Reconstructor()
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
     reconstructRoot (true),
-    accumulateCounts (false),
+    accumulateSubstCounts (false),
+    accumulateIndelCounts (false),
     predictAncestralSequence (false),
     gotPrior (false),
     useLaplacePseudocounts (true),
@@ -315,6 +316,16 @@ bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-fixgaprates") {
+      accumulateIndelCounts = false;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-fixsubrates") {
+      accumulateSubstCounts = false;
+      argvec.pop_front();
+      return true;
     }
   }
 
@@ -553,11 +564,12 @@ void Reconstructor::reconstruct (Dataset& dataset) {
   const ForwardMatrix::ProfilingStrategy strategy =
     (ForwardMatrix::ProfilingStrategy) (ForwardMatrix::CollapseChains
 					| (keepGapsOpen ? ForwardMatrix::KeepGapsOpen : ForwardMatrix::DontKeepGapsOpen)
-					| (accumulateCounts ? ForwardMatrix::CountEvents : ForwardMatrix::DontCountEvents)
+					| (accumulateSubstCounts ? ForwardMatrix::CountSubstEvents : ForwardMatrix::DontCountSubstEvents)
+					| (accumulateIndelCounts ? ForwardMatrix::CountIndelEvents : ForwardMatrix::DontCountIndelEvents)
 					| (includeBestTraceInProfile ? ForwardMatrix::IncludeBestTrace : ForwardMatrix::DontIncludeBestTrace));
 
   SumProduct* sumProd = NULL;
-  if (accumulateCounts)
+  if (accumulateSubstCounts)
     sumProd = new SumProduct (model, dataset.tree);
 
   AlignPath path;
@@ -582,7 +594,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	LogThisAt(5,"Best alignment of " << lProf.name << " and " << rProf.name << ":\n" << makeAlignmentString (dataset, forward.bestAlignPath(), node, true));
 
       BackwardMatrix *backward = NULL;
-      if (((accumulateCounts || !dotSaveFilename.empty()) && node == dataset.tree.root())
+      if (((accumulateSubstCounts || accumulateIndelCounts || !dotSaveFilename.empty()) && node == dataset.tree.root())
 	  || (usePosteriorsForProfile && node != dataset.tree.root()))
 	backward = new BackwardMatrix (forward);
 
@@ -612,7 +624,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
       else
 	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
 
-      if (accumulateCounts && node == dataset.tree.root())
+      if ((accumulateSubstCounts || accumulateIndelCounts) && node == dataset.tree.root())
 	dataset.eigenCounts = backward->getCounts();
       
       if (backward)
@@ -650,9 +662,11 @@ void Reconstructor::reconstruct (Dataset& dataset) {
     }
   }
 
-  if (accumulateCounts)
+  if (accumulateSubstCounts)
     dataCounts += dataset.eigenCounts.transform (model);
-  
+  else if (accumulateIndelCounts)
+    dataCounts.indelCounts += dataset.eigenCounts.indelCounts;
+
   if (sumProd)
     delete sumProd;
 }
@@ -779,8 +793,11 @@ void Reconstructor::loadCounts() {
 
 void Reconstructor::count (Dataset& dataset) {
   dataset.eigenCounts = EigenCounts (model.alphabetSize());
-  dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree);
-  dataCounts += dataset.eigenCounts.transform (model);
+  dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree, 1, accumulateIndelCounts, accumulateSubstCounts);
+  if (accumulateSubstCounts)
+    dataCounts += dataset.eigenCounts.transform (model);
+  else if (accumulateIndelCounts)
+    dataCounts.indelCounts += dataset.eigenCounts.indelCounts;
 }
 
 void Reconstructor::reconstructAll() {
@@ -799,23 +816,24 @@ void Reconstructor::countAll() {
 }
 
 void Reconstructor::fit() {
+  Require (accumulateIndelCounts || accumulateSubstCounts, "With indel AND substitution rates fixed, model has no free parameters to fit.");
   if (datasets.empty()) {
     Require (gotPrior, "Please specify some data, or pseudocounts, in order to fit a model.");
-    priorCounts.optimize (model);
+    priorCounts.optimize (model, accumulateIndelCounts, accumulateSubstCounts);
   } else {
     LogProb lpLast = -numeric_limits<double>::infinity();
 
     priorCounts.indelCounts.lp = 0;
     for (size_t iter = 0; iter < maxEMIterations; ++iter) {
       countAll();
-      const LogProb lpData = dataCounts.indelCounts.lp, lpPrior = gotPrior ? priorCounts.logPrior (model) : 0;
+      const LogProb lpData = dataCounts.indelCounts.lp, lpPrior = gotPrior ? priorCounts.logPrior (model, accumulateIndelCounts, accumulateSubstCounts) : 0;
       const LogProb lpWithPrior = lpData + lpPrior;
       LogThisAt (1, "EM iteration #" << iter + 1 << ": log-likelihood" << (gotPrior ? (string(" (") + to_string(lpData) + ") + log-prior (" + to_string(lpPrior) + ")") : string()) << " = " << lpWithPrior << endl);
       if (lpWithPrior <= lpLast + abs(lpLast)*minEMImprovement)
 	break;
       const LogProb oldExpectedLogLike = dataCounts.expectedLogLikelihood (model) + lpPrior;
-      dataPlusPriorCounts.optimize (model);
-      const LogProb newExpectedLogLike = dataCounts.expectedLogLikelihood (model) + (gotPrior ? priorCounts.logPrior(model) : 0);
+      dataPlusPriorCounts.optimize (model, accumulateIndelCounts, accumulateSubstCounts);
+      const LogProb newExpectedLogLike = dataCounts.expectedLogLikelihood (model) + (gotPrior ? priorCounts.logPrior (model, accumulateIndelCounts, accumulateSubstCounts) : 0);
       LogThisAt(5, "Expected log-likelihood went from " << oldExpectedLogLike << " to " << newExpectedLogLike << " during M-step" << endl);
       lpLast = lpWithPrior;
     }

@@ -104,12 +104,12 @@ struct EventCounts : AlphabetOwner {
   EventCounts& operator+= (const EventCounts& c);
   EventCounts& operator*= (double w);
 
-  void optimize (RateModel& model) const;
+  void optimize (RateModel& model, bool fitIndelRates = true, bool fitSubstRates = true) const;
   
   void writeJson (ostream& out) const;
   void read (const JsonValue& json);
 
-  double logPrior (const RateModel& model) const;
+  double logPrior (const RateModel& model, bool includeIndelRates = true, bool includeSubstRates = true) const;
   double expectedLogLikelihood (const RateModel& model) const;
 };
 
@@ -126,7 +126,7 @@ struct EigenCounts {
   EigenCounts& operator*= (double w);
 
   void accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight = 1.);
-  void accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, double weight = 1.);
+  void accumulateCounts (const RateModel& model, const Alignment& align, const Tree& tree, bool updateIndelCounts = true, bool updateSubstCounts = true, double weight = 1.);
 
   EventCounts transform (const RateModel& model) const;
 };

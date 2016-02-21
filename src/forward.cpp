@@ -696,7 +696,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
 	EffectiveTransition& eff = effTrans[src][cellIdx];
 	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
 	eff.bestAlignPath = transitionAlignPath(src,cell);
-	if (strategy & CountEvents)
+	if (strategy & (CountSubstEvents | CountIndelEvents))
 	  eff.counts = transitionEigenCounts(src,cell);
       }
     } else {
@@ -704,12 +704,12 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
       const auto& cellEffTrans = effTrans[cell];
       const AlignPath& cap = cellAlignPath (cell);
       EigenCounts cellCounts, srcCellCounts;
-      if ((strategy & CountEvents) != 0 && sumProd != NULL)
+      if ((strategy & CountSubstEvents) != 0 && sumProd != NULL)
 	cellCounts = cachedCellEigenCounts (cell, *sumProd);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
-	if (strategy & CountEvents)
+	if (strategy & (CountSubstEvents | CountIndelEvents))
 	  srcCellCounts = transitionEigenCounts (src, cell) + cellCounts;
 	auto& srcEffTrans = effTrans[src];
 	for (const auto cellEffTransIter : cellEffTrans) {
@@ -718,7 +718,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
 	  EffectiveTransition& srcDestEffTrans = srcEffTrans[destIdx];
 	  const LogProb lpPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpPath;
 	  log_accum_exp (srcDestEffTrans.lpPath, lpPath);
-	  if (strategy & CountEvents) {
+	  if (strategy & (CountSubstEvents | CountIndelEvents)) {
 	    const double ppPath = exp (lpPath - srcDestEffTrans.lpPath);
 	    srcDestEffTrans.counts *= 1 - ppPath;
 	    srcDestEffTrans.counts += (srcCellCounts + cellDestEffTrans.counts) * ppPath;
@@ -750,7 +750,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
       trans.dest = destIdx;
       trans.lpTrans = srcDestEffTrans.lpPath;
       trans.alignPath = srcDestEffTrans.bestAlignPath;
-      if (strategy & CountEvents)
+      if (strategy & (CountSubstEvents | CountIndelEvents))
 	trans.counts = srcDestEffTrans.counts;
       prof.trans.push_back (trans);
       (prof.state[destIdx].isNull() ? srcNullOut : srcAbsorbOut).push_back (transIdx);

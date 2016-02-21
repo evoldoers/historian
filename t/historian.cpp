@@ -88,12 +88,14 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -kmatchoff      No kmer threshold, do full DP\n"
     + "\n"
     + "Model-fitting and event-counting options:\n"
-    + "  -recon <file>, -nexusrecon<file>\n"
-    + "                  Use precomputed reconstruction (FASTA/NEXUS, respectively)\n"
+    + "  -recon <file>, -nexusrecon <file>, -stockrecon <file>\n"
+    + "                  Use precomputed reconstruction (FASTA/NEXUS/Stockholm, respectively)\n"
     + "  -mininc <n>     EM convergence threshold as relative log-likelihood increase\n"
     + "                    (default is " + TOSTRING(DefaultMinEMImprovement) + ")\n"
     + "  -maxiter <n>    Max number of EM iterations (default " + to_string(DefaultMaxEMIterations) + ")\n"
     + "  -nolaplace      Do not add Laplace +1 pseudocounts during model-fitting\n"
+    + "  -fixsubrates    Do not estimate substitution rate matrix or root distribution\n"
+    + "  -fixgaprates    Do not estimate indel rates or length distributions\n"
     + "\n"
     + "General options:\n"
     + "  -verbose, -vv, -vvv, -v4, -v5, etc.\n"
@@ -135,7 +137,8 @@ int main (int argc, char** argv) {
   if (command == "reconstruct" || command == "recon" || command == "r") {
 
     recon.reconstructRoot = true;
-    recon.accumulateCounts = false;
+    recon.accumulateSubstCounts = false;
+    recon.accumulateIndelCounts = false;
 
     usage.implicitSwitches.push_back (string ("-auto"));
     usage.unlimitImplicitSwitches = true;
@@ -154,7 +157,8 @@ int main (int argc, char** argv) {
   } else if (command == "count" || command == "c") {
 
     recon.reconstructRoot = false;
-    recon.accumulateCounts = true;
+    recon.accumulateSubstCounts = true;
+    recon.accumulateIndelCounts = true;
 
     usage.implicitSwitches.push_back (string ("-auto"));
     usage.unlimitImplicitSwitches = true;
@@ -190,7 +194,8 @@ int main (int argc, char** argv) {
   } else if (command == "fit" || command == "f") {
 
     recon.reconstructRoot = false;
-    recon.accumulateCounts = true;
+    recon.accumulateSubstCounts = true;
+    recon.accumulateIndelCounts = true;
 
     usage.implicitSwitches.push_back (string ("-auto"));
     usage.unlimitImplicitSwitches = true;
