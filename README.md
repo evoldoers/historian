@@ -39,9 +39,7 @@ Reconstruction file I/O options:
   -nexus &lt;file&gt;, -stockholm &lt;file&gt;
                   Specify phylogeny & guide alignment together
 
-  -saveguide &lt;file&gt;, -savemodel &lt;file&gt;
-                  Save guide alignment/model to files
-
+  -saveguide &lt;f&gt;  Save guide alignment to file
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
 
@@ -52,7 +50,7 @@ Reconstruction algorithm options:
   -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .01)
   -states &lt;n&gt;     Limit max number of states per profile
 
-Guide alignment construction options:
+Guide alignment & tree estimation options:
   -allvsall       Try all pairwise alignments, not just a random spanning graph
   -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
   -kmatchn &lt;n&gt;    Threshold# of kmer matches to seed a diagonal
@@ -60,6 +58,7 @@ Guide alignment construction options:
   -kmatchmb &lt;M&gt;   Set kmer threshold to use M megabytes of memory
   -kmatchmax      Set kmer threshold to use all available memory (default)
   -kmatchoff      No kmer threshold, do full DP
+  -upgma          Use UPGMA, not neighbor-joining, to estimate tree
 
 Model-fitting and event-counting options:
   -recon &lt;file&gt;, -nexusrecon &lt;file&gt;, -stockrecon &lt;file&gt;

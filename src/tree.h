@@ -63,9 +63,11 @@ struct Tree {
   Tree rerootAbove (TreeNodeIndex node, const char* newRootName = DefaultNewRootName) const;
   Tree rerootAbove (const string& name, const char* newRootName = DefaultNewRootName) const;
 
-  // neighbor-joining
+  // neighbor-joining & UPGMA algorithms
   void buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
   void buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
+  void buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
+  void buildByUPGMA (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix);
 
   // mapping to sequence dataset
   string seqName (TreeNodeIndex node) const;  // guaranteed nonempty

@@ -293,6 +293,101 @@ void Tree::buildByNeighborJoining (const vguard<FastSeq>& seq, const vguard<vgua
   return buildByNeighborJoining (nodeName, distanceMatrix);
 }
 
+void Tree::buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
+  // check that there are more than 2 nodes
+  Assert (nodeName.size() >= 2, "Fewer than 2 nodes; can't make a binary tree");
+  // clear the existing tree
+  node.clear();
+  // copy distance matrix
+  vguard<vguard<TreeBranchLength> > dist = distanceMatrix;
+  // estimate tree by UPGMA
+  // first, initialise the list of active nodes
+  set<TreeNodeIndex> activeNodes;
+  for (TreeNodeIndex n = 0; n < (int) nodeName.size(); ++n) {
+    activeNodes.insert (n);
+    node.push_back (TreeNode());
+    node.back().name = nodeName[n];
+    node.back().parent = -1;
+  }
+  // main loop
+  vguard<TreeBranchLength> nodeHeight (nodeName.size(), 0);
+  while (true)
+    {
+      // get number of active nodes
+      const int nActiveNodes = activeNodes.size();
+      // loop exit test
+      if (nActiveNodes == 2) break;
+      Assert (nActiveNodes > 2, "Fewer than 2 nodes left -- should never get here");
+      // find closest two nodes
+      bool isFirstPair = true;
+      TreeBranchLength minDist = 0;
+      TreeNodeIndex min_i = -1, min_j = -1;
+      set<TreeNodeIndex>::const_iterator node_i_p, node_j_p, activeNodes_end_p;
+      activeNodes_end_p = activeNodes.end();
+      for (node_i_p = activeNodes.begin(); node_i_p != activeNodes_end_p; ++node_i_p)
+	for (node_j_p = node_i_p, ++node_j_p; node_j_p != activeNodes_end_p; ++node_j_p) {
+	  const TreeBranchLength d = dist [*node_i_p] [*node_j_p];
+	  if (isFirstPair || d < minDist)
+	    {
+	      min_i = *node_i_p;
+	      min_j = *node_j_p;
+	      minDist = d;
+	      isFirstPair = false;
+	    }
+	}
+      // nodes min_i and min_j are neighbors -- join them with new index k
+      // first, calculate new distances
+      const TreeNodeIndex k = nodes();
+      dist.push_back (vguard<TreeBranchLength> (k + 1));
+      dist[k][k] = 0;
+      const TreeBranchLength d_ij = dist[min_i][min_j];
+      nodeHeight.push_back (max (nodeHeight[min_i], max (nodeHeight[min_j], (nodeHeight[min_i] + nodeHeight[min_j] + d_ij) / 2)));
+      const TreeBranchLength d_ik = nodeHeight[k] - nodeHeight[min_i];
+      const TreeBranchLength d_jk = nodeHeight[k] - nodeHeight[min_j];
+      for (TreeNodeIndex m = 0; m < k; ++m)
+	dist[m].push_back (dist[k][m] = (dist[min_i][m] + dist[min_j][m]) / 2);
+      dist[min_i][k] = dist[k][min_i] = d_ik;
+      dist[min_j][k] = dist[k][min_j] = d_jk;
+      // now update the Tree
+      node.push_back (TreeNode());
+      node[k].child.push_back (min_i);
+      node[k].child.push_back (min_j);
+      node[min_i].parent = k;
+      node[min_i].d = d_ik;
+      node[min_j].parent = k;
+      node[min_j].d = d_jk;
+      LogThisAt(7,"Joining nodes " << min_i << " and " << min_j << " to common ancestor " << k << " (branch lengths: " << k << "->" << min_i << " = " << d_ik << ", " << k << "->" << min_j << " = " << d_jk << ")" << endl);
+      activeNodes.erase (min_i);
+      activeNodes.erase (min_j);
+      activeNodes.insert (k);
+    }
+  // make the root node
+  set<TreeNodeIndex>::iterator iter = activeNodes.begin();
+  const TreeNodeIndex i = *iter;
+  const TreeNodeIndex j = *++iter;
+  const TreeNodeIndex k = node.size();
+  nodeHeight.push_back ((nodeHeight[i] + nodeHeight[j] + dist[i][j] ) / 2);
+  node.push_back (TreeNode());
+  node[k].child.push_back (i);
+  node[k].child.push_back (j);
+  node[i].parent = k;
+  node[i].d = nodeHeight[k] - nodeHeight[i];
+  node[j].parent = k;
+  node[j].d = nodeHeight[k] - nodeHeight[j];
+
+  const string s = toString();
+  LogThisAt(5,"UPGMA tree: " << s << endl);
+  parse (s);  // to ensure consistency (i.e. serializing & deserializing will not change node indices)
+}
+
+void Tree::buildByUPGMA (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
+  vguard<string> nodeName;
+  nodeName.reserve (seq.size());
+  for (const auto& s : seq)
+    nodeName.push_back (s.name);
+  return buildByUPGMA (nodeName, distanceMatrix);
+}
+
 string Tree::seqName (TreeNodeIndex n) const {
   string s = nodeName(n);
   if (s.size() == 0) {

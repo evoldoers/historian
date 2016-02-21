@@ -25,6 +25,7 @@ Reconstructor::Reconstructor()
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     guideAlignTryAllPairs (false),
+    useUPGMA (false),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
@@ -178,6 +179,13 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-model") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      setModelFilename (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-band") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       maxDistanceFromGuide = atoi (argvec[1].c_str());
@@ -234,12 +242,61 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
       guideAlignTryAllPairs = true;
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-upgma") {
+      useUPGMA = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-tree") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      setTreeFilename (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-reroot") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      treeRoot = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
     }
   }
 
-  return diagEnvParams.parseDiagEnvParams (argvec)
-    || parseTreeArgs (argvec)
-    || parseModelArgs (argvec);
+  return diagEnvParams.parseDiagEnvParams (argvec);
+}
+
+bool Reconstructor::parseFitArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-maxiter") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      maxEMIterations = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-mininc") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      minEMImprovement = atof (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-fixgaprates") {
+      accumulateIndelCounts = false;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-fixsubrates") {
+      accumulateSubstCounts = false;
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return parseCountArgs (argvec);
 }
 
 bool Reconstructor::parseCountArgs (deque<string>& argvec) {
@@ -266,20 +323,6 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-maxiter") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      maxEMIterations = atoi (argvec[1].c_str());
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-mininc") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      minEMImprovement = atof (argvec[1].c_str());
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-nolaplace") {
       useLaplacePseudocounts = false;
       argvec.pop_front();
@@ -298,60 +341,6 @@ void Reconstructor::setTreeFilename (const string& fn) {
 void Reconstructor::setModelFilename (const string& fn) {
   Require (modelFilename.empty(), "Please specify one model only.");
   modelFilename = fn;
-}
-
-bool Reconstructor::parseTreeArgs (deque<string>& argvec) {
-  if (argvec.size()) {
-    const string& arg = argvec[0];
-    if (arg == "-tree") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      setTreeFilename (argvec[1]);
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-reroot") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      treeRoot = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-fixgaprates") {
-      accumulateIndelCounts = false;
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-fixsubrates") {
-      accumulateSubstCounts = false;
-      argvec.pop_front();
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool Reconstructor::parseModelArgs (deque<string>& argvec) {
-  if (argvec.size()) {
-    const string& arg = argvec[0];
-    if (arg == "-model") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      setModelFilename (argvec[1]);
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-savemodel") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      modelSaveFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-    }
-  }
-
-  return false;
 }
 
 bool Reconstructor::parseSumArgs (deque<string>& argvec) {
@@ -399,9 +388,12 @@ void Reconstructor::loadTree (Dataset& dataset) {
 }
 
 void Reconstructor::buildTree (Dataset& dataset) {
-  LogThisAt(1,"Building neighbor-joining tree" << endl);
+  LogThisAt(1,"Estimating initial tree" << endl);
   auto dist = model.distanceMatrix (dataset.gappedGuide);
-  dataset.tree.buildByNeighborJoining (dataset.gappedGuide, dist);
+  if (useUPGMA)
+    dataset.tree.buildByUPGMA (dataset.gappedGuide, dist);
+  else
+    dataset.tree.buildByNeighborJoining (dataset.gappedGuide, dist);
 }
 
 void Reconstructor::seedGenerator() {

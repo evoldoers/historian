@@ -96,7 +96,7 @@ obj/%.o: t/%.cpp
 
 TEST = @perl/testexpect.pl
 
-test: testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testquickalign testspan testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum
+test: testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testupgma testquickalign testspan testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum
 
 testlogsumexp: bin/testlogsumexp
 	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
@@ -162,6 +162,10 @@ testspan: bin/testspan
 testnj: bin/testnj
 	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
 	$(TEST) bin/testnj data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testnj.nh
+
+testupgma: bin/testupgma
+	$(TEST) bin/testupgma data/testnj.jukescantor.json data/testnj.fa data/testupgma.out.nh
+	$(TEST) bin/testupgma data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testupgma.nh
 
 testquickalign: bin/testquickalign
 	$(TEST) bin/testquickalign data/PF16593.pair.fa data/testamino.json 1 data/testquickalign.out.fa

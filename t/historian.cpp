@@ -56,9 +56,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -nexus <file>, -stockholm <file>\n"
     + "                  Specify phylogeny & guide alignment together\n"
     + "\n"
-    + "  -saveguide <file>, -savemodel <file>\n"
-    + "                  Save guide alignment/model to files\n"
-    + "\n"
+    + "  -saveguide <f>  Save guide alignment to file\n"
     + "  -output (nexus|fasta|stockholm)\n"
     + "                  Specify output format (default is Stockholm)\n"
     + "\n"
@@ -78,7 +76,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     //    + " -samples randomly samples state paths from the posterior distribution.\n"
     //    + "Both strategies are subject to the state limit imposed by -states.\n"
     //    + "\n"
-    + "Guide alignment construction options:\n"
+    + "Guide alignment & tree estimation options:\n"
     + "  -allvsall       Try all pairwise alignments, not just a random spanning graph\n"
     + "  -kmatch <k>     Length of kmers for pre-filtering heuristic (default " + to_string(DEFAULT_KMER_LENGTH) + ")\n"
     + "  -kmatchn <n>    Threshold# of kmer matches to seed a diagonal\n"
@@ -86,6 +84,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -kmatchmb <M>   Set kmer threshold to use M megabytes of memory\n"
     + "  -kmatchmax      Set kmer threshold to use all available memory (default)\n"
     + "  -kmatchoff      No kmer threshold, do full DP\n"
+    + "  -upgma          Use UPGMA, not neighbor-joining, to estimate tree\n"
     + "\n"
     + "Model-fitting and event-counting options:\n"
     + "  -recon <file>, -nexusrecon <file>, -stockrecon <file>\n"
@@ -164,7 +163,7 @@ int main (int argc, char** argv) {
     usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
-	   || recon.parseCountArgs (argvec)
+	   || recon.parseFitArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
@@ -201,7 +200,7 @@ int main (int argc, char** argv) {
     usage.unlimitImplicitSwitches = true;
     
     while (logger.parseLogArgs (argvec)
-	   || recon.parseCountArgs (argvec)
+	   || recon.parseFitArgs (argvec)
 	   || usage.parseUnknown())
       { }
 

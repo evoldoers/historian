@@ -22,7 +22,7 @@ public:
   string modelSaveFilename, guideSaveFilename, dotSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
+  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
@@ -63,12 +63,10 @@ public:
   bool parsePostArgs (deque<string>& argvec);
   bool parseCountArgs (deque<string>& argvec);
   bool parseSumArgs (deque<string>& argvec);
+  bool parseFitArgs (deque<string>& argvec);
 
   void checkUniqueSeqFile();
   void checkUniqueTreeFile();
-
-  bool parseTreeArgs (deque<string>& argvec);
-  bool parseModelArgs (deque<string>& argvec);
 
   void setTreeFilename (const string& fn);
   void setModelFilename (const string& fn);
