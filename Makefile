@@ -217,6 +217,10 @@ README.md: bin/$(MAIN)
 	mv temp.md $@
 
 # For updating default model
-src/amino.cpp: data/amino.json
+src/amino.cpp: data/prot1.json
 	perl -e 'open S,"<".shift();while(<S>){print;last if/defaultAminoModelText =/}close S;open A,"<".shift();$$q=chr(34);while(<A>){chomp;s/$$q/\\$$q/g;print chr(34),$$_,"\\n",chr(34),"\n"}print";\n"' $@ $< >temp.cpp
 	mv temp.cpp $@
+
+data/%.json: data/%.hsm
+	perl/xrate2json.pl $< >$@
+
