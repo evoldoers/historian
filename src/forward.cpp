@@ -1086,7 +1086,7 @@ EigenCounts BackwardMatrix::getCounts() const {
   
   const auto states = hmm.states();
 
-  ProgressLog (plog, 5);
+  ProgressLog (plog, 4);
   plog.initProgress ("Forward-Backward counts (%s vs %s)", x.name.c_str(), y.name.c_str());
 
   for (ProfileStateIndex i = 0; i < xSize - 1; ++i) {
