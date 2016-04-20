@@ -24,11 +24,11 @@
    that returns false from the calling function if the test fails.
 */
 void Abort(const char* error, ...);
-void Assert(int assertion, const char* error, ...);
 void Warn(const char* warning, ...);
 void Fail(const char* error, ...);
-void Require(int assertion, const char* error, ...);
-bool Test(int assertion, const char* error, ...);
+#define Test(assertion,...) ((assertion) ? true : (Warn(__VA_ARGS__), false))
+#define Assert(assertion,...) do { if (!(assertion)) Abort("Assertion Failed: " __VA_ARGS__); } while (0)
+#define Require(assertion,...) do { if (!(assertion)) Fail(__VA_ARGS__); } while (0)
 #define Desire(...) do { if (!Test(__VA_ARGS__)) return false; } while (0)
 
 void CheckGsl (int gslErrorCode);

@@ -866,6 +866,8 @@ string Reconstructor::makeAlignmentString (const Dataset& dataset, const AlignPa
 Reconstructor::FileFormat Reconstructor::detectFormat (const string& filename) {
   LogThisAt(3,"Auto-detecting format for file " << filename << endl);
   ifstream in (filename);
+  if (!in)
+    Fail ("File not found: %s", filename.c_str());
   string line;
   do {
     getline(in,line);

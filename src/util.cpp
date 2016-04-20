@@ -45,19 +45,6 @@ void Abort(const char* error, ...) {
   throw;
 }
 
-void Assert(int assertion, const char* error, ...) {
-  va_list argptr;
-  if(!assertion) {
-    va_start (argptr, error);
-    fprintf(stderr,"Assertion Failed: ");
-    vfprintf(stderr,error,argptr);
-    fprintf(stderr,"\n");
-    va_end (argptr);
-    printStackTrace();
-    throw;
-  }
-}
-
 void Fail(const char* error, ...) {
   va_list argptr;
   va_start (argptr, error);
@@ -65,28 +52,6 @@ void Fail(const char* error, ...) {
   fprintf(stderr,"\n");
   va_end (argptr);
   exit (EXIT_FAILURE);
-}
-
-void Require(int assertion, const char* error, ...) {
-  va_list argptr;
-  if(!assertion) {
-    va_start (argptr, error);
-    vfprintf(stderr,error,argptr);
-    fprintf(stderr,"\n");
-    va_end (argptr);
-    exit (EXIT_FAILURE);
-  }
-}
-
-bool Test(int assertion, const char* error, ...) {
-  va_list argptr;
-  if(!assertion) {
-    va_start (argptr, error);
-    vfprintf(stderr,error,argptr);
-    fprintf(stderr,"\n");
-    va_end (argptr);
-  }
-  return assertion;
 }
 
 void CheckGsl (int gslErrorCode) {
