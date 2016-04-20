@@ -2,6 +2,8 @@
 #include "knhx.h"
 #include "logger.h"
 
+double Tree::minBranchLength = TREE_MIN_BRANCH_LEN;
+
 Tree::Tree (const string& nhx) {
   parse (nhx);
 }
@@ -18,7 +20,7 @@ void Tree::parse (const string& nhx) {
     for (int c = 0; c < tree->node[n].n; ++c)
       node[n].child[c] = tree->node[n].child[c];
     node[n].name = tree->node[n].name;
-    node[n].d = tree->node[n].d;
+    node[n].d = max (tree->node[n].d, minBranchLength);
     if (node[n].name.size()) {
       Require (names.count (node[n].name) == 0, "Duplicate node name '%s' in tree: %s", node[n].name.c_str(), nhx.c_str());
       names.insert (node[n].name);
@@ -28,8 +30,10 @@ void Tree::parse (const string& nhx) {
 }
 
 void Tree::validateBranchLengths() const {
-  for (size_t n = 0; n + 1 < node.size(); ++n)
+  for (size_t n = 0; n + 1 < node.size(); ++n) {
     Require (branchLength(n) >= 0, "Node in tree is missing branch length: %s", seqName(n).c_str());
+    Require (branchLength(n) >= minBranchLength, "Node in tree has a lower-than-minimal branch length: %s", seqName(n).c_str());
+  }
 }
 
 vguard<TreeNodeIndex> Tree::rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const {
@@ -241,15 +245,16 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
       TreeBranchLength d_jk = d_ij - d_ik;
       LogThisAt(8,"Before Kuhner-Felsenstein:\ni=" << min_i << ", j=" << min_j << ", k=" << k << ", d_ij=" << d_ij << ", d_ik=" << d_ik << ", d_jk=" << d_jk << "\nDistances from k to other nodes: " << to_string_join(dist[k]) << endl);
       // apply Kuhner-Felsenstein correction to prevent negative branch lengths
-      if (d_ik < 0)
+      // also enforce minimum branch lengths here
+      if (d_ik < minBranchLength)
 	{
-	  d_jk -= d_ik;
-	  d_ik = 0;
+	  d_jk -= d_ik - minBranchLength;
+	  d_ik = minBranchLength;
 	}
       if (d_jk < 0)
 	{
-	  d_ik -= d_jk;
-	  d_jk = 0;
+	  d_ik -= d_jk - minBranchLength;
+	  d_jk = minBranchLength;
 	}
       dist[min_i][k] = dist[k][min_i] = d_ik;
       dist[min_j][k] = dist[k][min_j] = d_jk;
@@ -342,8 +347,8 @@ void Tree::buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<Tre
       dist[k][k] = 0;
       const TreeBranchLength d_ij = dist[min_i][min_j];
       nodeHeight.push_back (max (nodeHeight[min_i], max (nodeHeight[min_j], (nodeHeight[min_i] + nodeHeight[min_j] + d_ij) / 2)));
-      const TreeBranchLength d_ik = nodeHeight[k] - nodeHeight[min_i];
-      const TreeBranchLength d_jk = nodeHeight[k] - nodeHeight[min_j];
+      const TreeBranchLength d_ik = max (nodeHeight[k] - nodeHeight[min_i], minBranchLength);
+      const TreeBranchLength d_jk = max (nodeHeight[k] - nodeHeight[min_j], minBranchLength);
       for (TreeNodeIndex m = 0; m < k; ++m)
 	dist[m].push_back (dist[k][m] = (dist[min_i][m] + dist[min_j][m]) / 2);
       dist[min_i][k] = dist[k][min_i] = d_ik;

@@ -57,6 +57,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "                  Specify phylogeny & guide alignment together\n"
     + "\n"
     + "  -saveguide <f>  Save guide alignment to file\n"
+    + "                   (guide tree too, if output format allows)\n"
     + "  -output (nexus|fasta|stockholm)\n"
     + "                  Specify output format (default is Stockholm)\n"
     + "\n"

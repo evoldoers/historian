@@ -20,9 +20,12 @@ struct TreeNode {
   TreeBranchLength d;
 };
 
+#define TREE_MIN_BRANCH_LEN 1e-6;
 struct Tree {
   vector<TreeNode> node;
 
+  static double minBranchLength;
+  
   Tree() { }
   Tree (const string& nhx);
 
