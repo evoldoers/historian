@@ -870,6 +870,8 @@ Reconstructor::FileFormat Reconstructor::detectFormat (const string& filename) {
     Fail ("File not found: %s", filename.c_str());
   string line;
   do {
+    if (in.eof())
+      Fail ("Couldn't auto-detect file format (all whitespace): %s", filename.c_str());
     getline(in,line);
   } while (!regex_match (line, nonwhite_re));
 
