@@ -57,19 +57,20 @@ bool OptParser::parseUnknown() {
   return false;
 }
 
-int OptParser::parseUnknownCommand (const string& command, const char* version) {
+int OptParser::parseUnknownCommand (const string& command, const char* version, bool abortIfUnrecognized) {
   if (command == "help" || command == "h" || command == "-help" || command == "--help" || command == "-h") {
     cout << text;
-    return EXIT_SUCCESS;
+    exit (EXIT_SUCCESS);
     
   } else if (command == "version" || command == "v" || command == "-version" || command == "--version" || command == "-V") {
     cout << prog << ' ' << version << endl;
-    return EXIT_SUCCESS;
+    exit (EXIT_SUCCESS);
     
-  } else {
+  } else if (abortIfUnrecognized) {
     cerr << briefText << "Unrecognized command: " << command << endl;
+    exit (EXIT_FAILURE);
   }
-  
-  return EXIT_FAILURE;
+
+  return false;
 }
 

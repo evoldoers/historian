@@ -12,7 +12,7 @@ struct OptParser {
   OptParser (int argc, char** argv, const char* progName, const char* briefOptsDescription);
   std::string getCommand (const char* error = NULL);
   bool parseUnknown();
-  int parseUnknownCommand (const std::string& command, const char* version);
+  int parseUnknownCommand (const std::string& command, const char* version, bool abortIfUnrecognized);
 };
 
 #endif /* OPTPARSER_INCLUDED */

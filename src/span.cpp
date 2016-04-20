@@ -59,7 +59,7 @@ void AlignGraph::buildDenseGraph() {
   for (AlignRowIndex src = 0; src + 1 < seqs.size(); ++src)
     for (AlignRowIndex dest = src + 1; dest < seqs.size(); ++dest)
       e.push_back (TrialEdge (src, dest));
-  buildGraph (e);
+  buildGraph (e, "all-vs-all");
 }
 
 void AlignGraph::buildSparseRandomGraph (ForwardMatrix::random_engine& generator) {
@@ -84,12 +84,12 @@ void AlignGraph::buildSparseRandomGraph (ForwardMatrix::random_engine& generator
     LogThisAt(7,"Queueing alignment of " << seqs[src].name << " and " << seqs[dest].name << " (" << plural(n+1,"edge") << ", " << plural(part.nSets,"disjoint set") << ")" << endl);
   }
 
-  buildGraph (trialEdges);
+  buildGraph (trialEdges, to_string(trialEdges.size()) + " random pairs");
 }
 
-void AlignGraph::buildGraph (const list<TrialEdge>& trialEdges) {
+void AlignGraph::buildGraph (const list<TrialEdge>& trialEdges, const string& graphDescription) {
   ProgressLog (plog, 4);
-  plog.initProgress ("Guide alignment (%d sequences)", seqs.size());
+  plog.initProgress ("Guide alignment (%d sequences, %s)", seqs.size(), graphDescription.c_str());
 
   size_t n = 0;
   for (auto& trialEdge : trialEdges) {

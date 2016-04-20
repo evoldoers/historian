@@ -133,25 +133,29 @@ int main (int argc, char** argv) {
   const string command = usage.getCommand();
   deque<string>& argvec (usage.argvec);
 
+  auto reconstruct = [&]() -> void
+    {
+      recon.reconstructRoot = true;
+      recon.accumulateSubstCounts = false;
+      recon.accumulateIndelCounts = false;
+
+      usage.implicitSwitches.push_back (string ("-auto"));
+      usage.unlimitImplicitSwitches = true;
+
+      while (logger.parseLogArgs (argvec)
+	     || recon.parseReconArgs (argvec)
+	     || usage.parseUnknown())
+	{ }
+
+      recon.loadModel();
+      recon.loadSeqs();
+
+      recon.reconstructAll();
+      recon.writeRecon (cout);
+    };
+
   if (command == "reconstruct" || command == "recon" || command == "r") {
-
-    recon.reconstructRoot = true;
-    recon.accumulateSubstCounts = false;
-    recon.accumulateIndelCounts = false;
-
-    usage.implicitSwitches.push_back (string ("-auto"));
-    usage.unlimitImplicitSwitches = true;
-
-    while (logger.parseLogArgs (argvec)
-	   || recon.parseReconArgs (argvec)
-	   || usage.parseUnknown())
-      { }
-
-    recon.loadModel();
-    recon.loadSeqs();
-
-    recon.reconstructAll();
-    recon.writeRecon (cout);
+    reconstruct();
     
   } else if (command == "count" || command == "c") {
 
@@ -211,8 +215,12 @@ int main (int argc, char** argv) {
     recon.fit();
     recon.writeModel (cout);
     
-  } else
-    return usage.parseUnknownCommand (command, HISTORIAN_VERSION);
+  } else if (!usage.parseUnknownCommand (command, HISTORIAN_VERSION, false)) {
+
+    // default: reconstruct
+    argvec.push_front (command);
+    reconstruct();
+  }
 
   return EXIT_SUCCESS;
 }

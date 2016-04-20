@@ -43,7 +43,7 @@ struct AlignGraph {
 
   void buildSparseRandomGraph (ForwardMatrix::random_engine& generator);
   void buildDenseGraph();
-  void buildGraph (const list<TrialEdge>& trialEdges);
+  void buildGraph (const list<TrialEdge>& trialEdges, const string& graphDescription);
 
   list<AlignPath> minSpanTree();
   AlignPath mstPath();
