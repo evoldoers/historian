@@ -47,7 +47,8 @@ public:
 
   typedef list<CellCoords> Path;
   typedef mt19937 random_engine;
-
+  static const char* random_engine_name() { return "mt19937"; }
+  
   const Profile& x, y;
   const Profile subx, suby;
   const PairHMM& hmm;
