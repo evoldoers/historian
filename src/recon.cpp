@@ -24,7 +24,7 @@ Reconstructor::Reconstructor()
     profileNodeLimit (0),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
-    guideAlignTryAllPairs (false),
+    guideAlignTryAllPairs (true),
     useUPGMA (false),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
@@ -238,8 +238,8 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-allvsall") {
-      guideAlignTryAllPairs = true;
+    } else if (arg == "-rndspan") {
+      guideAlignTryAllPairs = false;
       argvec.pop_front();
       return true;
 
