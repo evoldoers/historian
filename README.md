@@ -31,7 +31,7 @@ Commands can be abbreviated to single letters, like so:
 OPTIONS
 
 Reconstruction file I/O options:
-  -auto &lt;file&gt;    Auto-detect file format and purpose
+  -auto &lt;file&gt;    Auto-detect file format and guess its purpose
   -model &lt;file&gt;   Specify substitution & indel model (JSON)
   -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
   -guide &lt;file&gt;   Specify guide alignment (gapped FASTA)
@@ -40,27 +40,57 @@ Reconstruction file I/O options:
                   Specify phylogeny & guide alignment together
 
   -saveguide &lt;f&gt;  Save guide alignment to file
+                   (guide tree too, if output format allows)
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
 
 Reconstruction algorithm options:
-  -ancseq         Predict ancestral sequences (default is to leave them as *'s)
+
+The reconstruction algorithm iterates through the guide tree in postorder,
+aligning each sibling pair and reconstructing a profile of their parent.
+The dynamic programming is constrained to a band around a guide alignment,
+and the reconstructed parent profile is a weighted finite-state transducer
+sampled from the posterior distribution implied by the children. The band
+size, posterior probability threshold for inclusion in the parent profile,
+and number of states in the parent profile can all be tweaked to trade off
+sensitivity vs performance.
+
   -band &lt;n&gt;       Size of band around guide alignment (default 10)
-  -noband         Turn off band, ignore guide alignment
+  -noband         Unlimit band, ignore guide alignment
   -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .01)
   -states &lt;n&gt;     Limit max number of states per profile
 
+  -ancseq         Predict ancestral sequences (default is to leave them as *'s)
+
 Guide alignment & tree estimation options:
-  -allvsall       Try all pairwise alignments, not just a random spanning graph
-  -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
+
+The guide aligner builds a maximal spanning tree of pairwise alignments.
+It can be accelerated in two ways: (1) by using a sparse random forest
+instead of a fully connected all-vs-all pairwise comparison; and (2) by
+confining the pairwise DP matrix to cells around a subset of diagonals
+that contain above a threshold number of k-mer matches. To turn on the
+former optimization, use -rndspan; the latter is turned on by default for
+sequences whose full DP matrix would not otherwise fit in memory (the
+memory threshold can be set with -kmatchmb). It can be disabled with
+-kmatchoff, or enabled (for a particular k-mer threshold) with -kmatchn.
+
+  -rndspan        Use a sparse random spanning graph, not all-vs-all pairs
   -kmatchn &lt;n&gt;    Threshold# of kmer matches to seed a diagonal
+                   (default sets this as low as available memory will allow)
+  -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
   -kmatchband &lt;n&gt; Size of DP band around kmer-matching diagonals (default 64)
   -kmatchmb &lt;M&gt;   Set kmer threshold to use M megabytes of memory
-  -kmatchmax      Set kmer threshold to use all available memory (default)
   -kmatchoff      No kmer threshold, do full DP
+
   -upgma          Use UPGMA, not neighbor-joining, to estimate tree
 
 Model-fitting and event-counting options:
+
+By default, the reconstruction algorithm will interpret any supplied alignment
+as a guide alignment, i.e. a hint, even if it contains a full ancestral sequence
+reconstruction. To insist that the alignment be interpreted as a reconstruction,
+precede it with -recon, -nexusrecon or -stockrecon (depending on the format).
+
   -recon &lt;file&gt;, -nexusrecon &lt;file&gt;, -stockrecon &lt;file&gt;
                   Use precomputed reconstruction (FASTA/NEXUS/Stockholm)
   -mininc &lt;n&gt;     EM convergence threshold as relative log-likelihood increase
@@ -75,7 +105,7 @@ General options:
                   Various levels of logging (-nocolor for monochrome)
   -V, --version   Print GNU-style version info
   -h, --help      Print help message
-  -seed &lt;n&gt;       Seed random number generator
+  -seed &lt;n&gt;       Seed random number generator (mt19937; default seed 5489)
 
 REFERENCES
 
