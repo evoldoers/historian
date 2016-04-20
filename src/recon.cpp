@@ -757,6 +757,7 @@ void Reconstructor::loadRecon() {
       dataset.gappedRecon = stock.gapped;
       dataset.tree = stock.getTree();
       dataset.tree.reorder (dataset.gappedRecon);
+      dataset.reconstruction = Alignment (dataset.gappedRecon);
     }
   }
 }
