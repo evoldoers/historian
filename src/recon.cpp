@@ -699,7 +699,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 	for (auto& row_colcharprob: *postProb)
 	  for (auto& col_charprob: row_colcharprob.second)
 	    for (auto& char_prob: col_charprob.second)
-	      stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + char_prob.first + " " + to_string(col_charprob.first + 1) + " " + to_string(char_prob.second));
+	      stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + to_string(col_charprob.first + 1) + " " + char_prob.first + " " + to_string(char_prob.second));
       stock.write (out);
     }
     break;
