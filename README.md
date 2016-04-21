@@ -61,6 +61,7 @@ sensitivity vs performance.
   -states &lt;n&gt;     Limit max number of states per profile
 
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
+  -ancprob        Report posterior probabilities for ancestral residues
 
 Guide alignment & tree estimation options:
 

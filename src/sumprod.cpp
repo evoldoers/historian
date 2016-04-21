@@ -509,3 +509,16 @@ void AlignColSumProduct::appendAncestralReconstructedColumn (vguard<FastSeq>& ou
     out[row].seq.push_back (Alignment::isWildcard(g) ? model.alphabet[maxPostState(row)] : g);
   }
 }
+
+void AlignColSumProduct::appendAncestralPostProbColumn (ReconPostProbMap& rpp, double minProb, double maxProb) const {
+  const LogProb lpMin = log(minProb), lpMax = log(maxProb);
+  for (AlignRowIndex row = 0; row < gapped.size(); ++row) {
+    const char g = gapped[row].seq[col];
+    if (Alignment::isWildcard(g)) {
+      auto lp = logNodePostProb (row);
+      for (AlphTok tok = 0; tok < model.alphabet.size(); ++tok)
+	if (lp[tok] >= lpMin && lp[tok] <= lpMax)
+	  rpp[row][col][model.alphabet[tok]] = exp(lp[tok]);
+    }
+  }
+}

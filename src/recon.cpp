@@ -33,6 +33,7 @@ Reconstructor::Reconstructor()
     accumulateSubstCounts (false),
     accumulateIndelCounts (false),
     predictAncestralSequence (false),
+    reportAncestralSequenceProbability (false),
     gotPrior (false),
     useLaplacePseudocounts (true),
     usePosteriorsForDot (false),
@@ -49,6 +50,12 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-ancseq") {
+      predictAncestralSequence = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-ancprob") {
+      reportAncestralSequenceProbability = true;
       predictAncestralSequence = true;
       argvec.pop_front();
       return true;
@@ -542,7 +549,7 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
   swap (guide, reorderedGuide);
 
   if (recon.guideFile && !gappedGuide.empty())
-    recon.writeTreeAlignment (tree, gappedGuide, *recon.guideFile, false);
+    recon.writeTreeAlignment (tree, gappedGuide, *recon.guideFile, false, NULL);
 }
 
 void Reconstructor::reconstruct (Dataset& dataset) {
@@ -649,6 +656,8 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	colSumProd.fillUp();
 	colSumProd.fillDown();
 	colSumProd.appendAncestralReconstructedColumn (dataset.gappedAncestralRecon);
+	if (reportAncestralSequenceProbability)
+	  colSumProd.appendAncestralPostProbColumn (dataset.gappedAncestralReconPostProb);
 	colSumProd.nextColumn();
       }
     }
@@ -663,7 +672,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
     delete sumProd;
 }
 
-void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction) const {
+void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction, const ReconPostProbMap* postProb) const {
   Tree t (tree);
   vguard<FastSeq> g (gapped);
   switch (outputFormat) {
@@ -686,6 +695,11 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
       if (isReconstruction)
 	t.assignInternalNodeNames (g);
       Stockholm stock (g, t);
+      if (postProb)
+	for (auto& row_colcharprob: *postProb)
+	  for (auto& col_charprob: row_colcharprob.second)
+	    for (auto& char_prob: col_charprob.second)
+	      stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + char_prob.first + " " + to_string(col_charprob.first + 1) + " " + to_string(char_prob.second));
       stock.write (out);
     }
     break;
@@ -696,7 +710,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 }
 
 void Reconstructor::writeRecon (const Dataset& dataset, ostream& out) const {
-  writeTreeAlignment (dataset.tree, predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon, out, true);
+  writeTreeAlignment (dataset.tree, predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon, out, true, reportAncestralSequenceProbability ? &dataset.gappedAncestralReconPostProb : NULL);
 }
 
 void Reconstructor::writeRecon (ostream& out) const {

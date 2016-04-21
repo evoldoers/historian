@@ -96,6 +96,8 @@ private:
 
 class AlignColSumProduct : public SumProduct {
 public:
+  typedef map<AlignRowIndex,map<AlignColIndex,map<char,double> > > ReconPostProbMap;
+
   const vguard<FastSeq>& gapped;  // tree node index must match alignment row index
   AlignColIndex col;
   
@@ -105,6 +107,7 @@ public:
   void nextColumn();
 
   void appendAncestralReconstructedColumn (vguard<FastSeq>& out) const;
+  void appendAncestralPostProbColumn (ReconPostProbMap& out, double minProb = .01, double maxProb = .999) const;
   
 private:
   void initAlignColumn();  // populates ungappedRows

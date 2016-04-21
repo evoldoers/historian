@@ -14,15 +14,19 @@
 #define DefaultMaxEMIterations 100
 #define DefaultMinEMImprovement .001
 
+#define AncestralSequencePostProbTag "PP"
+
 class Reconstructor {
 public:
+  typedef AlignColSumProduct::ReconPostProbMap ReconPostProbMap;
+
   string fastaReconFilename, treeFilename, modelFilename;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
   string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
+  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
@@ -38,6 +42,7 @@ public:
   struct Dataset {
     Tree tree;
     vguard<FastSeq> seqs, gappedGuide, gappedRecon, gappedAncestralRecon;
+    ReconPostProbMap gappedAncestralReconPostProb;
 
     map<string,size_t> seqIndex;
     map<TreeNodeIndex,size_t> nodeToSeqIndex;
@@ -84,7 +89,7 @@ public:
   void count (Dataset& dataset);
   void fit();
 
-  void writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction = false) const;
+  void writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction = false, const ReconPostProbMap* postProb = NULL) const;
   void writeRecon (const Dataset& dataset, ostream& out) const;
   void writeRecon (ostream& out) const;
   void writeCounts (ostream& out) const;

@@ -80,6 +80,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -states <n>     Limit max number of states per profile\n"
     + "\n"
     + "  -ancseq         Predict ancestral sequences (default is to leave them as " + Alignment::wildcardChar + "'s)\n"
+    + "  -ancprob        Report posterior probabilities for ancestral residues\n"
     + "\n"
     // Uncomment to show help for obsolescent random-sampling profile option:
     //    + "Note -minpost and -samples select different profile construction strategies.\n"
