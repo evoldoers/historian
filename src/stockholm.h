@@ -8,8 +8,8 @@
 
 #define StockholmNewHampshireTag "NH"
 
-#define DefaultStockholmRowLength 80
 #define MinStockholmCharsPerRow 10
+#define DefaultStockholmRowLength 80
 
 struct Stockholm {
   vguard<FastSeq> gapped;
@@ -24,7 +24,7 @@ struct Stockholm {
   Stockholm (const vguard<FastSeq>& seq, const Tree& tree);
   
   void read (istream& in);
-  void write (ostream& out, size_t charsPerRow = DefaultStockholmRowLength) const;
+  void write (ostream& out, size_t charsPerRow = DefaultStockholmRowLength) const;  // set charsPerRow to zero to unlimit
 
   void setTree (const Tree& tree, const char* tag = StockholmNewHampshireTag);
   Tree getTree() const;

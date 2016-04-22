@@ -700,7 +700,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 	  for (auto& col_charprob: row_colcharprob.second)
 	    for (auto& char_prob: col_charprob.second)
 	      stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + to_string(col_charprob.first + 1) + " " + char_prob.first + " " + to_string(char_prob.second));
-      stock.write (out);
+      stock.write (out, 0);
     }
     break;
   default:
@@ -874,7 +874,7 @@ string Reconstructor::makeAlignmentString (const Dataset& dataset, const AlignPa
     gt.push_back (g[n]);
   Stockholm stock (gt, t);
   ostringstream out;
-  stock.write (out);
+  stock.write (out, 0);
   return out.str();
 }
 

@@ -115,7 +115,7 @@ void Stockholm::write (ostream& out, size_t charsPerRow) const {
 	  out << "#=GS " << left << setw(nw+1) << name_gs.first << left << setw(tw+1) << tag_gs.first << line << endl;
   }
 
-  const int colStep = max (MinStockholmCharsPerRow, ((int) charsPerRow) - w - 1);
+  const int colStep = charsPerRow > 0 ? max (MinStockholmCharsPerRow, ((int) charsPerRow) - w - 1) : cols;
   for (int col = 0; col < cols; col += colStep) {
     for (auto& tag_gc : gc)
       if (col < tag_gc.second.size())
