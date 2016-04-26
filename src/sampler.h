@@ -11,6 +11,9 @@ struct SimpleTreePrior {
 };
 
 struct Sampler {
+
+  typedef DPMatrix::random_engine random_engine;
+
   struct State {
     vguard<FastSeq> gapped;
     Tree tree;
@@ -24,28 +27,33 @@ struct Sampler {
     LogProb logProposal, logInverseProposal, logOldState, logNewState, logHastingsRatio;
   };
 
-  struct AlignmentProposal {
+  struct AlignmentMatrix {
     const RateModel* model;
-    FastSeq seq0, seq1;
+    FastSeq parentSeq, childSeq;
     TreeBranchLength dist;
-    AlignPath path;
-    LogProb logPostProb;  // log P(path|model,seq0,seq1,dist)
 
-    AlignmentProposal (const RateModel* model, const FastSeq& seq0, const FastSeq& seq1, TreeBranchLength dist);
-    AlignmentProposal (const AlignPath& path, const RateModel* model, const FastSeq& seq0, const FastSeq& seq1, TreeBranchLength dist);
+    AlignmentMatrix (const RateModel* model, const FastSeq& seq0, const FastSeq& seq1, TreeBranchLength dist);
+    void sample (AlignPath& path, random_engine& generator) const;
+    LogProb logPostProb (const AlignPath& path) const;
+
+    static inline AlignRowIndex parent() const { return 0; }
+    static inline AlignRowIndex child() const { return 1; }
   };
 
-  struct ParentProposal {
+  struct ParentMatrix {
     const RateModel* model;
-    TreeNodeIndex lNode, rNode, pNode;
-    FastSeq lSeq, rSeq, pSeq;
+    FastSeq lSeq, rSeq;
     TreeBranchLength plDist, prDist;
-    AlignPath plrPath;
-    LogProb logPostProb;  // log P(pSeq,plrPath|model,lSeq,rSeq,plDist,prDist,lrPath)
+    AlignPath lrPath;
 
-    ParentProposal (const RateModel* model, const FastSeq& lSeq, const FastSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const AlignPath& lrPath);
-    ParentProposal (const FastSeq& pSeq, const AlignPath& plrPath, const RateModel* model, const FastSeq& lSeq, const FastSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const AlignPath& lrPath);
-};
+    ParentMatrix (const RateModel* model, const FastSeq& lSeq, const FastSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const AlignPath& lrPath);
+    void sample (FastSeq& pSeq, AlignPath& plrPath, random_engine& generator) const;
+    LogProb logPostProb (const FastSeq& pSeq, const AlignPath& plrPath) const;
+
+    static inline AlignRowIndex lChild() const { return 0; }
+    static inline AlignRowIndex rChild() const { return 1; }
+    static inline AlignRowIndex parent() const { return 2; }
+  };
   
   RateModel model;
   SimpleTreePrior treePrior;
