@@ -22,6 +22,8 @@ using namespace std;
 
 #define LOG_SUM_EXP_LOOKUP_ENTRIES (((int) (LOG_SUM_EXP_LOOKUP_MAX / LOG_SUM_EXP_LOOKUP_PRECISION)) + 1)
 
+typedef double LogProb;
+
 double log_sum_exp_unary_slow (double x);  /* does not use lookup table */
 
 struct LogSumExpLookupTable {
@@ -96,7 +98,6 @@ double log_sum_exp_slow (double a, double b, double c, double d);
 
 void log_accum_exp_slow (double& a, double b);
 
-typedef double LogProb;
 std::vector<LogProb> log_gsl_vector (gsl_vector* v);
 std::vector<double> gsl_vector_to_stl (gsl_vector* v);
 
