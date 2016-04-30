@@ -14,19 +14,7 @@ struct Sampler {
 
   typedef DPMatrix::random_engine random_engine;
 
-  struct TreeAlignState {
-    vguard<FastSeq> gapped;
-    Tree tree;
-  };
-
-  struct Move {
-    enum Type { Branch, TripleBranch, PruneRegraft, NodeHeight };
-    Type type;
-    TreeNodeIndex node, parent, leftChild, rightChild, oldSibling, newSibling;
-    TreeAlignState oldState, newState;
-    LogProb logProposal, logInverseProposal, logOldState, logNewState, logHastingsRatio;
-  };
-
+  // Sampler::AlignmentMatrix
   class AlignmentMatrix {
   public:
     enum State { Start = -1, Match = 0, Insert = 1, Delete = 2, TotalStates = 3 };
@@ -87,6 +75,7 @@ struct Sampler {
     LogProb logPostProb (const AlignPath& path) const;
   };
 
+  // Sampler::ParentMatrix
   struct ParentMatrix {
     enum State { SSS, SSI, SIW, IMM, IMD, IDM, IDD, IMI, IDI, IIW, IIX, EEE };
 
@@ -106,9 +95,41 @@ struct Sampler {
     void sample (FastSeq& pSeq, AlignPath& plrPath, random_engine& generator) const;
     LogProb logPostProb (const FastSeq& pSeq, const AlignPath& plrPath) const;
   };
+
+  // Sampler::History
+  struct History {
+    vguard<FastSeq> gapped;
+    Tree tree;
+  };
+
+  // Sampler::Log
+  struct Log {
+    virtual void log (const History& history) = 0;
+  };
   
+  // Sampler::Move
+  struct Move {
+    enum Type { SampleBranch, SampleNode, PruneAndRegraft, SampleNodeHeight };
+    Type type;
+    TreeNodeIndex node, parent, leftChild, rightChild, oldSibling, newSibling;
+    History oldState, newState;
+    LogProb logProposal, logInverseProposal, logOldLikelihood, logNewLikelihood, logHastingsRatio;
+
+    bool accept (random_engine& generator) const;
+  };
+
+  // Sampler member variables
   RateModel model;
   SimpleTreePrior treePrior;
+  list<Log*> logs;
+
+  // Sampler constructor
+  Sampler (const RateModel& model, const SimpleTreePrior& treePrior);
+  
+  // Sampler methods
+  void addLog (Log& log);
+  Move proposeMove (const History& oldState) const;
+  void run (History& initialState, int nSamples = 1);
 };
 
 #endif /* SAMPLER_INCLUDED */
