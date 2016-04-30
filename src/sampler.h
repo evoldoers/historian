@@ -149,8 +149,8 @@ struct Sampler {
   
   // Sampler methods
   void addLog (Log& log);
-  Move proposeMove (const History& oldState) const;
-  void run (History& initialState, int nSamples = 1);
+  Move proposeMove (const History& oldState, random_engine& generator) const;
+  void run (History& state, random_engine& generator, int nSamples = 1);
 };
 
 #endif /* SAMPLER_INCLUDED */
