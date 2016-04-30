@@ -109,7 +109,7 @@ struct Sampler {
   
   // Sampler::Move
   struct Move {
-    enum Type { SampleBranch, SampleNode, PruneAndRegraft, SampleNodeHeight };
+    enum Type { SampleBranch, SampleNode, PruneAndRegraft, SampleNodeHeight, SampleAncestralResidues };
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldSibling, newSibling;
     History oldState, newState;
@@ -118,11 +118,32 @@ struct Sampler {
     bool accept (random_engine& generator) const;
   };
 
+  struct SampleBranchMove : Move {
+    SampleBranchMove (Sampler&, random_engine&);
+  };
+
+  struct SampleNodeMove : Move {
+    SampleNodeMove (Sampler&, random_engine&);
+  };
+
+  struct PruneAndRegraftMove : Move {
+    PruneAndRegraftMove (Sampler&, random_engine&);
+  };
+
+  struct SampleNodeHeightMove : Move {
+    SampleNodeHeightMove (Sampler&, random_engine&);
+  };
+
+  struct SampleAncestralResiduesMove : Move {
+    SampleAncestralResiduesMove (Sampler&, random_engine&);
+  };
+
   // Sampler member variables
   RateModel model;
   SimpleTreePrior treePrior;
   list<Log*> logs;
-
+  map<Move::Type,double> moveRate;
+  
   // Sampler constructor
   Sampler (const RateModel& model, const SimpleTreePrior& treePrior);
   
