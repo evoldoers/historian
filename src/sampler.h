@@ -119,23 +119,23 @@ struct Sampler {
   };
 
   struct SampleBranchMove : Move {
-    SampleBranchMove (Sampler&, random_engine&);
+    SampleBranchMove (const History&, Sampler&, random_engine&);
   };
 
   struct SampleNodeMove : Move {
-    SampleNodeMove (Sampler&, random_engine&);
+    SampleNodeMove (const History&, Sampler&, random_engine&);
   };
 
   struct PruneAndRegraftMove : Move {
-    PruneAndRegraftMove (Sampler&, random_engine&);
+    PruneAndRegraftMove (const History&, Sampler&, random_engine&);
   };
 
   struct SampleNodeHeightMove : Move {
-    SampleNodeHeightMove (Sampler&, random_engine&);
+    SampleNodeHeightMove (const History&, Sampler&, random_engine&);
   };
 
   struct SampleAncestralResiduesMove : Move {
-    SampleAncestralResiduesMove (Sampler&, random_engine&);
+    SampleAncestralResiduesMove (const History&, Sampler&, random_engine&);
   };
 
   // Sampler member variables
