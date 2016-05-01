@@ -75,25 +75,22 @@ Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sample
   const TokSeq rTok = sampler.removeGapsAndTokenize (history.gapped[rightChild]);
   const TokSeq pTok = sampler.removeGapsAndTokenize (history.gapped[parent]);
 
-  Alignment oldAlign (history.gapped);
+  const Alignment oldAlign (history.gapped);
   const AlignPath lCladePath = Sampler::cladePath (oldAlign.path, history.tree, leftChild, node);
   const AlignPath rCladePath = Sampler::cladePath (oldAlign.path, history.tree, rightChild, node);
   const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
   
-  AlignmentMatrix alignMatrix (sampler.model, lTok, rTok, lDist + rDist, env, leftChildEnvPos, rightChildEnvPos);
+  const SiblingMatrix sibMatrix (sampler.model, lTok, rTok, lDist, rDist, env, leftChildEnvPos, rightChildEnvPos);
 
   // WRITE ME
 }
 
 
-Sampler::AlignmentMatrix::AlignmentMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
-  : model (model),
-    xSeq (xSeq),
-    ySeq (ySeq),
-    dist (dist),
-    env (env),
-    xEnvPos (xEnvPos),
-    yEnvPos (yEnvPos)
+Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
+  : SparseDPMatrix (lSeq, rSeq, env, xEnvPos, yEnvPos),
+    model (model),
+    lProbModel (model, plDist),
+    rProbModel (model, prDist)
 {
   // WRITE ME
 }

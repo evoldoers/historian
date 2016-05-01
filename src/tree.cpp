@@ -20,7 +20,10 @@ void Tree::parse (const string& nhx) {
     for (int c = 0; c < tree->node[n].n; ++c)
       node[n].child[c] = tree->node[n].child[c];
     node[n].name = tree->node[n].name;
-    node[n].d = max (tree->node[n].d, minBranchLength);
+    if (tree->node[n].d >= 0)
+      node[n].d = max (tree->node[n].d, minBranchLength);
+    else
+      node[n].d = tree->node[n].d;
     if (node[n].name.size()) {
       Require (names.count (node[n].name) == 0, "Duplicate node name '%s' in tree: %s", node[n].name.c_str(), nhx.c_str());
       names.insert (node[n].name);

@@ -15,32 +15,25 @@ struct Sampler {
 
   typedef DPMatrix::random_engine random_engine;
 
-  // Sampler::AlignmentMatrix
-  class AlignmentMatrix {
-  public:
-    enum State { Start = -1, Match = 0, Insert = 1, Delete = 2, TotalStates = 3 };
-
+  // Sampler::SparseDPMatrix
+  template <unsigned int CellStates>
+  class SparseDPMatrix {
   private:
     struct XYCell {
-      LogProb lp[TotalStates];
+      LogProb lp[CellStates];
       XYCell() {
-	for (size_t s = 0; s < TotalStates; ++s)
+	for (size_t s = 0; s < CellStates; ++s)
 	  lp[s] = -numeric_limits<double>::infinity();
       }
-      LogProb& operator() (State s) { return lp[s]; }
-      LogProb operator() (State s) const { return lp[s]; }
+      LogProb& operator() (unsigned int s) { return lp[s]; }
+      LogProb operator() (unsigned int s) const { return lp[s]; }
     };
     vguard<map<SeqIdx,XYCell> > cellStorage;  // partial Forward sums by cell
     XYCell emptyCell;  // always -inf
 
   public:
-    const RateModel& model;
-    TokSeq xSeq, ySeq;
-    TreeBranchLength dist;
-
-    vguard<vguard<LogProb> > submat;  // log odds-ratio
-    LogProb s2m, s2i, s2d, s2e, m2m, m2i, m2d, m2e, i2m, i2i, i2d, i2e, d2m, d2i, d2d, d2e;
-
+    const TokSeq& xSeq;
+    const TokSeq& ySeq;
     const GuideAlignmentEnvelope& env;
     const vguard<SeqIdx>& xEnvPos;
     const vguard<SeqIdx>& yEnvPos;
@@ -55,43 +48,69 @@ struct Sampler {
       return iter == column.end() ? emptyCell : iter->second;
     }
 
-    inline LogProb& cell (SeqIdx xpos, SeqIdx ypos, State state)
+    inline LogProb& cell (SeqIdx xpos, SeqIdx ypos, unsigned int state)
     { return cellStorage[xpos][ypos].lp[state]; }
-    inline LogProb cell (SeqIdx xpos, SeqIdx ypos, State state) const
+    inline LogProb cell (SeqIdx xpos, SeqIdx ypos, unsigned int state) const
     {
       const auto& column = cellStorage[xpos];
       auto iter = column.find(ypos);
       return iter == column.end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
     }
 
-    inline LogProb& lpStart() { return cell(0,0,Match); }
-    inline const LogProb lpStart() const { return cell(0,0,Match); }
+    inline LogProb& lpStart() { return cell(0,0,0); }
+    inline const LogProb lpStart() const { return cell(0,0,0); }
 
+    // constructor
+    SparseDPMatrix (const TokSeq& xSeq, const TokSeq& ySeq, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
+      : xSeq(xSeq), ySeq(ySeq), env(env), xEnvPos(xEnvPos), yEnvPos(yEnvPos), lpEnd(-numeric_limits<double>::infinity())
+    { }
+  };
+  
+  // Sampler::BranchMatrix
+  class BranchMatrix : public SparseDPMatrix<3> {
+  public:
+    enum State { Start = 0,
+		 Match = 0, Insert = 1, Delete = 2,
+		 End = 3,
+		 SourceStates = 3, DestStates = 4 };
+
+    const RateModel& model;
+    TreeBranchLength dist;
+
+    LogProb lpTrans[SourceStates][DestStates];
+    vguard<vguard<LogProb> > submat;  // log odds-ratio
+
+    // cell accessors
     static inline AlignRowIndex xRow() { return 0; }
     static inline AlignRowIndex yRow() { return 1; }
 
-    AlignmentMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
+    BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
 
     void sample (AlignPath& path, random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
   };
 
-  // Sampler::ParentMatrix
-  struct ParentMatrix {
-    enum State { SSS, SSI, SIW, IMM, IMD, IDM, IDD, IMI, IDI, IIW, IIX, EEE };
+  // Sampler::SiblingMatrix
+  struct SiblingMatrix : public SparseDPMatrix<7> {
+    enum State { SSS = 0, SSI = 1, SIW = 2,
+		 IMM = 0, IMI = 1, IIW = 2, IDI = 3, IIX = 4,
+		 IMD = 5, IDM = 6, IDD = 7,
+		 EEE = 8,
+		 SourceStates = 8, DestStates = 9 };
 
     const RateModel& model;
-    TokSeq lSeq, rSeq;
-    TreeBranchLength plDist, prDist;
-    AlignPath lrPath;
+    const ProbModel lProbModel, rProbModel;
 
-    vguard<map<State,LogProb> > cell;
+    LogProb lpTrans[SourceStates][DestStates];
+    LogProb lpElim[SourceStates][DestStates];  // effective transitions, with IDD eliminated
+    vguard<vguard<LogProb> > lrMat;
+    vguard<LogProb> lIns, rIns, lInsMat, rInsMat;
 
-    static inline AlignRowIndex lChild() { return 0; }
-    static inline AlignRowIndex rChild() { return 1; }
-    static inline AlignRowIndex parent() { return 2; }
+    static inline AlignRowIndex lRow() { return 0; }
+    static inline AlignRowIndex rRow() { return 1; }
+    static inline AlignRowIndex pRow() { return 2; }
 
-    ParentMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const AlignPath& lrPath);
+    SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
 
     void sample (TokSeq& pSeq, AlignPath& plrPath, random_engine& generator) const;
     LogProb logPostProb (const TokSeq& pSeq, const AlignPath& plrPath) const;

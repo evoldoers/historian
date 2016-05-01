@@ -199,7 +199,7 @@ testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -guide data/PF16593.testspan.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -rndspan data/PF16593.fa -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -output fasta -samples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json data/PF16593.historian.fa
 
 testcount: bin/$(MAIN)
