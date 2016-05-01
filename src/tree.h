@@ -48,7 +48,7 @@ struct Tree {
   void assertBinary() const;
 
   vguard<TreeNodeIndex> rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const;
-  vguard<TreeNodeIndex> rerootedPreorderSort (TreeNodeIndex newRoot) const;
+  vguard<TreeNodeIndex> rerootedPreorderSort (TreeNodeIndex newRoot, TreeNodeIndex parentOfRoot = -1) const;
   vguard<TreeNodeIndex> rerootedParent (TreeNodeIndex newRoot) const;
   
   // I/O

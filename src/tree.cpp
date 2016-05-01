@@ -470,7 +470,7 @@ vguard<TreeNodeIndex> Tree::nodeAndDescendants (TreeNodeIndex node) const {
   return d;
 }
 
-vguard<TreeNodeIndex> Tree::rerootedPreorderSort (TreeNodeIndex newRoot) const {
+vguard<TreeNodeIndex> Tree::rerootedPreorderSort (TreeNodeIndex newRoot, TreeNodeIndex parentOfRoot) const {
   vguard<TreeNodeIndex> pre;
   std::function<void(TreeNodeIndex,TreeNodeIndex)> visit;
   visit = [&] (TreeNodeIndex node, TreeNodeIndex parent) -> void {
@@ -479,7 +479,7 @@ vguard<TreeNodeIndex> Tree::rerootedPreorderSort (TreeNodeIndex newRoot) const {
     for (auto kid : kids)
       visit (kid, node);
   };
-  visit (newRoot, -1);
+  visit (newRoot, parentOfRoot);
   return pre;
 }
 
