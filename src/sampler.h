@@ -101,12 +101,12 @@ struct Sampler {
 		 IMM = 0, IMI = 1, IIW = 2, IDI = 3, IIX = 4,
 		 IMD = 5, IDM = 6, IDD = 7,
 		 EEE = 8,
-		 SourceStates = 8, DestStates = 9 };
+		 CellStates = 7, SourceStates = 8, DestStates = 9 };
 
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
 
-    LogProb lpTrans[SourceStates][DestStates];
+    double pTrans[SourceStates][DestStates];
     LogProb lpElim[SourceStates][DestStates];  // effective transitions, with IDD eliminated
     vguard<vguard<LogProb> > lrMat;
     vguard<LogProb> lIns, rIns, lInsMat, rInsMat;
