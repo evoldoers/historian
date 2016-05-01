@@ -16,7 +16,7 @@ struct Sampler {
   typedef DPMatrix::random_engine random_engine;
 
   // Sampler::SparseDPMatrix
-  template <unsigned int CellStates>
+  template <size_t CellStates>
   class SparseDPMatrix {
   private:
     struct XYCell {
