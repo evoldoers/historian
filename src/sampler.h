@@ -31,12 +31,13 @@ struct Sampler {
     vguard<map<SeqIdx,XYCell> > cellStorage;  // partial Forward sums by cell
     XYCell emptyCell;  // always -inf
 
-  public:
-    const TokSeq& xSeq;
-    const TokSeq& ySeq;
     const GuideAlignmentEnvelope& env;
     const vguard<SeqIdx>& xEnvPos;
     const vguard<SeqIdx>& yEnvPos;
+
+  public:
+    const TokSeq& xSeq;
+    const TokSeq& ySeq;
 
     LogProb lpEnd;
 
@@ -60,6 +61,10 @@ struct Sampler {
     inline LogProb& lpStart() { return cell(0,0,0); }
     inline const LogProb lpStart() const { return cell(0,0,0); }
 
+    inline bool inEnvelope (SeqIdx xpos, SeqIdx ypos) const {
+      return env.inRange (xEnvPos[xpos], yEnvPos[ypos]);
+    }
+    
     // constructor
     SparseDPMatrix (const TokSeq& xSeq, const TokSeq& ySeq, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
       : xSeq(xSeq), ySeq(ySeq), env(env), xEnvPos(xEnvPos), yEnvPos(yEnvPos), lpEnd(-numeric_limits<double>::infinity())

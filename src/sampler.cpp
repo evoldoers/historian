@@ -18,11 +18,12 @@ vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, A
   const AlignRowPath& guideRowPath = path.at(guideRow);
   SeqIdx pos = 0;
   for (AlignColIndex col = 0; col < cols; ++col) {
-    if (rowPath[col])
-      guidePos.push_back (pos);
     if (guideRowPath[col])
       ++pos;
+    if (rowPath[col])
+      guidePos.push_back (pos > 0 ? (pos - 1) : 0);
   }
+  guidePos.push_back (pos > 0 ? (pos - 1) : 0);
   return guidePos;
 }
 
