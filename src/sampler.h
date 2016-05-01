@@ -96,20 +96,54 @@ struct Sampler {
   };
 
   // Sampler::SiblingMatrix
-  struct SiblingMatrix : public SparseDPMatrix<7> {
-    enum State { SSS = 0, SSI = 1, SIW = 2,
-		 IMM = 0, IMI = 1, IIW = 2, IDI = 3, IIX = 4,
-		 IMD = 5, IDM = 6, IDD = 7,
-		 EEE = 8,
-		 CellStates = 7, SourceStates = 8, DestStates = 9 };
+  struct SiblingMatrix : public SparseDPMatrix<12> {
+    enum State { SSS = 0, SSI = 5, SIW = 6,
+		 IMM = 0, IMD = 1, IDM = 2, IDD = 3,
+		 WWW = 4, WWX = 5, WXW = 6, WXX = 7,
+		 IMI = 8, IIW = 9,
+		 IDI = 10, IIX = 11,
+		 EEE = 12,
+		 SourceStates = 11, DestStates = 12 };
 
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
 
-    double pTrans[SourceStates][DestStates];
-    LogProb lpElim[SourceStates][DestStates];  // effective transitions, with IDD eliminated
-    vguard<vguard<LogProb> > lrMat;
-    vguard<LogProb> lIns, rIns, lInsMat, rInsMat;
+    // Transition log-probabilities.
+    // The null cycle idd->wxx->idd is prevented by eliminating the transition idd->wxx.
+    // To prevent the degeneracy between paths wxx->wxw->www and wxx->wwx->www,
+    // the transition wxx->wwx is eliminated and the path wxx->wwx->imd folded into wxx->imd.
+    // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}.
+    // Forward fill order: {emit states}, {wwx,wxx}, wxw, www, idd.
+    // (34 transitions)
+    //  To:     imm      imd      idm      idd      w**      imi      iiw      idi      iix      eee
+    LogProb                                     imm_www, imm_imi, imm_iiw;
+    LogProb                                     imd_wwx,                            imd_iix;
+    LogProb                                     idm_wxw,                   idm_idi;
+    LogProb idd_imm, idd_imd, idd_idm,                                                       idd_eee;
+    LogProb www_imm, www_imd, www_idm, www_idd,                                              www_eee;
+    LogProb          wwx_imd,          wwx_idd, wwx_www;
+    LogProb                   wxw_idm, wxw_idd, wxw_www;
+    LogProb          wxx_imd,          wxx_idd, wxx_wxw;
+    LogProb                                     imi_www, imi_imi, imi_iiw;
+    LogProb                                     iiw_www,          iiw_iiw;
+    LogProb                                     idi_wxw,                  idi_idi;
+    LogProb                                     iix_wwx,                           iix_iix;
+
+    // This is 1.4* faster (48/34) but 1.5* fatter (12/8) than with w** eliminated:
+    // (48 transitions)
+    //        To:     imm      imd      idm      idd      imi      iiw      idi      iix      eee
+    //    LogProb imm_imm, imm_imd, imm_idm, imm_idd, imm_imi, imm_iiw,                   imm_eee;
+    //    LogProb imd_imm, imd_imd, imd_idm, imd_idd,                            imd_iix, imd_eee;
+    //    LogProb idm_imm, idm_imd, idm_idm, idm_idd,                   idm_idi,          idm_eee;
+    //    LogProb idd_imm, idd_imd, idd_idm,                                              idd_eee;
+    //    LogProb imi_imm, imi_imd, imi_idm, imi_idd, imi_imi, imi_iiw,                   imi_eee;
+    //    LogProb iiw_imm, iiw_imd, iiw_idm, iiw_idd,          iiw_iiw,                   iiw_eee;
+    //    LogProb idi_imm, idi_imd, idi_idm, idi_idd,                   idi_idi,          idi_eee;
+    //    LogProb iix_imm, iix_imd, iix_idm, iix_idd,                            iix_iix, iix_eee;
+    
+    // Within the DP, score substitutions with a log-odds-ratio matrix & gap emissions with zeroes, for speed.
+    // When estimating the parent sequence conditioned on the alignment, we use the "proper" gap emissions.
+    vguard<vguard<LogProb> > submat;
 
     static inline AlignRowIndex lRow() { return 0; }
     static inline AlignRowIndex rRow() { return 1; }
@@ -117,8 +151,11 @@ struct Sampler {
 
     SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
 
-    void sample (TokSeq& pSeq, AlignPath& plrPath, random_engine& generator) const;
-    LogProb logPostProb (const TokSeq& pSeq, const AlignPath& plrPath) const;
+    void sampleAlign (AlignPath& plrPath, random_engine& generator) const;
+    LogProb logAlignPostProb (const AlignPath& plrPath) const;
+
+    void sampleParent (TokSeq& pSeq, const AlignPath& plrPath, random_engine& generator) const;
+    LogProb logParentPostProb (const TokSeq& pSeq, const AlignPath& plrPath) const;
   };
 
   // Sampler::History

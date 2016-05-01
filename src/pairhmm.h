@@ -42,8 +42,9 @@ struct PairHMM : AlphabetOwner {
 
   // Transition log-probabilities.
   // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}
-  // States involving overlapping events (idd,idi,iix) are dropped.
+  // States involving overlapping events (idd,idi) are dropped.
   // Transitions between indistinguishable types of gap (iiw->imd, imi->idm) are also dropped.
+  // State iix is dropped because it is only reachable via such an "indistinguishable" transition (imd->iix).
   LogProb imm_imi, imm_iiw, imm_imm, imm_imd, imm_idm, imm_eee;
   LogProb imd_imm, imd_imd, imd_idm, imd_eee;
   LogProb idm_imm, idm_imd, idm_idm, idm_eee;
