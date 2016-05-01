@@ -116,7 +116,7 @@ void DiagonalEnvelope::initSparse (const KmerIndex& yKmerIndex, unsigned int ban
     }
   }
 
-  const vguard<AlphTok> xTok = px->tokens (yKmerIndex.alphabet);
+  const TokSeq xTok = px->tokens (yKmerIndex.alphabet);
   const AlphTok alphabetSize = (AlphTok) yKmerIndex.alphabet.size();
   
   map<int,unsigned int> diagKmerCount;

@@ -18,8 +18,8 @@ const char FastSeq::minQualityChar = '!';
 const char FastSeq::maxQualityChar = '~';
 const QualScore FastSeq::qualScoreRange = 94;
 
-vguard<AlphTok> FastSeq::tokens (const string& alphabet) const {
-  vguard<AlphTok> tok;
+TokSeq FastSeq::tokens (const string& alphabet) const {
+  TokSeq tok;
   tok.reserve (length());
   for (const auto& c : seq) {
     const int t = tokenize (c, alphabet);
@@ -138,7 +138,7 @@ KmerIndex::KmerIndex (const FastSeq& seq, const string& alphabet, SeqIdx kmerLen
   : seq(seq), alphabet(alphabet), kmerLen(kmerLen)
 {
   LogThisAt(5, "Building " << kmerLen << "-mer index for " << seq.name << endl);
-  const vguard<AlphTok> tok = seq.tokens (alphabet);
+  const TokSeq tok = seq.tokens (alphabet);
   const AlphTok alphabetSize = (AlphTok) alphabet.size();
   const SeqIdx seqLen = seq.length();
   for (SeqIdx j = 0; j <= seqLen - kmerLen; ++j)

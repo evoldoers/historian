@@ -24,7 +24,7 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
   state.front().seqCoords[rowIndex] = 0;
   state.back().name = "END";
   state.back().seqCoords[rowIndex] = seq.length();
-  const vguard<AlphTok> dsq = seq.tokens (alphabet);
+  const TokSeq dsq = seq.tokens (alphabet);
   for (size_t pos = 0; pos <= dsq.size(); ++pos) {
     ProfileTransition& t = trans[pos];
     t.src = pos;

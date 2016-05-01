@@ -10,7 +10,7 @@ public:
   enum State { Start, Match, Insert, Delete };
   const DiagonalEnvelope* penv;
   const FastSeq *px, *py;
-  vguard<AlphTok> xTok, yTok;
+  TokSeq xTok, yTok;
   SeqIdx xLen, yLen, xEnd, yEnd;
   vguard<LogProb> cell;
   LogProb start, end, result;
