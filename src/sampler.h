@@ -96,7 +96,7 @@ struct Sampler {
   };
 
   // Sampler::SiblingMatrix
-  struct SiblingMatrix : public SparseDPMatrix<12> {
+  struct SiblingMatrix : public SparseDPMatrix<11> {
     enum State { SSS = 0, SSI = 5, SIW = 6,
 		 IMM = 0, IMD = 1, IDM = 2, IDD = 3,
 		 WWW = 4, WWX = 5, WXW = 6, WXX = 7,
@@ -109,27 +109,28 @@ struct Sampler {
     const ProbModel lProbModel, rProbModel;
 
     // Transition log-probabilities.
-    // The null cycle idd->wxx->idd is prevented by eliminating the transition idd->wxx.
-    // To prevent the degeneracy between paths wxx->wxw->www and wxx->wwx->www,
-    // the transition wxx->wwx is eliminated and the path wxx->wwx->imd folded into wxx->imd.
+    // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
+    // The outgoing paths from wxx are replaced with the following transitions:
+    //  wxx->wwx->{imd,eee} is folded into idd->{imd,eee} (prevents degeneracy between wxx->wwx->www and wxx->wxw->www),
+    //  wxx->wxw is replaced with idd->wxw,
+    //  wxx->eee is replaced with idd->eee.
     // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}.
     // Forward fill order: {emit states}, {wwx,wxx}, wxw, www, idd.
-    // (34 transitions)
+    // (32 transitions)
     //  To:     imm      imd      idm      idd      w**      imi      iiw      idi      iix      eee
     LogProb                                     imm_www, imm_imi, imm_iiw;
     LogProb                                     imd_wwx,                            imd_iix;
     LogProb                                     idm_wxw,                   idm_idi;
-    LogProb idd_imm, idd_imd, idd_idm,                                                       idd_eee;
+    LogProb idd_imm, idd_imd, idd_idm,          idd_wxw,                                     idd_eee;
     LogProb www_imm, www_imd, www_idm, www_idd,                                              www_eee;
     LogProb          wwx_imd,          wwx_idd, wwx_www;
     LogProb                   wxw_idm, wxw_idd, wxw_www;
-    LogProb          wxx_imd,          wxx_idd, wxx_wxw;
     LogProb                                     imi_www, imi_imi, imi_iiw;
     LogProb                                     iiw_www,          iiw_iiw;
     LogProb                                     idi_wxw,                  idi_idi;
     LogProb                                     iix_wwx,                           iix_iix;
 
-    // This is 1.4* faster (48/34) but 1.5* fatter (12/8) than with w** eliminated:
+    // This is 1.5* faster (48/32) but 1.375* fatter (11/8) than with w** eliminated:
     // (48 transitions)
     //        To:     imm      imd      idm      idd      imi      iiw      idi      iix      eee
     //    LogProb imm_imm, imm_imd, imm_idm, imm_idd, imm_imi, imm_iiw,                   imm_eee;
