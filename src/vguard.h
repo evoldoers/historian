@@ -9,12 +9,13 @@
 template<typename T>
 class vguard : public std::vector<T> {
   typedef std::vector<T> _vgbase;
+public:
   typedef typename _vgbase::value_type value_type;
   typedef typename _vgbase::size_type size_type;
   typedef typename _vgbase::allocator_type allocator_type;
   typedef typename _vgbase::reference reference;
   typedef typename _vgbase::const_reference const_reference;
-public:
+
   vguard (const allocator_type& a = allocator_type()) : _vgbase(a) { }
   vguard (size_t n, const value_type& t = value_type(), const allocator_type& a = allocator_type())
     : _vgbase(n,t,a) { }

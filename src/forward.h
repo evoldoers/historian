@@ -57,7 +57,7 @@ public:
   const CellCoords startCell, endCell;
   LogProb lpEnd;
   const GuideAlignmentEnvelope envelope;
-  vguard<int> xClosestLeafPos, yClosestLeafPos;
+  vguard<SeqIdx> xClosestLeafPos, yClosestLeafPos;
   int maxDistance;
 
   DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, const GuideAlignmentEnvelope& env);

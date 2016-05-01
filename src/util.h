@@ -102,5 +102,28 @@ OutIter write_quoted_escaped(std::string const& s, OutIter out) {
   *out++ = '"';
   return out;
 }
-    
+
+/* random_element */
+template<class Iterator,class Generator>
+Iterator random_element (Iterator begin, Iterator end, Generator generator)
+{
+    const size_t n = std::distance(begin, end);
+    std::uniform_int_distribution<int> distribution (0, n - 1);
+    const size_t k = distribution (generator);
+    std::advance(begin, k);
+    return begin;
+}
+
+template<class Container,class Generator>
+typename Container::const_reference random_element (const Container& container, Generator generator)
+{
+  return *(random_element (container.begin(), container.end(), generator));
+}
+
+template<class Container,class Generator>
+typename Container::reference random_element (Container& container, Generator generator)
+{
+  return *(random_element (container.begin(), container.end(), generator));
+}
+
 #endif /* UTIL_INCLUDED */

@@ -4,6 +4,7 @@
 #include "model.h"
 #include "tree.h"
 #include "fastseq.h"
+#include "forward.h"
 
 struct SimpleTreePrior {
   double coalescenceRate;
@@ -33,14 +34,17 @@ struct Sampler {
     XYCell emptyCell;  // always -inf
 
   public:
-    const RateModel* model;
-    FastSeq xSeq, ySeq;
+    const RateModel& model;
+    TokSeq xSeq, ySeq;
     TreeBranchLength dist;
 
     vguard<vguard<LogProb> > submat;  // log odds-ratio
     LogProb s2m, s2i, s2d, s2e, m2m, m2i, m2d, m2e, i2m, i2i, i2d, i2e, d2m, d2i, d2d, d2e;
 
-    const GuideAlignmentEnvelope envelope;
+    const GuideAlignmentEnvelope& env;
+    const vguard<SeqIdx>& xEnvPos;
+    const vguard<SeqIdx>& yEnvPos;
+
     LogProb lpEnd;
 
     // cell accessors
@@ -60,16 +64,13 @@ struct Sampler {
       return iter == column.end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
     }
 
-    inline LogProb& cell (const CellCoords& c) { return cell(c.xpos,c.ypos,c.state); }
-    inline const LogProb cell (const CellCoords& c) const { return cell(c.xpos,c.ypos,c.state); }
-
     inline LogProb& lpStart() { return cell(0,0,Match); }
     inline const LogProb lpStart() const { return cell(0,0,Match); }
 
-    static inline AlignRowIndex xRow() const { return 0; }
-    static inline AlignRowIndex yRow() const { return 1; }
+    static inline AlignRowIndex xRow() { return 0; }
+    static inline AlignRowIndex yRow() { return 1; }
 
-    AlignmentMatrix (const RateModel* model, const FastSeq& xSeq, const FastSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<int>& xClosestLeafPos, const vguard<int>& yClosestLeafPos);
+    AlignmentMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
 
     void sample (AlignPath& path, random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
@@ -79,21 +80,21 @@ struct Sampler {
   struct ParentMatrix {
     enum State { SSS, SSI, SIW, IMM, IMD, IDM, IDD, IMI, IDI, IIW, IIX, EEE };
 
-    const RateModel* model;
-    FastSeq lSeq, rSeq;
+    const RateModel& model;
+    TokSeq lSeq, rSeq;
     TreeBranchLength plDist, prDist;
     AlignPath lrPath;
 
     vguard<map<State,LogProb> > cell;
 
-    static inline AlignRowIndex lChild() const { return 0; }
-    static inline AlignRowIndex rChild() const { return 1; }
-    static inline AlignRowIndex parent() const { return 2; }
+    static inline AlignRowIndex lChild() { return 0; }
+    static inline AlignRowIndex rChild() { return 1; }
+    static inline AlignRowIndex parent() { return 2; }
 
-    ParentMatrix (const RateModel* model, const FastSeq& lSeq, const FastSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const AlignPath& lrPath);
+    ParentMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const AlignPath& lrPath);
 
-    void sample (FastSeq& pSeq, AlignPath& plrPath, random_engine& generator) const;
-    LogProb logPostProb (const FastSeq& pSeq, const AlignPath& plrPath) const;
+    void sample (TokSeq& pSeq, AlignPath& plrPath, random_engine& generator) const;
+    LogProb logPostProb (const TokSeq& pSeq, const AlignPath& plrPath) const;
   };
 
   // Sampler::History
@@ -111,10 +112,11 @@ struct Sampler {
   struct Move {
     enum Type { SampleBranch, SampleNode, PruneAndRegraft, SampleNodeHeight, SampleAncestralResidues };
     Type type;
-    TreeNodeIndex node, parent, leftChild, rightChild, oldSibling, newSibling;
-    History oldState, newState;
+    TreeNodeIndex node, parent, grandparent, leftChild, rightChild, oldSibling, newSibling;  // no single type of move uses all of these
+    History oldHistory, newHistory;
     LogProb logProposal, logInverseProposal, logOldLikelihood, logNewLikelihood, logHastingsRatio;
 
+    Move (Type type, const History& history);
     bool accept (random_engine& generator) const;
   };
 
@@ -143,14 +145,21 @@ struct Sampler {
   SimpleTreePrior treePrior;
   list<Log*> logs;
   map<Move::Type,double> moveRate;
+  Alignment guide;
+  int maxDistanceFromGuide;
   
   // Sampler constructor
-  Sampler (const RateModel& model, const SimpleTreePrior& treePrior);
+  Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide);
   
   // Sampler methods
   void addLog (Log& log);
   Move proposeMove (const History& oldState, random_engine& generator) const;
   void run (History& state, random_engine& generator, int nSamples = 1);
+
+  // Sampler helpers
+  static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
+  static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
+  TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;
 };
 
 #endif /* SAMPLER_INCLUDED */

@@ -48,6 +48,8 @@ struct Tree {
   void assertBinary() const;
 
   vguard<TreeNodeIndex> rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const;
+  vguard<TreeNodeIndex> rerootedPreorderSort (TreeNodeIndex newRoot) const;
+  vguard<TreeNodeIndex> rerootedParent (TreeNodeIndex newRoot) const;
   
   // I/O
   void parse (const string& nhx);
@@ -80,6 +82,10 @@ struct Tree {
 
   void assignInternalNodeNames (const char* prefix = DefaultNodeNamePrefix);
   void assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix = DefaultNodeNamePrefix);
+
+  // general helpers
+  
+  TreeNodeIndex closestLeaf (TreeNodeIndex node, TreeBranchLength* distanceToClosestLeaf = NULL) const;
 };
 
 #endif /* TREE_INCLUDED */
