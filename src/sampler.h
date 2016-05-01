@@ -99,11 +99,11 @@ struct Sampler {
   struct SiblingMatrix : public SparseDPMatrix<11> {
     enum State { SSS = 0, SSI = 5, SIW = 6,
 		 IMM = 0, IMD = 1, IDM = 2, IDD = 3,
-		 WWW = 4, WWX = 5, WXW = 6, WXX = 7,
-		 IMI = 8, IIW = 9,
-		 IDI = 10, IIX = 11,
-		 EEE = 12,
-		 SourceStates = 11, DestStates = 12 };
+		 WWW = 4, WWX = 5, WXW = 6,
+		 IMI = 7, IIW = 8,
+		 IDI = 9, IIX = 10,
+		 EEE = 11,
+		 SourceStates = 10, DestStates = 11 };
 
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
