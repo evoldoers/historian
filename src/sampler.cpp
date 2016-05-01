@@ -35,6 +35,13 @@ TokSeq Sampler::removeGapsAndTokenize (const FastSeq& gapped) const {
   return tok;
 }
 
+AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent) {
+  AlignPath cp;
+  for (auto n : tree.rerootedPreorderSort(cladeRoot,cladeRootParent))
+    cp[n] = path.at(n);
+  return cp;
+}
+
 Sampler::Move::Move (Type type, const History& history)
   : type (type),
     oldHistory (history)
@@ -68,6 +75,11 @@ Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sample
   const TokSeq rTok = sampler.removeGapsAndTokenize (history.gapped[rightChild]);
   const TokSeq pTok = sampler.removeGapsAndTokenize (history.gapped[parent]);
 
+  Alignment oldAlign (history.gapped);
+  const AlignPath lCladePath = Sampler::cladePath (oldAlign.path, history.tree, leftChild, node);
+  const AlignPath rCladePath = Sampler::cladePath (oldAlign.path, history.tree, rightChild, node);
+  const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
+  
   AlignmentMatrix alignMatrix (sampler.model, lTok, rTok, lDist + rDist, env, leftChildEnvPos, rightChildEnvPos);
 
   // WRITE ME

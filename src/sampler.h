@@ -160,6 +160,7 @@ struct Sampler {
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
   TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;
+  static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
 };
 
 #endif /* SAMPLER_INCLUDED */
