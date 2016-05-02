@@ -85,7 +85,7 @@ struct Tree {
 
   // general helpers
   
-  TreeNodeIndex closestLeaf (TreeNodeIndex node, TreeBranchLength* distanceToClosestLeaf = NULL) const;
+  TreeNodeIndex closestLeaf (TreeNodeIndex node, TreeNodeIndex parent = -1) const;
 };
 
 #endif /* TREE_INCLUDED */

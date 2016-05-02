@@ -22,6 +22,9 @@ typedef unsigned int QualScore;
 typedef vguard<AlphTok> TokSeq;
 
 UnvalidatedAlphTok tokenize (char c, const string& alphabet);
+TokSeq validTokenize (const string& s, const string& alphabet, const char* seqname = NULL);
+string detokenize (const TokSeq& s, const string& alphabet);
+
 Kmer makeKmer (SeqIdx k, vector<AlphTok>::const_iterator tok, AlphTok alphabetSize);
 Kmer numberOfKmers (SeqIdx k, AlphTok alphabetSize);
 string kmerToString (Kmer kmer, SeqIdx k, const string& alphabet);

@@ -18,18 +18,37 @@ const char FastSeq::minQualityChar = '!';
 const char FastSeq::maxQualityChar = '~';
 const QualScore FastSeq::qualScoreRange = 94;
 
-TokSeq FastSeq::tokens (const string& alphabet) const {
+TokSeq validTokenize (const string& s, const string& alphabet, const char* seqname) {
   TokSeq tok;
-  tok.reserve (length());
-  for (const auto& c : seq) {
+  tok.reserve (s.size());
+  for (const auto& c : s) {
     const int t = tokenize (c, alphabet);
     if (t < 0) {
-      cerr << "Unknown symbol " << c << " in sequence " << name << " (alphabet is " << alphabet << ")" << endl;
+      cerr << "Unknown symbol " << c << " in sequence"
+	   << (seqname ? ((string(" ") + seqname)) : string())
+	   << " (alphabet is " << alphabet << ")" << endl;
       throw;
     }
     tok.push_back (t);
   }
   return tok;
+}
+
+string detokenize (const TokSeq& toks, const string& alphabet) {
+  string seq;
+  seq.reserve (toks.size());
+  for (auto tok : toks) {
+    if (tok >= alphabet.size()) {
+      cerr << "Unknown token " << tok << " in sequence (alphabet is " << alphabet << ")" << endl;
+      throw;
+    }
+    seq.push_back (alphabet[tok]);
+  }
+  return seq;
+}
+
+TokSeq FastSeq::tokens (const string& alphabet) const {
+  return validTokenize (seq, alphabet, name.c_str());
 }
 
 Kmer makeKmer (SeqIdx k, vector<unsigned int>::const_iterator tok, AlphTok alphabetSize) {

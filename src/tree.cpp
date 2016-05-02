@@ -499,9 +499,9 @@ vguard<TreeNodeIndex> Tree::rerootedParent (TreeNodeIndex newRoot) const {
   return newParent;
 }
 
-TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeBranchLength* distanceToClosestLeaf) const {
+TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const {
   const auto newParent = rerootedParent (node);
-  auto post = rerootedPreorderSort (node);
+  auto post = rerootedPreorderSort (node, parent);
   reverse (post.begin(), post.end());
   vguard<TreeNodeIndex> closest (nodes());
   vguard<double> dist (nodes());
@@ -520,7 +520,5 @@ TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeBranchLength* distanceT
       }
     }
   }
-  if (distanceToClosestLeaf)
-    *distanceToClosestLeaf = dist[node];
   return closest[node];
 }

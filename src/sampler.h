@@ -80,18 +80,18 @@ struct Sampler {
 		 SourceStates = 3, DestStates = 4 };
 
     const RateModel& model;
-    TreeBranchLength dist;
+    const ProbModel probModel;
 
     LogProb lpTrans[SourceStates][DestStates];
     vguard<vguard<LogProb> > submat;  // log odds-ratio
 
     // cell accessors
-    static inline AlignRowIndex xRow() { return 0; }
-    static inline AlignRowIndex yRow() { return 1; }
+    static inline AlignRowIndex xRow() { return 0; }  // parent
+    static inline AlignRowIndex yRow() { return 1; }  // child
 
     BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
 
-    void sample (AlignPath& path, random_engine& generator) const;
+    AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
   };
 
@@ -150,12 +150,12 @@ struct Sampler {
     static inline AlignRowIndex rRow() { return 1; }
     static inline AlignRowIndex pRow() { return 2; }
 
-    SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
+    SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos);
 
-    void sampleAlign (AlignPath& plrPath, random_engine& generator) const;
+    AlignPath sampleAlign (random_engine& generator) const;
     LogProb logAlignPostProb (const AlignPath& plrPath) const;
 
-    void sampleParent (TokSeq& pSeq, const AlignPath& plrPath, random_engine& generator) const;
+    TokSeq sampleParent (const AlignPath& plrPath, random_engine& generator) const;
     LogProb logParentPostProb (const TokSeq& pSeq, const AlignPath& plrPath) const;
   };
 
@@ -174,9 +174,9 @@ struct Sampler {
   struct Move {
     enum Type { SampleBranch, SampleNode, PruneAndRegraft, SampleNodeHeight, SampleAncestralResidues };
     Type type;
-    TreeNodeIndex node, parent, grandparent, leftChild, rightChild, oldSibling, newSibling;  // no single type of move uses all of these
+    TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
-    LogProb logProposal, logInverseProposal, logOldLikelihood, logNewLikelihood, logHastingsRatio;
+    LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
 
     Move (Type type, const History& history);
     bool accept (random_engine& generator) const;
@@ -215,14 +215,20 @@ struct Sampler {
   
   // Sampler methods
   void addLog (Log& log);
-  Move proposeMove (const History& oldState, random_engine& generator) const;
+  LogProb logLikelihood (const History& history) const;
+  Move proposeMove (const History& oldHistory, random_engine& generator) const;
   void run (History& state, random_engine& generator, int nSamples = 1);
 
   // Sampler helpers
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
   TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;
+
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
+  static AlignPath treePathToSiblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
+  static AlignPath siblingPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
+  static AlignPath treePathToBranchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
+  static AlignPath branchPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
 };
 
 #endif /* SAMPLER_INCLUDED */
