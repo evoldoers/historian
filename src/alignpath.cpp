@@ -186,6 +186,25 @@ AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
   return a;
 }
 
+AlignPath alignPathRemoveEmptyColumns (const AlignPath& a) {
+  AlignPath trimmed;
+  const AlignColIndex cols = alignPathColumns (a);
+  for (const auto& row_path : a)
+    trimmed[row_path.first].reserve (cols);
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    bool empty = true;
+    for (const auto& row_path : a)
+      if (row_path.second[col]) {
+	empty = false;
+	break;
+      }
+    if (!empty)
+      for (const auto& row_path : a)
+	trimmed[row_path.first].push_back (row_path.second[col]);
+  }
+  return trimmed;
+}
+
 Alignment::Alignment (const vguard<FastSeq>& gapped)
   : ungapped (gapped.size())
  {

@@ -20,6 +20,8 @@ AlignPath alignPathMerge (const vguard<AlignPath>& alignments);  // synchronized
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2);  // lengthwise concatenation
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const AlignPath& a3);
 
+AlignPath alignPathRemoveEmptyColumns (const AlignPath& a);
+
 struct Alignment {
   static const char gapChar, wildcardChar;
   vguard<FastSeq> ungapped;

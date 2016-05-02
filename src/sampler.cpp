@@ -40,7 +40,7 @@ AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeI
   AlignPath cp;
   for (auto n : tree.rerootedPreorderSort(cladeRoot,cladeRootParent))
     cp[n] = path.at(n);
-  return cp;
+  return alignPathRemoveEmptyColumns (cp);
 }
 
 AlignPath Sampler::treePathToSiblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent) {
@@ -49,7 +49,7 @@ AlignPath Sampler::treePathToSiblingPath (const AlignPath& path, const Tree& tre
   p[SiblingMatrix::pRow()] = path.at(parent);
   p[SiblingMatrix::lRow()] = path.at(tree.getChild(parent,0));
   p[SiblingMatrix::rRow()] = path.at(tree.getChild(parent,1));
-  return p;
+  return alignPathRemoveEmptyColumns (p);
 }
 
 AlignPath Sampler::siblingPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent) {
@@ -65,7 +65,7 @@ AlignPath Sampler::treePathToBranchPath (const AlignPath& path, const Tree& tree
   AlignPath p;
   p[BranchMatrix::xRow()] = path.at(tree.parentNode(node));
   p[BranchMatrix::yRow()] = path.at(node);
-  return p;
+  return alignPathRemoveEmptyColumns (p);
 }
 
 AlignPath Sampler::branchPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
