@@ -180,7 +180,8 @@ struct Sampler {
     LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
 
     Move (Type type, const History& history);
-    void initNewHistory (const Sampler& sampler, const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
+    void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
+    void initRatio (const Sampler& sampler);
     bool accept (random_engine& generator) const;
   };
 

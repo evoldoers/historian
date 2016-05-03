@@ -119,12 +119,14 @@ Sampler::Move::Move (Type type, const History& history)
     oldHistory (history)
 { }
 
-void Sampler::Move::initNewHistory (const Sampler& sampler, const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path) {
+void Sampler::Move::initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path) {
   const Alignment newAlign (ungapped, path);
 
   newHistory.tree = tree;
   newHistory.gapped = newAlign.gapped();
+}
 
+void Sampler::Move::initRatio (const Sampler& sampler) {
   oldLogLikelihood = sampler.logLikelihood (oldHistory);
   newLogLikelihood = sampler.logLikelihood (newHistory);
 
@@ -170,7 +172,8 @@ Sampler::SampleBranchMove::SampleBranchMove (const History& history, Sampler& sa
   logForwardProposal = logPostNewBranchPath;
   logReverseProposal = logPostOldBranchPath;
 
-  initNewHistory (sampler, oldHistory.tree, oldAlign.ungapped, newPath);
+  initNewHistory (oldHistory.tree, oldAlign.ungapped, newPath);
+  initRatio (sampler);
 }
 
 Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sampler, random_engine& generator)
@@ -261,7 +264,8 @@ Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sample
     newPath = alignPathMerge (mergeComponents);
   }
 
-  initNewHistory (sampler, oldHistory.tree, newUngapped, newPath);
+  initNewHistory (oldHistory.tree, newUngapped, newPath);
+  initRatio (sampler);
 }
 
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
