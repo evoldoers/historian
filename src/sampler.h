@@ -163,6 +163,7 @@ struct Sampler {
   struct History {
     vguard<FastSeq> gapped;
     Tree tree;
+    void swapNodes (TreeNodeIndex x, TreeNodeIndex y);
   };
 
   // Sampler::Log

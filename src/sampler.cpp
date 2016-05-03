@@ -1,6 +1,11 @@
 #include "sampler.h"
 #include "util.h"
 
+void Sampler::History::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
+  tree.swapNodes (x, y);
+  iter_swap (gapped.begin() + x, gapped.begin() + y);
+}
+
 TreeNodeIndex Sampler::randomInternalNode (const Tree& tree, random_engine& generator) {
   vguard<TreeNodeIndex> intNodes;
   intNodes.reserve (tree.nodes() / 2);

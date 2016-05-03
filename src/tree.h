@@ -50,6 +50,8 @@ struct Tree {
   vguard<TreeNodeIndex> rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const;
   vguard<TreeNodeIndex> rerootedPreorderSort (TreeNodeIndex newRoot, TreeNodeIndex parentOfRoot = -1) const;
   vguard<TreeNodeIndex> rerootedParent (TreeNodeIndex newRoot) const;
+
+  void swapNodes (TreeNodeIndex x, TreeNodeIndex y);
   
   // I/O
   void parse (const string& nhx);

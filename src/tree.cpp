@@ -522,3 +522,19 @@ TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const
   }
   return closest[node];
 }
+
+void Tree::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
+  iter_swap (node.begin() + x, node.begin() + y);
+  for (auto& n : node) {
+    if (n.parent == x)
+      n.parent = y;
+    else if (n.parent == y)
+      n.parent = x;
+    for (TreeNodeIndex& c : n.child)
+      if (c == x)
+	c = y;
+      else if (c == y)
+	c = x;
+  }
+}
+
