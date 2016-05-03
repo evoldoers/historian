@@ -538,3 +538,10 @@ void Tree::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
   }
 }
 
+vguard<TreeBranchLength> Tree::distanceFromRoot() const {
+  vguard<TreeBranchLength> dist (nodes());
+  dist[root()] = 0;
+  for (TreeNodeIndex n = root() - 1; n >= 0; --n)
+    dist[n] = branchLength(n) + dist[parentNode(n)];
+  return dist;
+}

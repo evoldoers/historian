@@ -224,6 +224,8 @@ struct Sampler {
   // Sampler helpers
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomChildNode (const Tree& tree, random_engine& generator);
+  static TreeNodeIndex randomGrandchildNode (const Tree& tree, random_engine& generator);
+  static TreeNodeIndex randomContemporaneousNode (const Tree& tree, TreeNodeIndex node, random_engine& generator);
 
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
   TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;

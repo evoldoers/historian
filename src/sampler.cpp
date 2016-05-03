@@ -21,6 +21,30 @@ TreeNodeIndex Sampler::randomChildNode (const Tree& tree, random_engine& generat
   return distribution (generator);
 }
 
+TreeNodeIndex Sampler::randomGrandchildNode (const Tree& tree, random_engine& generator) {
+  vguard<TreeNodeIndex> grandkids;
+  for (TreeNodeIndex n = 0; n < tree.root(); ++n)
+    if (tree.parentNode(n) != tree.root())
+      grandkids.push_back (n);
+  Assert (grandkids.size() > 0, "No grandchild nodes found");
+  return random_element (grandkids, generator);
+}
+
+TreeNodeIndex Sampler::randomContemporaneousNode (const Tree& tree, TreeNodeIndex node, random_engine& generator) {
+  vguard<TreeNodeIndex> contemps;
+  const TreeNodeIndex parent = tree.parentNode(node);
+  Assert (parent >= 0, "Parent node not found");
+  const auto dist = tree.distanceFromRoot();
+  const TreeBranchLength distParent = dist[parent];
+  for (TreeNodeIndex n = 0; n < tree.root(); ++n) {
+    const TreeNodeIndex p = tree.parentNode(n);
+    if (p != parent && dist[p] < distParent && dist[n] > distParent)
+      contemps.push_back (n);
+  }
+  Assert (contemps.size() > 0, "No contemporaneous nodes found");
+  return random_element (contemps, generator);
+}
+
 vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
   vguard<SeqIdx> guidePos;
   const auto cols = alignPathColumns (path);

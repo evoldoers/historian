@@ -52,6 +52,8 @@ struct Tree {
   vguard<TreeNodeIndex> rerootedParent (TreeNodeIndex newRoot) const;
 
   void swapNodes (TreeNodeIndex x, TreeNodeIndex y);
+
+  vguard<TreeBranchLength> distanceFromRoot() const;
   
   // I/O
   void parse (const string& nhx);
