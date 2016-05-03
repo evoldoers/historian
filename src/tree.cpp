@@ -545,3 +545,18 @@ vguard<TreeBranchLength> Tree::distanceFromRoot() const {
     dist[n] = branchLength(n) + dist[parentNode(n)];
   return dist;
 }
+
+void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {
+  if (node[n].parent >= 0) {
+    vguard<TreeNodeIndex>& oldChild = node[node[n].parent].child;
+    vguard<TreeNodeIndex> newChild;
+    for (auto c : oldChild)
+      if (c != n)
+	newChild.push_back (c);
+    oldChild.swap (newChild);
+  }
+  node[n].parent = p;
+  node[n].d = d;
+  if (p >= 0)
+    node[p].child.push_back (n);
+}

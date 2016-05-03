@@ -173,7 +173,7 @@ struct Sampler {
   
   // Sampler::Move
   struct Move {
-    enum Type { SampleBranch, SampleNode, PruneAndRegraft, SampleNodeHeight, SampleAncestralResidues };
+    enum Type { BranchAlign, NodeAlign, PruneAndRegraft, NodeHeight, AncestralResidues };
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
@@ -185,24 +185,24 @@ struct Sampler {
     bool accept (random_engine& generator) const;
   };
 
-  struct SampleBranchMove : Move {
-    SampleBranchMove (const History&, Sampler&, random_engine&);
+  struct BranchAlignMove : Move {
+    BranchAlignMove (const History&, Sampler&, random_engine&);
   };
 
-  struct SampleNodeMove : Move {
-    SampleNodeMove (const History&, Sampler&, random_engine&);
+  struct NodeAlignMove : Move {
+    NodeAlignMove (const History&, Sampler&, random_engine&);
   };
 
   struct PruneAndRegraftMove : Move {
     PruneAndRegraftMove (const History&, Sampler&, random_engine&);
   };
 
-  struct SampleNodeHeightMove : Move {
-    SampleNodeHeightMove (const History&, Sampler&, random_engine&);
+  struct NodeHeightMove : Move {
+    NodeHeightMove (const History&, Sampler&, random_engine&);
   };
 
-  struct SampleAncestralResiduesMove : Move {
-    SampleAncestralResiduesMove (const History&, Sampler&, random_engine&);
+  struct AncestralResiduesMove : Move {
+    AncestralResiduesMove (const History&, Sampler&, random_engine&);
   };
 
   // Sampler member variables
@@ -226,12 +226,13 @@ struct Sampler {
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomChildNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomGrandchildNode (const Tree& tree, random_engine& generator);
-  static TreeNodeIndex randomContemporaneousNode (const Tree& tree, TreeNodeIndex node, random_engine& generator);
+  static TreeNodeIndex randomContemporaneousNode (const Tree& tree, const vguard<TreeBranchLength>& distanceFromRoot, TreeNodeIndex node, random_engine& generator);
 
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
   TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
+  static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
   static AlignPath treePathToSiblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
   static AlignPath siblingPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
   static AlignPath treePathToBranchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
