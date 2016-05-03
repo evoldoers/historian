@@ -179,6 +179,7 @@ struct Sampler {
     LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
 
     Move (Type type, const History& history);
+    void initNewHistory (const Sampler& sampler, const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
     bool accept (random_engine& generator) const;
   };
 
@@ -221,6 +222,8 @@ struct Sampler {
 
   // Sampler helpers
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
+  static TreeNodeIndex randomChildNode (const Tree& tree, random_engine& generator);
+
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
   TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;
 

@@ -10,6 +10,12 @@ TreeNodeIndex Sampler::randomInternalNode (const Tree& tree, random_engine& gene
   return random_element (intNodes, generator);
 }
 
+TreeNodeIndex Sampler::randomChildNode (const Tree& tree, random_engine& generator) {
+  Assert (tree.nodes() > 1, "No child nodes in tree");
+  std::uniform_int_distribution<TreeNodeIndex> distribution (0, tree.nodes() - 2);
+  return distribution (generator);
+}
+
 vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
   vguard<SeqIdx> guidePos;
   const auto cols = alignPathColumns (path);
@@ -63,14 +69,18 @@ AlignPath Sampler::siblingPathToTreePath (const AlignPath& path, const Tree& tre
 
 AlignPath Sampler::treePathToBranchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
   AlignPath p;
-  p[BranchMatrix::xRow()] = path.at(tree.parentNode(node));
+  const TreeNodeIndex parent = tree.parentNode(node);
+  Assert (parent >= 0, "Parent node not found");
+  p[BranchMatrix::xRow()] = path.at(parent);
   p[BranchMatrix::yRow()] = path.at(node);
   return alignPathRemoveEmptyColumns (p);
 }
 
 AlignPath Sampler::branchPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
   AlignPath p;
-  p[tree.parentNode(node)] = path.at(BranchMatrix::xRow());
+  const TreeNodeIndex parent = tree.parentNode(node);
+  Assert (parent >= 0, "Parent node not found");
+  p[parent] = path.at(BranchMatrix::xRow());
   p[node] = path.at(BranchMatrix::yRow());
   return p;
 }
@@ -80,11 +90,68 @@ Sampler::Move::Move (Type type, const History& history)
     oldHistory (history)
 { }
 
+void Sampler::Move::initNewHistory (const Sampler& sampler, const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path) {
+  const Alignment newAlign (ungapped, path);
+
+  newHistory.tree = tree;
+  newHistory.gapped = newAlign.gapped();
+
+  oldLogLikelihood = sampler.logLikelihood (oldHistory);
+  newLogLikelihood = sampler.logLikelihood (newHistory);
+
+  logHastingsRatio = (newLogLikelihood - oldLogLikelihood) - (logForwardProposal - logReverseProposal);
+}
+
+Sampler::SampleBranchMove::SampleBranchMove (const History& history, Sampler& sampler, random_engine& generator)
+  : Move (SampleBranch, history)
+{
+  node = Sampler::randomChildNode (history.tree, generator);
+  parent = history.tree.parentNode (node);
+
+  const TreeBranchLength dist = history.tree.branchLength(parent,node);
+  
+  const TreeNodeIndex parentClosestLeaf = history.tree.closestLeaf (parent, node);
+  const TreeNodeIndex nodeClosestLeaf = history.tree.closestLeaf (node, parent);
+
+  const GuideAlignmentEnvelope branchEnv (sampler.guide.path, parentClosestLeaf, nodeClosestLeaf, sampler.maxDistanceFromGuide);
+
+  const Alignment oldAlign (history.gapped);
+  const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
+  const AlignPath nCladePath = Sampler::cladePath (oldAlign.path, history.tree, node, parent);
+  
+  const vguard<SeqIdx> parentEnvPos = guideSeqPos (pCladePath, parent, parentClosestLeaf);
+  const vguard<SeqIdx> nodeEnvPos = guideSeqPos (nCladePath, node, nodeClosestLeaf);
+
+  const TokSeq pSeq = sampler.removeGapsAndTokenize (history.gapped[parent]);
+  const TokSeq nSeq = sampler.removeGapsAndTokenize (history.gapped[node]);
+
+  const BranchMatrix branchMatrix (sampler.model, pSeq, nSeq, dist, branchEnv, parentEnvPos, nodeEnvPos);
+
+  const AlignPath newBranchPath = branchMatrix.sample (generator);
+  const LogProb logPostNewBranchPath = branchMatrix.logPostProb (newBranchPath);
+
+  const AlignPath oldBranchPath = Sampler::treePathToBranchPath (oldAlign.path, history.tree, node);
+  const LogProb logPostOldBranchPath = branchMatrix.logPostProb (oldBranchPath);
+
+  const AlignPath newParentPath = Sampler::branchPathToTreePath (newBranchPath, history.tree, node);
+
+  const vguard<AlignPath> mergeComponents = { pCladePath, newParentPath, nCladePath };
+  const AlignPath newPath = alignPathMerge (mergeComponents);
+
+  logForwardProposal = logPostNewBranchPath;
+  logReverseProposal = logPostOldBranchPath;
+
+  initNewHistory (sampler, oldHistory.tree, oldAlign.ungapped, newPath);
+}
+
 Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sampler, random_engine& generator)
   : Move (SampleNode, history)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
+
   parent = history.tree.parentNode (node);
+  Assert (parent >= 0, "Parent node not found");
+
   Assert (history.tree.nChildren(node) == 2, "Non-binary tree");
   leftChild = history.tree.getChild (node, 0);
   rightChild = history.tree.getChild (node, 1);
@@ -96,16 +163,16 @@ Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sample
   const TreeNodeIndex rightChildClosestLeaf = history.tree.closestLeaf (rightChild, node);
 
   const Alignment oldAlign (history.gapped);
-  const vguard<SeqIdx> leftChildEnvPos = guideSeqPos (oldAlign.path, leftChild, leftChildClosestLeaf);
-  const vguard<SeqIdx> rightChildEnvPos = guideSeqPos (oldAlign.path, rightChild, rightChildClosestLeaf);
+  const AlignPath lCladePath = Sampler::cladePath (oldAlign.path, history.tree, leftChild, node);
+  const AlignPath rCladePath = Sampler::cladePath (oldAlign.path, history.tree, rightChild, node);
+
+  const vguard<SeqIdx> leftChildEnvPos = guideSeqPos (lCladePath, leftChild, leftChildClosestLeaf);
+  const vguard<SeqIdx> rightChildEnvPos = guideSeqPos (rCladePath, rightChild, rightChildClosestLeaf);
 
   const GuideAlignmentEnvelope siblingEnv (sampler.guide.path, leftChildClosestLeaf, rightChildClosestLeaf, sampler.maxDistanceFromGuide);
 
   const TokSeq lSeq = sampler.removeGapsAndTokenize (history.gapped[leftChild]);
   const TokSeq rSeq = sampler.removeGapsAndTokenize (history.gapped[rightChild]);
-
-  const AlignPath lCladePath = Sampler::cladePath (oldAlign.path, history.tree, leftChild, node);
-  const AlignPath rCladePath = Sampler::cladePath (oldAlign.path, history.tree, rightChild, node);
 
   const SiblingMatrix sibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, siblingEnv, leftChildEnvPos, rightChildEnvPos);
   const AlignPath newSiblingPath = sibMatrix.sampleAlign (generator);
@@ -155,21 +222,17 @@ Sampler::SampleNodeMove::SampleNodeMove (const History& history, Sampler& sample
     const AlignPath oldBranchPath = Sampler::treePathToBranchPath (oldAlign.path, history.tree, node);
     const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
+    const AlignPath newParentPath = Sampler::branchPathToTreePath (newBranchPath, history.tree, node);
+      
     logForwardProposal += logPostNewBranchPath;
     logReverseProposal += logPostOldBranchPath;
 
     mergeComponents.push_back (pCladePath);
-    mergeComponents.push_back (newBranchPath);
+    mergeComponents.push_back (newParentPath);
     newPath = alignPathMerge (mergeComponents);
   }
-  
-  const Alignment newAlign (newUngapped, newPath);
 
-  newHistory.tree = oldHistory.tree;
-  newHistory.gapped = newAlign.gapped();
-
-  oldLogLikelihood = sampler.logLikelihood (oldHistory);
-  newLogLikelihood = sampler.logLikelihood (newHistory);
+  initNewHistory (sampler, oldHistory.tree, newUngapped, newPath);
 }
 
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
