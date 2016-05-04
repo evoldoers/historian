@@ -127,9 +127,12 @@ Sampler::Move::Move (Type type, const History& history)
 
 void Sampler::Move::initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path) {
   const Alignment newAlign (ungapped, path);
+  initNewHistory (tree, newAlign.gapped());
+}
 
+void Sampler::Move::initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped) {
   newHistory.tree = tree;
-  newHistory.gapped = newAlign.gapped();
+  newHistory.gapped = gapped;
 }
 
 void Sampler::Move::initRatio (const Sampler& sampler) {
@@ -392,6 +395,55 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
     newHistory.swapNodes (parent, newGrandparent);
 
   initRatio (sampler);
+}
+
+Sampler::NodeHeightMove::NodeHeightMove (const History& history, Sampler& sampler, random_engine& generator)
+  : Move (NodeHeight, history)
+{
+  node = Sampler::randomInternalNode (history.tree, generator);
+  Assert (history.tree.nChildren(node) == 2, "Tree is not binary");
+  const TreeNodeIndex lChild = history.tree.getChild (node, 0);
+  const TreeNodeIndex rChild = history.tree.getChild (node, 1);
+  const TreeBranchLength lChildDist = history.tree.branchLength(lChild);
+  const TreeBranchLength rChildDist = history.tree.branchLength(rChild);
+  const TreeBranchLength minChildDist = max (0., (double) min (lChildDist, rChildDist) - Tree::minBranchLength);
+
+  Tree newTree = history.tree;
+
+  if (node == history.tree.root()) {
+    const double lambda = sampler.treePrior.coalescenceRate;
+    exponential_distribution<TreeBranchLength> distribution (lambda);
+    const TreeBranchLength coalescenceTime = distribution (generator);
+
+    newTree.node[lChild].d = (lChildDist - minChildDist) + coalescenceTime;
+    newTree.node[rChild].d = (rChildDist - minChildDist) + coalescenceTime;
+    
+    logForwardProposal = log (sampler.treePrior.coalescenceRate) - lambda * coalescenceTime;
+    logReverseProposal = log (sampler.treePrior.coalescenceRate) - lambda * minChildDist;
+
+  } else {
+    const TreeBranchLength pDist = max (0., (double) history.tree.branchLength(node) - Tree::minBranchLength);
+    const TreeBranchLength pDistRange = pDist + minChildDist;
+    uniform_real_distribution<TreeBranchLength> distribution (pDistRange);
+
+    const TreeBranchLength pDistNew = distribution (generator);
+    const TreeBranchLength cDistNew = pDistRange - pDistNew;
+
+    newTree.node[node].d = pDistNew + Tree::minBranchLength;
+    newTree.node[lChild].d = (lChildDist - minChildDist) + cDistNew;
+    newTree.node[rChild].d = (rChildDist - minChildDist) + cDistNew;
+
+    logForwardProposal = logReverseProposal = 0;
+  }
+
+  initNewHistory (newTree, oldHistory.gapped);
+  initRatio (sampler);
+}
+
+Sampler::AncestralSequenceMove::AncestralSequenceMove (const History& history, Sampler& sampler, random_engine& generator)
+  : Move (AncestralSequence, history)
+{
+  // WRITE ME
 }
 
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)

@@ -166,14 +166,14 @@ struct Sampler {
     void swapNodes (TreeNodeIndex x, TreeNodeIndex y);
   };
 
-  // Sampler::Log
-  struct Log {
+  // Sampler::Logger
+  struct Logger {
     virtual void log (const History& history) = 0;
   };
   
   // Sampler::Move
   struct Move {
-    enum Type { BranchAlign, NodeAlign, PruneAndRegraft, NodeHeight, AncestralResidues };
+    enum Type { BranchAlign, NodeAlign, PruneAndRegraft, NodeHeight, AncestralSequence };
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
@@ -181,6 +181,7 @@ struct Sampler {
 
     Move (Type type, const History& history);
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
+    void initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped);
     void initRatio (const Sampler& sampler);
     bool accept (random_engine& generator) const;
   };
@@ -201,14 +202,14 @@ struct Sampler {
     NodeHeightMove (const History&, Sampler&, random_engine&);
   };
 
-  struct AncestralResiduesMove : Move {
-    AncestralResiduesMove (const History&, Sampler&, random_engine&);
+  struct AncestralSequenceMove : Move {
+    AncestralSequenceMove (const History&, Sampler&, random_engine&);
   };
 
   // Sampler member variables
   RateModel model;
   SimpleTreePrior treePrior;
-  list<Log*> logs;
+  list<Logger*> loggers;
   map<Move::Type,double> moveRate;
   Alignment guide;
   int maxDistanceFromGuide;
@@ -217,7 +218,7 @@ struct Sampler {
   Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide);
   
   // Sampler methods
-  void addLog (Log& log);
+  void addLogger (Logger& logger);
   LogProb logLikelihood (const History& history) const;
   Move proposeMove (const History& oldHistory, random_engine& generator) const;
   void run (History& state, random_engine& generator, int nSamples = 1);
