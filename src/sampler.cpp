@@ -417,7 +417,6 @@ map<TreeNodeIndex,PosWeightMatrix> Sampler::getConditionalPWMs (const Alignment&
   return pwms;
 }
 
-
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (xSeq, ySeq, env, xEnvPos, yEnvPos),
     model (model),
