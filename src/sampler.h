@@ -229,7 +229,7 @@ struct Sampler {
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
-  static AlignPath siblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
+  static AlignPath triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent);
   static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
 };
 

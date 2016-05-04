@@ -84,11 +84,8 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
   return alignPathRemoveEmptyColumns (p);
 }
 
-AlignPath Sampler::siblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent) {
+AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent) {
   AlignPath p;
-  Assert (tree.nChildren(parent) == 2, "Non-binary tree");
-  const TreeNodeIndex lChild = tree.getChild(parent,0);
-  const TreeNodeIndex rChild = tree.getChild(parent,1);
   p[parent] = path.at(parent);
   p[lChild] = path.at(lChild);
   p[rChild] = path.at(rChild);
@@ -201,7 +198,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler,
   const TokSeq newNodeSeq = sibMatrix.sampleParent (newSiblingPath, generator);
   const LogProb logPostNewSeq = sibMatrix.logParentPostProb (newNodeSeq, newSiblingPath);
 
-  const AlignPath oldSiblingPath = Sampler::siblingPath (oldAlign.path, history.tree, node);
+  const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, leftChild, rightChild, node);
   const LogProb logPostOldSiblingPath = sibMatrix.logAlignPostProb (oldSiblingPath);
 
   const TokSeq& oldNodeSeq = sampler.removeGapsAndTokenize (history.gapped[node]);
@@ -300,7 +297,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   const AlignPath oldGranCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldGrandparent, parent);
   const AlignPath newGranCladePath = Sampler::cladePath (oldAlign.path, newTree, newGrandparent, parent);
 
-  const AlignPath oldSiblingPath = Sampler::siblingPath (oldAlign.path, oldTree, parent);
+  const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, node, oldSibling, parent);
   const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, oldTree, parent);
 
   const AlignPath oldGranSibPath = Sampler::pairPath (oldAlign.path, oldGrandparent, oldSibling);
