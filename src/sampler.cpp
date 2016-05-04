@@ -296,11 +296,11 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler,
   const PosWeightMatrix& rSeq = pwms.at (rightChild);
 
   const SiblingMatrix sibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, siblingEnv, leftChildEnvPos, rightChildEnvPos, leftChild, rightChild, node);
-  const AlignPath newSiblingPath = sibMatrix.sampleAlign (generator);
-  const LogProb logPostNewSiblingPath = sibMatrix.logAlignPostProb (newSiblingPath);
+  const AlignPath newSiblingPath = sibMatrix.sample (generator);
+  const LogProb logPostNewSiblingPath = sibMatrix.logPostProb (newSiblingPath);
 
   const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, leftChild, rightChild, node);
-  const LogProb logPostOldSiblingPath = sibMatrix.logAlignPostProb (oldSiblingPath);
+  const LogProb logPostOldSiblingPath = sibMatrix.logPostProb (oldSiblingPath);
 
   logForwardProposal = logPostNewSiblingPath;
   logReverseProposal = logPostOldSiblingPath;
@@ -426,11 +426,11 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   const PosWeightMatrix& newGranSeq = pwms.at (newGrandparent);
 
   const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
-  const AlignPath newSiblingPath = newSibMatrix.sampleAlign (generator);
-  const LogProb logPostNewSiblingPath = newSibMatrix.logAlignPostProb (newSiblingPath);
+  const AlignPath newSiblingPath = newSibMatrix.sample (generator);
+  const LogProb logPostNewSiblingPath = newSibMatrix.logPostProb (newSiblingPath);
 
   const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
-  const LogProb logPostOldSiblingPath = oldSibMatrix.logAlignPostProb (oldSiblingPath);
+  const LogProb logPostOldSiblingPath = oldSibMatrix.logPostProb (oldSiblingPath);
 
   vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
   const AlignPath newParentSubtreePath = alignPathMerge (mergeComponents);
@@ -556,13 +556,13 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
   // WRITE ME
 }
 
-AlignPath Sampler::SiblingMatrix::sampleAlign (random_engine& generator) const
+AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const
 {
   // WRITE ME
   return AlignPath();
 }
 
-LogProb Sampler::SiblingMatrix::logAlignPostProb (const AlignPath& plrPath) const
+LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& plrPath) const
 {
   // WRITE ME
   return -numeric_limits<double>::infinity();

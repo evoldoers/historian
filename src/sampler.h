@@ -148,8 +148,8 @@ struct Sampler {
     
     SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
-    AlignPath sampleAlign (random_engine& generator) const;
-    LogProb logAlignPostProb (const AlignPath& plrPath) const;
+    AlignPath sample (random_engine& generator) const;
+    LogProb logPostProb (const AlignPath& plrPath) const;
     PosWeightMatrix parentSeq (const AlignPath& plrPath) const;
   };
 
