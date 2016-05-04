@@ -7,7 +7,8 @@
 #include "forward.h"
 
 struct SimpleTreePrior {
-  double coalescenceRate;
+  double populationSize;
+  double coalescenceRate (int lineages) const;
   LogProb treeLogLikelihood (const Tree& tree) const;
 };
 

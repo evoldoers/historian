@@ -126,4 +126,19 @@ typename Container::reference random_element (Container& container, Generator ge
   return *(random_element (container.begin(), container.end(), generator));
 }
 
+/* index sort
+   http://stackoverflow.com/questions/10580982/c-sort-keeping-track-of-indices
+ */
+template <typename T>
+std::vector<size_t> orderedIndices (std::vector<T> const& values) {
+    std::vector<size_t> indices(values.size());
+    std::iota(begin(indices), end(indices), static_cast<size_t>(0));
+
+    std::sort(
+        begin(indices), end(indices),
+        [&](size_t a, size_t b) { return values[a] < values[b]; }
+    );
+    return indices;
+}
+
 #endif /* UTIL_INCLUDED */

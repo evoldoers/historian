@@ -1,6 +1,30 @@
 #include "sampler.h"
 #include "util.h"
 
+double SimpleTreePrior::coalescenceRate (int lineages) const {
+  return (lineages * (lineages-1) / 2) / populationSize;
+}
+
+LogProb SimpleTreePrior::treeLogLikelihood (const Tree& tree) const {
+  tree.assertBinary();
+  const auto distanceFromRoot = tree.distanceFromRoot();
+  const auto nodesByDistanceFromRoot = orderedIndices (distanceFromRoot);
+  size_t lineages = 0;
+  LogProb lp = 0;
+  double lastEventTime;
+  for (auto iter = nodesByDistanceFromRoot.rbegin(); iter != nodesByDistanceFromRoot.rend(); ++iter) {
+    const double eventTime = distanceFromRoot[*iter];
+    if (lineages > 1)
+      lp -= coalescenceRate(lineages) * (lastEventTime - eventTime);
+    lastEventTime = eventTime;
+    if (tree.isLeaf(*iter))
+      ++lineages;
+    else
+      --lineages;
+  }
+  return lp;
+}
+
 void Sampler::History::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
   tree.swapNodes (x, y);
   iter_swap (gapped.begin() + x, gapped.begin() + y);
@@ -484,15 +508,15 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, Sampler& sample
   Tree newTree = history.tree;
 
   if (node == history.tree.root()) {
-    const double lambda = sampler.treePrior.coalescenceRate;
+    const double lambda = sampler.treePrior.coalescenceRate (2);
     exponential_distribution<TreeBranchLength> distribution (lambda);
     const TreeBranchLength coalescenceTime = distribution (generator);
 
     newTree.node[lChild].d = (lChildDist - minChildDist) + coalescenceTime;
     newTree.node[rChild].d = (rChildDist - minChildDist) + coalescenceTime;
     
-    logForwardProposal = log (sampler.treePrior.coalescenceRate) - lambda * coalescenceTime;
-    logReverseProposal = log (sampler.treePrior.coalescenceRate) - lambda * minChildDist;
+    logForwardProposal = log(lambda) - lambda * coalescenceTime;
+    logReverseProposal = log(lambda) - lambda * minChildDist;
 
   } else {
     const TreeBranchLength pDist = max (0., (double) history.tree.branchLength(node) - Tree::minBranchLength);
@@ -570,11 +594,28 @@ LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& plrPath) const
 
 Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& plrPath) const {
   PosWeightMatrix pwm;
-  // WRITE ME
+  pwm.reserve (alignPathResiduesInRow (plrPath.at (pRow)));
+  const AlignColIndex cols = alignPathColumns (plrPath);
+  SeqIdx lPos = 0, rPos = 0;
+  for (AlignColIndex col = 0; col < cols; ++col)
+    if (plrPath.at(pRow)[col]) {
+      vguard<LogProb> prof (model.alphabetSize(), 0);
+      if (plrPath.at(lRow)[col]) {
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  prof[i] += lSub[lPos][i];
+	++lPos;
+      }
+      if (plrPath.at(rRow)[col]) {
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  prof[i] += rSub[rPos][i];
+	++rPos;
+      }
+      LogProb norm = -numeric_limits<double>::infinity();
+      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	log_accum_exp (norm, prof[i]);
+      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	prof[i] -= norm;
+      pwm.push_back (prof);
+    }
   return pwm;
-}
-
-LogProb SimpleTreePrior::treeLogLikelihood (const Tree& tree) const {
-  // WRITE ME
-  return -numeric_limits<double>::infinity();
 }
