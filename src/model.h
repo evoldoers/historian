@@ -68,8 +68,10 @@ private:
 };
 
 struct LogProbModel {
-  vguard<LogProb> logInsProb;
-  vguard<vguard<LogProb> > logSubProb;
+  typedef vguard<LogProb> LogProbVector;
+  typedef vguard<vguard<LogProb> > LogProbMatrix;
+  LogProbVector logInsProb;
+  LogProbMatrix logSubProb;
   LogProbModel (const ProbModel& pm);
 };
 

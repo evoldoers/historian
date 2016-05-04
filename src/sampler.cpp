@@ -411,16 +411,25 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, Sampler& sample
   initRatio (sampler);
 }
 
-map<TreeNodeIndex,PosWeightMatrix> Sampler::getConditionalPWMs (const Alignment& align, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const {
+map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const Alignment& align, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
   // WRITE ME
   return pwms;
 }
 
+Sampler::PosWeightMatrix Sampler::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
+  PosWeightMatrix pwm;
+  // WRITE ME
+  return pwm;
+}
+
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
-  : SparseDPMatrix (xSeq, ySeq, env, xEnvPos, yEnvPos),
+  : SparseDPMatrix (env, xEnvPos, yEnvPos),
     model (model),
     probModel (model, dist),
+    logProbModel (probModel),
+    xSeq (xSeq),
+    ySub (Sampler::preMultiply (ySeq, logProbModel.logSubProb)),
     xRow (x),
     yRow (y)
 {
@@ -440,10 +449,14 @@ LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const
 }
 
 Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
-  : SparseDPMatrix (lSeq, rSeq, env, lEnvPos, rEnvPos),
+  : SparseDPMatrix (env, lEnvPos, rEnvPos),
     model (model),
     lProbModel (model, plDist),
     rProbModel (model, prDist),
+    lLogProbModel (lProbModel),
+    rLogProbModel (rProbModel),
+    lSub (Sampler::preMultiply (lSeq, lLogProbModel.logSubProb)),
+    rSub (Sampler::preMultiply (rSeq, rLogProbModel.logSubProb)),
     lRow (l),
     rRow (r),
     pRow (p)

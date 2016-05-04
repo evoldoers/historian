@@ -11,11 +11,10 @@ struct SimpleTreePrior {
   LogProb treeLogLikelihood (const Tree& tree) const;
 };
 
-typedef vguard<vguard<double> > PosWeightMatrix;
-
 struct Sampler {
 
   typedef DPMatrix::random_engine random_engine;
+  typedef vguard<vguard<LogProb> > PosWeightMatrix;
 
   // Sampler::SparseDPMatrix
   template <size_t CellStates>
@@ -38,9 +37,6 @@ struct Sampler {
     const vguard<SeqIdx>& yEnvPos;
 
   public:
-    const PosWeightMatrix& xSeq;
-    const PosWeightMatrix& ySeq;
-
     LogProb lpEnd;
 
     // cell accessors
@@ -68,8 +64,8 @@ struct Sampler {
     }
     
     // constructor
-    SparseDPMatrix (const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
-      : xSeq(xSeq), ySeq(ySeq), env(env), xEnvPos(xEnvPos), yEnvPos(yEnvPos), lpEnd(-numeric_limits<double>::infinity())
+    SparseDPMatrix (const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
+      : env(env), xEnvPos(xEnvPos), yEnvPos(yEnvPos), lpEnd(-numeric_limits<double>::infinity())
     { }
   };
   
@@ -83,12 +79,15 @@ struct Sampler {
 
     const RateModel& model;
     const ProbModel probModel;
+    const LogProbModel logProbModel;
 
-    LogProb lpTrans[SourceStates][DestStates];
+    LogProb mm, mi, md, me, im, ii, id, ie, dm, dd, de;
     vguard<vguard<LogProb> > submat;  // log odds-ratio
 
     AlignRowIndex xRow, yRow;
-    
+    const PosWeightMatrix& xSeq;
+    const PosWeightMatrix ySub;
+   
     BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
     AlignPath sample (random_engine& generator) const;
@@ -107,8 +106,8 @@ struct Sampler {
 
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
-    AlignRowIndex lRow, rRow, pRow;
-    
+    const LogProbModel lLogProbModel, rLogProbModel;
+
     // Transition log-probabilities.
     // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
     // The outgoing paths from wxx are replaced with the following transitions:
@@ -146,6 +145,9 @@ struct Sampler {
     // Within the DP, score substitutions with a log-odds-ratio matrix & gap emissions with zeroes, for speed.
     // When estimating the parent sequence conditioned on the alignment, we use the "proper" gap emissions.
     vguard<vguard<LogProb> > submat;
+
+    AlignRowIndex lRow, rRow, pRow;
+    const PosWeightMatrix lSub, rSub;
 
     SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
@@ -227,6 +229,7 @@ struct Sampler {
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
   static AlignPath triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent);
   static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
+  static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
 };
 
 #endif /* SAMPLER_INCLUDED */
