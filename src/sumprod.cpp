@@ -314,6 +314,27 @@ vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   return lpp;
 }
 
+vguard<LogProb> SumProduct::logNodeExcludedPostProb (AlignRowIndex node, AlignRowIndex exclude) const {
+  if (!isWild(node))
+    return logF[node];
+  vguard<LogProb> lpp (model.alphabetSize(), 0);
+  for (size_t nc = 0; nc < tree.nChildren(node); ++nc) {
+    const TreeNodeIndex child = tree.getChild(node,nc);
+    if (child != exclude)
+      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	lpp[i] += logE[child][i];
+  }
+  LogProb norm = -numeric_limits<double>::infinity();
+  const TreeNodeIndex parent = tree.parentNode (node);
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+    lpp[i] += parent == exclude ? logInsProb[i] : logG[node][i];
+    log_accum_exp (norm, lpp[i]);
+  }
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    lpp[i] -= norm;
+  return lpp;
+}
+
 LogProb SumProduct::logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const {
   const TreeNodeIndex parent = tree.parentNode(node);
   const TreeNodeIndex sibling = tree.getSibling(node);

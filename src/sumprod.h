@@ -78,6 +78,7 @@ public:
   void fillDown();  // G
 
   vguard<LogProb> logNodePostProb (AlignRowIndex node) const;
+  vguard<LogProb> logNodeExcludedPostProb (AlignRowIndex node, AlignRowIndex exclude) const;
   LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
   AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
 
