@@ -11,6 +11,8 @@ struct SimpleTreePrior {
   LogProb treeLogLikelihood (const Tree& tree) const;
 };
 
+typedef vguard<vguard<double> > PosWeightMatrix;
+
 struct Sampler {
 
   typedef DPMatrix::random_engine random_engine;
@@ -36,8 +38,8 @@ struct Sampler {
     const vguard<SeqIdx>& yEnvPos;
 
   public:
-    const TokSeq& xSeq;
-    const TokSeq& ySeq;
+    const PosWeightMatrix& xSeq;
+    const PosWeightMatrix& ySeq;
 
     LogProb lpEnd;
 
@@ -66,7 +68,7 @@ struct Sampler {
     }
     
     // constructor
-    SparseDPMatrix (const TokSeq& xSeq, const TokSeq& ySeq, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
+    SparseDPMatrix (const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
       : xSeq(xSeq), ySeq(ySeq), env(env), xEnvPos(xEnvPos), yEnvPos(yEnvPos), lpEnd(-numeric_limits<double>::infinity())
     { }
   };
@@ -87,7 +89,7 @@ struct Sampler {
 
     AlignRowIndex xRow, yRow;
     
-    BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
+    BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
     AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
@@ -145,13 +147,11 @@ struct Sampler {
     // When estimating the parent sequence conditioned on the alignment, we use the "proper" gap emissions.
     vguard<vguard<LogProb> > submat;
 
-    SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
+    SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
     AlignPath sampleAlign (random_engine& generator) const;
     LogProb logAlignPostProb (const AlignPath& plrPath) const;
-
-    TokSeq sampleParent (const AlignPath& plrPath, random_engine& generator) const;
-    LogProb logParentPostProb (const TokSeq& pSeq, const AlignPath& plrPath) const;
+    PosWeightMatrix parentSeq (const AlignPath& plrPath) const;
   };
 
   // Sampler::History
@@ -168,7 +168,7 @@ struct Sampler {
   
   // Sampler::Move
   struct Move {
-    enum Type { BranchAlign, NodeAlign, PruneAndRegraft, NodeHeight, AncestralSequence };
+    enum Type { BranchAlign, NodeAlign, PruneAndRegraft, NodeHeight };
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
@@ -197,10 +197,6 @@ struct Sampler {
     NodeHeightMove (const History&, Sampler&, random_engine&);
   };
 
-  struct AncestralSequenceMove : Move {
-    AncestralSequenceMove (const History&, Sampler&, random_engine&);
-  };
-
   // Sampler member variables
   RateModel model;
   SimpleTreePrior treePrior;
@@ -225,7 +221,7 @@ struct Sampler {
   static TreeNodeIndex randomContemporaneousNode (const Tree& tree, const vguard<TreeBranchLength>& distanceFromRoot, TreeNodeIndex node, random_engine& generator);
 
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
-  TokSeq removeGapsAndTokenize (const FastSeq& gapped) const;
+  map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const Alignment& align, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const;
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
