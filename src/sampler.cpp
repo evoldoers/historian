@@ -70,9 +70,39 @@ AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeI
 
 AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2) {
   AlignPath p;
-  p[node1] = path.at(node1);
-  p[node2] = path.at(node2);
-  return alignPathRemoveEmptyColumns (p);
+  size_t nDel = 0;
+  const AlignColIndex cols = alignPathColumns (path);
+  const AlignRowPath& row1 = path.at (node1);
+  const AlignRowPath& row2 = path.at (node2);
+  AlignRowPath& r1 = p[node1];
+  AlignRowPath& r2 = p[node2];
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    const bool c1 = row1[col];
+    const bool c2 = row2[col];
+    const ProbModel::State state = ProbModel::getState (c1, c2);
+    switch (state) {
+    case ProbModel::Match:
+      while (nDel > 0) {
+	r1.push_back (false);
+	r2.push_back (true);
+	--nDel;
+      }
+    case ProbModel::Insert:
+      r1.push_back (c1);
+      r2.push_back (c2);
+      break;
+    case ProbModel::Delete:
+      ++nDel;
+    default:
+      break;
+    }
+  }
+  while (nDel > 0) {
+    r1.push_back (false);
+    r2.push_back (true);
+    --nDel;
+  }
+  return p;
 }
 
 AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent) {
