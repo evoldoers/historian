@@ -141,15 +141,8 @@ LogProb Sampler::logLikelihood (const History& history) const {
   for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
     const TreeNodeIndex parent = history.tree.parentNode (node);
     const ProbModel probModel (model, history.tree.branchLength (node));
-    const AlignPath path = pairPath (align.path, node, parent);
-    const AlignColIndex cols = alignPathColumns (path);
-    ProbModel::State state = ProbModel::Start;
-    for (AlignColIndex col = 0; col < cols; ++col) {
-      const ProbModel::State nextState = ProbModel::getState (path.at(parent)[col], path.at(node)[col]);
-      lp += log (probModel.transProb (state, nextState));
-      state = nextState;
-    }
-    lp += log (probModel.transProb (state, ProbModel::End));
+    const AlignPath path = pairPath (align.path, parent, node);
+    lp += logBranchPathLikelihood (probModel, path, parent, node);
   }
   AlignColSumProduct colSumProd (model, history.tree, history.gapped);
   while (!colSumProd.alignmentDone()) {
@@ -157,6 +150,19 @@ LogProb Sampler::logLikelihood (const History& history) const {
     lp += colSumProd.colLogLike;
     colSumProd.nextColumn();
   }
+  return lp;
+}
+
+LogProb Sampler::logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child) {
+  const AlignColIndex cols = alignPathColumns (path);
+  ProbModel::State state = ProbModel::Start;
+  LogProb lp = 0;
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    const ProbModel::State nextState = ProbModel::getState (path.at(parent)[col], path.at(child)[col]);
+    lp += log (probModel.transProb (state, nextState));
+    state = nextState;
+  }
+  lp += log (probModel.transProb (state, ProbModel::End));
   return lp;
 }
 
@@ -529,8 +535,7 @@ AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const
 
 LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const
 {
-  // WRITE ME
-  return -numeric_limits<double>::infinity();
+  return logBranchPathLikelihood (probModel, path, xRow, yRow) - lpEnd;
 }
 
 Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
