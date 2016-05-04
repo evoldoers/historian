@@ -597,7 +597,7 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
     yRow (y),
     xSeq (xSeq),
     ySub (Sampler::preMultiply (ySeq, logProbModel.logSubProb)),
-    yIns (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb))
+    yEmit (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb))
 {
   mm = log (probModel.transProb (ProbModel::Match, ProbModel::Match));
   mi = log (probModel.transProb (ProbModel::Match, ProbModel::Insert));

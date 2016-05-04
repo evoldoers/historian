@@ -84,7 +84,7 @@ struct Sampler {
     AlignRowIndex xRow, yRow;
     const PosWeightMatrix& xSeq;
     const PosWeightMatrix ySub;
-    const vguard<LogProb> yIns;
+    const vguard<LogProb> yEmit;
    
     BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
