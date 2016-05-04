@@ -288,13 +288,12 @@ double ProbModel::transProb (State src, State dest) const {
   case Delete:
     switch (dest) {
     case Match:
+    case End:
       return 1 - delExt;
     case Insert:
       return 0;
     case Delete:
       return delExt;
-    case End:
-      return 1 - delExt;
     default:
       break;
     }

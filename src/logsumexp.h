@@ -108,6 +108,13 @@ inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>
   return lip;
 }
 
+inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>& v2, const vector<LogProb>& v3) {
+  LogProb lip = -numeric_limits<double>::infinity();
+  for (vector<LogProb>::const_iterator iter1 = v1.begin(), iter2 = v2.begin(), iter3 = v3.begin(); iter1 != v1.end(); ++iter1, ++iter2, ++iter3)
+    lip = log_sum_exp (lip, *iter1 + *iter2 + *iter3);
+  return lip;
+}
+
 double logBetaPdf (double prob, double yesCount, double noCount);
 double logGammaPdf (double rate, double eventCount, double waitTime);
 double logDirichletPdf (const vector<double>& prob, const vector<double>& count);

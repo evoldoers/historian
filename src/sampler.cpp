@@ -204,7 +204,7 @@ map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const H
 LogProb Sampler::logLikelihood (const History& history) const {
   const Alignment align (history.gapped);
   LogProb lp = treePrior.treeLogLikelihood (history.tree);
-  const double rootExt = model.insExtProb;
+  const double rootExt = rootExtProb (model);
   lp += log(1. - rootExt) + log(rootExt) * alignPathResiduesInRow (align.path.at (history.tree.root()));
   for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
     const TreeNodeIndex parent = history.tree.parentNode (node);
@@ -599,6 +599,20 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
     ySub (Sampler::preMultiply (ySeq, logProbModel.logSubProb)),
     yIns (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb))
 {
+  mm = log (probModel.transProb (ProbModel::Match, ProbModel::Match));
+  mi = log (probModel.transProb (ProbModel::Match, ProbModel::Insert));
+  md = log (probModel.transProb (ProbModel::Match, ProbModel::Delete));
+  me = log (probModel.transProb (ProbModel::Match, ProbModel::End));
+
+  im = log (probModel.transProb (ProbModel::Insert, ProbModel::Match));
+  ii = log (probModel.transProb (ProbModel::Insert, ProbModel::Insert));
+  id = log (probModel.transProb (ProbModel::Insert, ProbModel::Delete));
+  ie = log (probModel.transProb (ProbModel::Insert, ProbModel::End));
+
+  dm = log (probModel.transProb (ProbModel::Delete, ProbModel::Match));
+  dd = log (probModel.transProb (ProbModel::Delete, ProbModel::Delete));
+  de = log (probModel.transProb (ProbModel::Delete, ProbModel::End));
+
   // WRITE ME
 }
 
@@ -620,14 +634,61 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
     rProbModel (model, prDist),
     lLogProbModel (lProbModel),
     rLogProbModel (rProbModel),
+    logRoot (log_gsl_vector (model.insProb)),
     lRow (l),
     rRow (r),
     pRow (p),
     lSub (Sampler::preMultiply (lSeq, lLogProbModel.logSubProb)),
     rSub (Sampler::preMultiply (rSeq, rLogProbModel.logSubProb)),
-    lIns (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb)),
-    rIns (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb))
+    lEmit (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb)),
+    rEmit (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb))
 {
+  imm_www = lNoIns() + rNoIns();
+  imm_imi = rIns();
+  imm_iiw = lIns() + rNoIns();
+
+  imd_wwx = lNoIns();
+  imd_iix = lIns();
+
+  idm_wxw = rNoIns();
+  idm_idi = rIns();
+
+  idd_imm = iddExit() + rootExt() + lNoDelExt() + rNoDelExt();
+  idd_imd = iddExit() + rootExt() + lNoDelExt() + rDelExt();
+  idd_idm = iddExit() + rootExt() + lDelExt() + rNoDelExt();
+  idd_eee = iddExit() + rootNoExt() + lNoDelExt() + rNoDelExt();
+
+  www_imm = rootExt() + lNoDel() + rNoDel();
+  www_imd = rootExt() + lNoDel() + rDel();
+  www_idm = rootExt() + lDel() + rNoDel();
+  www_idd = rootExt() + lDel() + rDel();
+  www_eee = 0;
+
+  wwx_imm = rootExt() + lNoDel() + rNoDelExt();
+  wwx_imd = rootExt() + lNoDel() + rDelExt();
+  wwx_idm = rootExt() + lDel() + rNoDelExt();
+  wwx_idd = rootExt() + lDel() + rDelExt();
+  wwx_eee = rNoDelExt();
+
+  wxw_imm = rootExt() + lNoDelExt() + rNoDel();
+  wxw_imd = rootExt() + lNoDelExt() + rDel();
+  wxw_idm = rootExt() + lDelExt() + rNoDel();
+  wxw_idd = rootExt() + lDelExt() + rDel();
+  wxw_eee = lNoDelExt();
+
+  imi_www = lNoIns() + rNoInsExt();
+  imi_imi = rInsExt();
+  imi_iiw = lIns() + rNoInsExt();
+
+  iiw_www = lNoInsExt();
+  iiw_iiw = lInsExt();
+
+  idi_wxw = rNoInsExt();
+  idi_idi = rInsExt();
+
+  iix_wwx = lNoInsExt();
+  iix_iix = lInsExt();
+
   // WRITE ME
 }
 
@@ -696,7 +757,6 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
     case IMM: return idd_imm;
     case IMD: return idd_imd;
     case IDM: return idd_idm;
-    case WXW: return idd_wxw;
     case EEE: return idd_eee;
     default: break;
     }
@@ -715,18 +775,22 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
 
   case WWX:
     switch (dest) {
+    case IMM: return wwx_imm;
     case IMD: return wwx_imd;
+    case IDM: return wwx_idm;
     case IDD: return wwx_idd;
-    case WWW: return wwx_www;
+    case EEE: return wwx_eee;
     default: break;
     }
     break;
 
   case WXW:
     switch (dest) {
+    case IMM: return wxw_imm;
+    case IMD: return wxw_imd;
     case IDM: return wxw_idm;
     case IDD: return wxw_idd;
-    case WWW: return wxw_www;
+    case EEE: return wxw_eee;
     default: break;
     }
     break;

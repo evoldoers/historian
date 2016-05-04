@@ -80,7 +80,6 @@ struct Sampler {
     const LogProbModel logProbModel;
 
     LogProb mm, mi, md, me, im, ii, id, ie, dm, dd, de;
-    vguard<vguard<LogProb> > submat;  // log odds-ratio
 
     AlignRowIndex xRow, yRow;
     const PosWeightMatrix& xSeq;
@@ -91,6 +90,11 @@ struct Sampler {
 
     AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
+
+    // scoring helper methods
+    inline LogProb logMatch (SeqIdx xpos, SeqIdx ypos) const {
+      return logInnerProduct (xSeq[xpos-1], ySub[ypos-1]);
+    }
   };
 
   // Sampler::SiblingMatrix
@@ -106,30 +110,28 @@ struct Sampler {
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
     const LogProbModel lLogProbModel, rLogProbModel;
-
+    const vguard<LogProb> logRoot;
+    
     // Transition log-probabilities.
     // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
-    // The outgoing paths from wxx are replaced with the following transitions:
-    //  wxx->wwx->{imd,eee} is folded into idd->{imd,eee} (prevents degeneracy between wxx->wwx->www and wxx->wxw->www),
-    //  wxx->wxw is replaced with idd->wxw,
-    //  wxx->eee is replaced with idd->eee.
+    // The outgoing transitions from wxx are folded into outgoing transitions from idd.
     // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}.
-    // Forward fill order: {emit states}, {wwx,wxx}, wxw, www, idd.
-    // (32 transitions)
+    // Forward fill order: {emit states}, {www,wwx,wxw}, idd.
+    // (35 transitions)
     //  To:     imm      imd      idm      idd      w**      imi      iiw      idi      iix      eee
     LogProb                                     imm_www, imm_imi, imm_iiw;
     LogProb                                     imd_wwx,                            imd_iix;
     LogProb                                     idm_wxw,                   idm_idi;
-    LogProb idd_imm, idd_imd, idd_idm,          idd_wxw,                                     idd_eee;
+    LogProb idd_imm, idd_imd, idd_idm,                                                       idd_eee;
     LogProb www_imm, www_imd, www_idm, www_idd,                                              www_eee;
-    LogProb          wwx_imd,          wwx_idd, wwx_www;
-    LogProb                   wxw_idm, wxw_idd, wxw_www;
+    LogProb wwx_imm, wwx_imd, wwx_idm, wwx_idd,                                              wwx_eee;
+    LogProb wxw_imm, wxw_imd, wxw_idm, wxw_idd,                                              wxw_eee;
     LogProb                                     imi_www, imi_imi, imi_iiw;
     LogProb                                     iiw_www,          iiw_iiw;
     LogProb                                     idi_wxw,                   idi_idi;
     LogProb                                     iix_wwx,                            iix_iix;
 
-    // This is 1.5* faster (48/32) but 1.375* fatter (11/8) than with w** eliminated:
+    // This is 1.371* faster (48/35) but 1.375* fatter (11/8) than with w** eliminated:
     // (48 transitions)
     //        To:     imm      imd      idm      idd      imi      iiw      idi      iix      eee
     //    LogProb imm_imm, imm_imd, imm_idm, imm_idd, imm_imi, imm_iiw,                   imm_eee;
@@ -141,11 +143,9 @@ struct Sampler {
     //    LogProb idi_imm, idi_imd, idi_idm, idi_idd,                   idi_idi,          idi_eee;
     //    LogProb iix_imm, iix_imd, iix_idm, iix_idd,                            iix_iix, iix_eee;
     
-    vguard<vguard<LogProb> > submat;
-
     AlignRowIndex lRow, rRow, pRow;
     const PosWeightMatrix lSub, rSub;
-    const vguard<LogProb> lIns, rIns;
+    const vguard<LogProb> lEmit, rEmit;
     
     SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
@@ -155,6 +155,37 @@ struct Sampler {
 
     static State getState (State src, bool leftUngapped, bool rightUngapped, bool parentUngapped);
     LogProb lpTrans (State src, State dest) const;
+
+    // scoring helper methods
+    inline double iddSelfLoopProb() const { return Sampler::rootExtProb(model) * lProbModel.delExt * rProbModel.delExt; }
+    inline LogProb iddExit() const { return log (1 / (1 - iddSelfLoopProb())); }
+    
+    inline LogProb rootExt() const { return log (Sampler::rootExtProb (model)); }
+    inline LogProb rootNoExt() const { return log (1 - Sampler::rootExtProb (model)); }
+
+    inline LogProb lIns() const { return log (lProbModel.ins); }
+    inline LogProb lDel() const { return log (lProbModel.del); }
+    inline LogProb lInsExt() const { return log (lProbModel.insExt); }
+    inline LogProb lDelExt() const { return log (lProbModel.delExt); }
+
+    inline LogProb lNoIns() const { return log (1 - lProbModel.ins); }
+    inline LogProb lNoDel() const { return log (1 - lProbModel.del); }
+    inline LogProb lNoInsExt() const { return log (1 - lProbModel.insExt); }
+    inline LogProb lNoDelExt() const { return log (1 - lProbModel.delExt); }
+
+    inline LogProb rIns() const { return log (rProbModel.ins); }
+    inline LogProb rDel() const { return log (rProbModel.del); }
+    inline LogProb rInsExt() const { return log (rProbModel.insExt); }
+    inline LogProb rDelExt() const { return log (rProbModel.delExt); }
+
+    inline LogProb rNoIns() const { return log (1 - rProbModel.ins); }
+    inline LogProb rNoDel() const { return log (1 - rProbModel.del); }
+    inline LogProb rNoInsExt() const { return log (1 - rProbModel.insExt); }
+    inline LogProb rNoDelExt() const { return log (1 - rProbModel.delExt); }
+
+    inline LogProb logMatch (SeqIdx xpos, SeqIdx ypos) const {
+      return logInnerProduct (logRoot, lSub[xpos-1], rSub[ypos-1]);
+    }
   };
 
   // Sampler::History
@@ -220,6 +251,8 @@ struct Sampler {
   History run (const History& initialHistory, random_engine& generator, unsigned int nSamples = 1);
 
   // Sampler helpers
+  static double rootExtProb (const RateModel& model) { return model.insExtProb; }
+  
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomChildNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomGrandchildNode (const Tree& tree, random_engine& generator);
