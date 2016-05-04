@@ -1,4 +1,5 @@
 #include "sampler.h"
+#include "recon.h"
 #include "util.h"
 
 double SimpleTreePrior::coalescenceRate (int lineages) const {
@@ -103,6 +104,8 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
   for (AlignColIndex col = 0; col < cols; ++col) {
     const bool c1 = row1[col];
     const bool c2 = row2[col];
+    if (!(c1 || c2))
+      continue;
     const ProbModel::State state = ProbModel::getState (c1, c2);
     switch (state) {
     case ProbModel::Match:
@@ -131,10 +134,51 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
 
 AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent) {
   AlignPath p;
-  p[parent] = path.at(parent);
-  p[lChild] = path.at(lChild);
-  p[rChild] = path.at(rChild);
-  return alignPathRemoveEmptyColumns (p);
+  size_t nLeftIns = 0;
+  const AlignColIndex cols = alignPathColumns (path);
+  const AlignRowPath& lRow = path.at (lChild);
+  const AlignRowPath& rRow = path.at (rChild);
+  const AlignRowPath& pRow = path.at (parent);
+  AlignRowPath& lr = p[lChild];
+  AlignRowPath& rr = p[rChild];
+  AlignRowPath& pr = p[parent];
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    const bool lc = lRow[col];
+    const bool rc = rRow[col];
+    const bool pc = pRow[col];
+    if (!(lc || rc || pc))
+      continue;
+    const auto state = Sampler::SiblingMatrix::getState (Sampler::SiblingMatrix::IMM, lc, rc, pc);
+    switch (state) {
+    case Sampler::SiblingMatrix::IMM:
+    case Sampler::SiblingMatrix::IMD:
+    case Sampler::SiblingMatrix::IDM:
+    case Sampler::SiblingMatrix::IDD:
+      while (nLeftIns > 0) {
+	lr.push_back (true);
+	rr.push_back (false);
+	pr.push_back (false);
+	--nLeftIns;
+      }
+    case Sampler::SiblingMatrix::IMI:
+      lr.push_back (lc);
+      rr.push_back (rc);
+      pr.push_back (pc);
+      break;
+    case Sampler::SiblingMatrix::IIW:
+      ++nLeftIns;
+    default:
+      Abort ("bad state");
+      break;
+    }
+  }
+  while (nLeftIns > 0) {
+    lr.push_back (true);
+    rr.push_back (false);
+    pr.push_back (false);
+    --nLeftIns;
+  }
+  return p;
 }
 
 AlignPath Sampler::branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
@@ -237,7 +281,14 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
   logHastingsRatio = (newLogLikelihood - oldLogLikelihood) - (logForwardProposal - logReverseProposal);
 }
 
-Sampler::BranchAlignMove::BranchAlignMove (const History& history, Sampler& sampler, random_engine& generator)
+bool Sampler::Move::accept (random_engine& generator) const {
+  if (logHastingsRatio > 0)
+    return true;
+  bernoulli_distribution distribution (exp (logHastingsRatio));
+  return distribution (generator);
+}
+
+Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
   : Move (BranchAlign, history)
 {
   node = Sampler::randomChildNode (history.tree, generator);
@@ -282,7 +333,7 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, Sampler& samp
   initRatio (sampler);
 }
 
-Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler, random_engine& generator)
+Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
   : Move (NodeAlign, history)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
@@ -373,7 +424,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler,
   initRatio (sampler);
 }
 
-Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampler& sampler, random_engine& generator)
+Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const Sampler& sampler, random_engine& generator)
   : Move (PruneAndRegraft, history)
 {
   const vguard<TreeBranchLength>& distanceFromRoot = history.tree.distanceFromRoot();
@@ -494,7 +545,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   initRatio (sampler);
 }
 
-Sampler::NodeHeightMove::NodeHeightMove (const History& history, Sampler& sampler, random_engine& generator)
+Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& sampler, random_engine& generator)
   : Move (NodeHeight, history)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
@@ -586,26 +637,153 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const
   return AlignPath();
 }
 
-LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& plrPath) const
+LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const
 {
-  // WRITE ME
+  LogProb lp = 0;
+  State state = SSS;
+  const AlignColIndex cols = alignPathColumns (lrpPath);
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    const State nextState = getState (state, lrpPath.at(lRow)[col], lrpPath.at(rRow)[col], lrpPath.at(pRow)[col]);
+    lp += lpTrans (state, nextState);
+    state = nextState;
+  }
+  return lp;
+}
+
+Sampler::SiblingMatrix::State Sampler::SiblingMatrix::getState (State src, bool leftUngapped, bool rightUngapped, bool parentUngapped) {
+  if (parentUngapped)
+    return leftUngapped ? (rightUngapped ? IMM : IMD) : (rightUngapped ? IDM : IDD);
+  if (leftUngapped)
+    return (src == IMD || src == IIX) ? IIX : IIW;
+  if (rightUngapped)
+    return (src == IDM || src == IDI) ? IDI : IMI;
+  if (src == IDM || src == IDD || src == IDI)
+    return WXW;
+  if (src == IMD || src == IIX)
+    return WWX;
+  return WWW;
+}
+
+LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
+  switch (src) {
+  case IMM:
+    switch (dest) {
+    case WWW: return imm_www;
+    case IMI: return imm_imi;
+    case IIW: return imm_iiw;
+    default: break;
+    }
+    break;
+
+  case IMD:
+    switch (dest) {
+    case WWX: return imd_wwx;
+    case IIX: return imd_iix;
+    default: break;
+    }
+    break;
+
+  case IDM:
+    switch (dest) {
+    case WXW: return idm_wxw;
+    case IDI: return idm_idi;
+    default: break;
+    }
+    break;
+
+  case IDD:
+    switch (dest) {
+    case IMM: return idd_imm;
+    case IMD: return idd_imd;
+    case IDM: return idd_idm;
+    case WXW: return idd_wxw;
+    case EEE: return idd_eee;
+    default: break;
+    }
+    break;
+
+  case WWW:
+    switch (dest) {
+    case IMM: return www_imm;
+    case IMD: return www_imd;
+    case IDM: return www_idm;
+    case IDD: return www_idd;
+    case EEE: return www_eee;
+    default: break;
+    }
+    break;
+
+  case WWX:
+    switch (dest) {
+    case IMD: return wwx_imd;
+    case IDD: return wwx_idd;
+    case WWW: return wwx_www;
+    default: break;
+    }
+    break;
+
+  case WXW:
+    switch (dest) {
+    case IDM: return wxw_idm;
+    case IDD: return wxw_idd;
+    case WWW: return wxw_www;
+    default: break;
+    }
+    break;
+
+  case IMI:
+    switch (dest) {
+    case WWW: return imi_www;
+    case IMI: return imi_imi;
+    case IIW: return imi_iiw;
+    default: break;
+    }
+    break;
+
+  case IIW:
+    switch (dest) {
+    case WWW: return iiw_www;
+    case IIW: return iiw_iiw;
+    default: break;
+    }
+    break;
+
+  case IDI:
+    switch (dest) {
+    case WXW: return idi_wxw;
+    case IDI: return idi_idi;
+    default: break;
+    }
+    break;
+
+  case IIX:
+    switch (dest) {
+    case WWX: return iix_wwx;
+    case IIX: return iix_iix;
+    default: break;
+    }
+    break;
+
+  default:
+    break;
+  }
   return -numeric_limits<double>::infinity();
 }
 
-Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& plrPath) const {
+Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrpPath) const {
   PosWeightMatrix pwm;
-  pwm.reserve (alignPathResiduesInRow (plrPath.at (pRow)));
-  const AlignColIndex cols = alignPathColumns (plrPath);
+  pwm.reserve (alignPathResiduesInRow (lrpPath.at (pRow)));
+  const AlignColIndex cols = alignPathColumns (lrpPath);
   SeqIdx lPos = 0, rPos = 0;
   for (AlignColIndex col = 0; col < cols; ++col)
-    if (plrPath.at(pRow)[col]) {
+    if (lrpPath.at(pRow)[col]) {
       vguard<LogProb> prof (model.alphabetSize(), 0);
-      if (plrPath.at(lRow)[col]) {
+      if (lrpPath.at(lRow)[col]) {
 	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
 	  prof[i] += lSub[lPos][i];
 	++lPos;
       }
-      if (plrPath.at(rRow)[col]) {
+      if (lrpPath.at(rRow)[col]) {
 	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
 	  prof[i] += rSub[rPos][i];
 	++rPos;
@@ -618,4 +796,41 @@ Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& plr
       pwm.push_back (prof);
     }
   return pwm;
+}
+
+Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide)
+  : model (model),
+    treePrior (treePrior),
+    moveRate (Move::TotalMoveTypes, 1.),
+    guide (gappedGuide),
+    maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
+{ }
+
+Sampler::Move Sampler::proposeMove (const History& oldHistory, random_engine& generator) const {
+  const Move::Type type = (Move::Type) random_index (moveRate, generator);
+  switch (type) {
+  case Move::BranchAlign: return BranchAlignMove (oldHistory, *this, generator);
+  case Move::NodeAlign: return NodeAlignMove (oldHistory, *this, generator);
+  case Move::PruneAndRegraft: return PruneAndRegraftMove (oldHistory, *this, generator);
+  case Move::NodeHeight: return NodeHeightMove (oldHistory, *this, generator);
+  default: break;
+  }
+  Abort ("Unknown move type");
+  return Move();
+}
+
+void Sampler::addLogger (Logger& logger) {
+  loggers.push_back (&logger);
+}
+
+Sampler::History Sampler::run (const History& initialHistory, random_engine& generator, unsigned int nSamples) {
+  History history (initialHistory);
+  for (unsigned int n = 0; n < nSamples; ++n) {
+    const Move move = proposeMove (history, generator);
+    if (move.accept (generator))
+      history = move.newHistory;
+    for (auto& logger : loggers)
+      logger->log (history);
+  }
+  return history;
 }

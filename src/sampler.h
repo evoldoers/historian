@@ -95,13 +95,13 @@ struct Sampler {
 
   // Sampler::SiblingMatrix
   struct SiblingMatrix : public SparseDPMatrix<11> {
-    enum State { SSS = 0, SSI = 5, SIW = 6,
+    enum State { SSS = 0,
 		 IMM = 0, IMD = 1, IDM = 2, IDD = 3,
 		 WWW = 4, WWX = 5, WXW = 6,
-		 IMI = 7, IIW = 8,
+		 IMI = 7, SSI = 7,
+		 IIW = 8, SIW = 8,
 		 IDI = 9, IIX = 10,
-		 EEE = 11,
-		 SourceStates = 10, DestStates = 11 };
+		 EEE = 11 };
 
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
@@ -126,8 +126,8 @@ struct Sampler {
     LogProb                   wxw_idm, wxw_idd, wxw_www;
     LogProb                                     imi_www, imi_imi, imi_iiw;
     LogProb                                     iiw_www,          iiw_iiw;
-    LogProb                                     idi_wxw,                  idi_idi;
-    LogProb                                     iix_wwx,                           iix_iix;
+    LogProb                                     idi_wxw,                   idi_idi;
+    LogProb                                     iix_wwx,                            iix_iix;
 
     // This is 1.5* faster (48/32) but 1.375* fatter (11/8) than with w** eliminated:
     // (48 transitions)
@@ -150,8 +150,11 @@ struct Sampler {
     SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
     AlignPath sample (random_engine& generator) const;
-    LogProb logPostProb (const AlignPath& plrPath) const;
-    PosWeightMatrix parentSeq (const AlignPath& plrPath) const;
+    LogProb logPostProb (const AlignPath& lrpPath) const;
+    PosWeightMatrix parentSeq (const AlignPath& lrpPath) const;
+
+    static State getState (State src, bool leftUngapped, bool rightUngapped, bool parentUngapped);
+    LogProb lpTrans (State src, State dest) const;
   };
 
   // Sampler::History
@@ -168,13 +171,15 @@ struct Sampler {
   
   // Sampler::Move
   struct Move {
-    enum Type { BranchAlign, NodeAlign, PruneAndRegraft, NodeHeight };
+    enum Type { BranchAlign = 0, NodeAlign, PruneAndRegraft, NodeHeight, TotalMoveTypes };
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
     LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
 
+    Move() { }
     Move (Type type, const History& history);
+    
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped);
     void initRatio (const Sampler& sampler);
@@ -182,27 +187,27 @@ struct Sampler {
   };
 
   struct BranchAlignMove : Move {
-    BranchAlignMove (const History&, Sampler&, random_engine&);
+    BranchAlignMove (const History&, const Sampler&, random_engine&);
   };
 
   struct NodeAlignMove : Move {
-    NodeAlignMove (const History&, Sampler&, random_engine&);
+    NodeAlignMove (const History&, const Sampler&, random_engine&);
   };
 
   struct PruneAndRegraftMove : Move {
-    PruneAndRegraftMove (const History&, Sampler&, random_engine&);
+    PruneAndRegraftMove (const History&, const Sampler&, random_engine&);
   };
 
   struct NodeHeightMove : Move {
-    NodeHeightMove (const History&, Sampler&, random_engine&);
+    NodeHeightMove (const History&, const Sampler&, random_engine&);
   };
 
   // Sampler member variables
-  RateModel model;
-  SimpleTreePrior treePrior;
+  const RateModel& model;
+  const SimpleTreePrior& treePrior;
   list<Logger*> loggers;
-  map<Move::Type,double> moveRate;
-  Alignment guide;
+  vguard<double> moveRate;
+  const Alignment guide;
   int maxDistanceFromGuide;
   
   // Sampler constructor
@@ -212,7 +217,7 @@ struct Sampler {
   void addLogger (Logger& logger);
   LogProb logLikelihood (const History& history) const;
   Move proposeMove (const History& oldHistory, random_engine& generator) const;
-  void run (History& state, random_engine& generator, int nSamples = 1);
+  History run (const History& initialHistory, random_engine& generator, unsigned int nSamples = 1);
 
   // Sampler helpers
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);

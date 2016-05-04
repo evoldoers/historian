@@ -103,6 +103,12 @@ OutIter write_quoted_escaped(std::string const& s, OutIter out) {
   return out;
 }
 
+/* random_double */
+template<class Generator>
+double random_double (Generator& generator) {
+  return generator() / (((double) std::numeric_limits<typename Generator::result_type>::max()) + 1);
+}
+
 /* random_element */
 template<class Iterator,class Generator>
 Iterator random_element (Iterator begin, Iterator end, Generator generator)
@@ -124,6 +130,18 @@ template<class Container,class Generator>
 typename Container::reference random_element (Container& container, Generator generator)
 {
   return *(random_element (container.begin(), container.end(), generator));
+}
+
+/* random_index */
+template<class T,class Generator>
+size_t random_index (const std::vector<T>& weights, Generator& generator) {
+  const T norm = std::accumulate (weights.begin(), weights.end(), 0);
+  Assert (norm > 0, "Negative weights in random_index");
+  T variate = random_double(generator) * norm;
+  for (size_t n = 0; n < weights.size(); ++n)
+    if ((variate -= weights[n]) <= 0)
+      return n;
+  return weights.size();
 }
 
 /* index sort
