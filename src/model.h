@@ -53,7 +53,9 @@ struct RateModel : AlphabetOwner {
 
 class ProbModel : public AlphabetOwner {
 public:
-  typedef enum { Match, Insert, Delete, End } State;
+  typedef enum { Start = 0,
+		 Match = 0, Insert = 1, Delete = 2,
+		 End = 3 } State;
   double t, ins, del, insExt, delExt;
   double insWait, delWait;
   gsl_vector* insVec;
@@ -62,6 +64,7 @@ public:
   ~ProbModel();
   double transProb (State src, State dest) const;
   void write (ostream& out) const;
+  static State getState (bool parentUngapped, bool childUngapped);
 private:
   ProbModel (const ProbModel&) = delete;
   ProbModel& operator= (const ProbModel&) = delete;

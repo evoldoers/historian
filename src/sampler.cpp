@@ -89,6 +89,72 @@ AlignPath Sampler::branchPath (const AlignPath& path, const Tree& tree, TreeNode
   return pairPath (path, parent, node);
 }
 
+map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const History& history, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const {
+  map<TreeNodeIndex,PosWeightMatrix> pwms;
+  AlignColSumProduct colSumProd (model, history.tree, history.gapped);
+  while (!colSumProd.alignmentDone()) {
+    colSumProd.fillUp();
+    colSumProd.fillDown();
+    for (const auto& node_exclude : exclude)
+      if (!colSumProd.isGap (node_exclude.first))
+	pwms[node_exclude.first].push_back (colSumProd.logNodeExcludedPostProb (node_exclude.first, node_exclude.second));
+    colSumProd.nextColumn();
+  }
+  return pwms;
+}
+
+LogProb Sampler::logLikelihood (const History& history) const {
+  const Alignment align (history.gapped);
+  LogProb lp = treePrior.treeLogLikelihood (history.tree);
+  const double rootExt = model.insExtProb;
+  lp += log(1. - rootExt) + log(rootExt) * alignPathResiduesInRow (align.path.at (history.tree.root()));
+  for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
+    const TreeNodeIndex parent = history.tree.parentNode (node);
+    const ProbModel probModel (model, history.tree.branchLength (node));
+    const AlignPath path = pairPath (align.path, node, parent);
+    const AlignColIndex cols = alignPathColumns (path);
+    ProbModel::State state = ProbModel::Start;
+    for (AlignColIndex col = 0; col < cols; ++col) {
+      const ProbModel::State nextState = ProbModel::getState (path.at(parent)[col], path.at(node)[col]);
+      lp += log (probModel.transProb (state, nextState));
+      state = nextState;
+    }
+    lp += log (probModel.transProb (state, ProbModel::End));
+  }
+  AlignColSumProduct colSumProd (model, history.tree, history.gapped);
+  while (!colSumProd.alignmentDone()) {
+    colSumProd.fillUp();
+    lp += colSumProd.colLogLike;
+    colSumProd.nextColumn();
+  }
+  return lp;
+}
+
+Sampler::PosWeightMatrix Sampler::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
+  PosWeightMatrix pwm;
+  pwm.reserve (child.size());
+  for (const auto& lpp : child) {
+    pwm.push_back (vguard<LogProb> (lpp.size(), -numeric_limits<double>::infinity()));
+    auto& pre = pwm.back();
+    for (AlphTok i = 0; i < pre.size(); ++i)
+      for (AlphTok j = 0; j < lpp.size(); ++j)
+	log_accum_exp (pre[i], submat[i][j] + lpp[j]);
+  }
+  return pwm;
+}
+
+vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec) {
+  vguard<LogProb> ins;
+  ins.reserve (child.size());
+  for (const auto& lpp : child) {
+    LogProb lp = -numeric_limits<double>::infinity();
+    for (AlphTok i = 0; i < lpp.size(); ++i)
+      log_accum_exp (lp, insvec[i] + lpp[i]);
+    ins.push_back (lp);
+  }
+  return ins;
+}
+
 Sampler::Move::Move (Type type, const History& history)
   : type (type),
     oldHistory (history)
@@ -134,7 +200,7 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, Sampler& samp
   map<TreeNodeIndex,TreeNodeIndex> exclude;
   exclude[node] = parent;
   exclude[parent] = node;
-  const auto pwms = sampler.getConditionalPWMs (oldAlign, exclude);
+  const auto pwms = sampler.getConditionalPWMs (history, exclude);
   const PosWeightMatrix& pSeq = pwms.at (parent);
   const PosWeightMatrix& nSeq = pwms.at (node);
 
@@ -189,7 +255,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler,
     exclude[node] = parent;
     exclude[parent] = node;
   }
-  const auto pwms = sampler.getConditionalPWMs (oldAlign, exclude);
+  const auto pwms = sampler.getConditionalPWMs (history, exclude);
   const PosWeightMatrix& lSeq = pwms.at (leftChild);
   const PosWeightMatrix& rSeq = pwms.at (rightChild);
 
@@ -315,7 +381,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   exclude[oldGrandparent] = parent;
   exclude[newSibling] = newGrandparent;
   exclude[newGrandparent] = newSibling;
-  const auto pwms = sampler.getConditionalPWMs (oldAlign, exclude);
+  const auto pwms = sampler.getConditionalPWMs (history, exclude);
 
   const PosWeightMatrix& nodeSeq = pwms.at (node);
   const PosWeightMatrix& oldSibSeq = pwms.at (oldSibling);
@@ -411,24 +477,6 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, Sampler& sample
   initRatio (sampler);
 }
 
-map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const Alignment& align, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const {
-  map<TreeNodeIndex,PosWeightMatrix> pwms;
-  // WRITE ME
-  return pwms;
-}
-
-Sampler::PosWeightMatrix Sampler::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
-  PosWeightMatrix pwm;
-  // WRITE ME
-  return pwm;
-}
-
-vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec) {
-  vguard<LogProb> ins;
-  // WRITE ME
-  return ins;
-}
-
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
     model (model),
@@ -485,7 +533,13 @@ LogProb Sampler::SiblingMatrix::logAlignPostProb (const AlignPath& plrPath) cons
   return -numeric_limits<double>::infinity();
 }
 
-LogProb Sampler::logLikelihood (const History& history) const {
+Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& plrPath) const {
+  PosWeightMatrix pwm;
+  // WRITE ME
+  return pwm;
+}
+
+LogProb SimpleTreePrior::treeLogLikelihood (const Tree& tree) const {
   // WRITE ME
   return -numeric_limits<double>::infinity();
 }

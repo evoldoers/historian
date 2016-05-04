@@ -72,10 +72,7 @@ struct Sampler {
   // Sampler::BranchMatrix
   class BranchMatrix : public SparseDPMatrix<3> {
   public:
-    enum State { Start = 0,
-		 Match = 0, Insert = 1, Delete = 2,
-		 End = 3,
-		 SourceStates = 3, DestStates = 4 };
+    typedef ProbModel::State State;
 
     const RateModel& model;
     const ProbModel probModel;
@@ -223,7 +220,7 @@ struct Sampler {
   static TreeNodeIndex randomContemporaneousNode (const Tree& tree, const vguard<TreeBranchLength>& distanceFromRoot, TreeNodeIndex node, random_engine& generator);
 
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
-  map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const Alignment& align, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const;
+  map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const History& history, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const;
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);

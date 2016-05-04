@@ -327,6 +327,12 @@ void ProbModel::write (ostream& out) const {
   out << "}" << endl;
 }
 
+ProbModel::State ProbModel::getState (bool parentUngapped, bool childUngapped) {
+  if (parentUngapped)
+    return childUngapped ? Match : Delete;
+  return childUngapped ? Insert : End;
+}
+
 LogProbModel::LogProbModel (const ProbModel& pm)
   : logInsProb (pm.alphabetSize()),
     logSubProb (pm.alphabetSize(), vguard<LogProb> (pm.alphabetSize()))
