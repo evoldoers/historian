@@ -423,15 +423,22 @@ Sampler::PosWeightMatrix Sampler::preMultiply (const PosWeightMatrix& child, con
   return pwm;
 }
 
+vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec) {
+  vguard<LogProb> ins;
+  // WRITE ME
+  return ins;
+}
+
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
     model (model),
     probModel (model, dist),
     logProbModel (probModel),
+    xRow (x),
+    yRow (y),
     xSeq (xSeq),
     ySub (Sampler::preMultiply (ySeq, logProbModel.logSubProb)),
-    xRow (x),
-    yRow (y)
+    yIns (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb))
 {
   // WRITE ME
 }
@@ -455,11 +462,13 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
     rProbModel (model, prDist),
     lLogProbModel (lProbModel),
     rLogProbModel (rProbModel),
-    lSub (Sampler::preMultiply (lSeq, lLogProbModel.logSubProb)),
-    rSub (Sampler::preMultiply (rSeq, rLogProbModel.logSubProb)),
     lRow (l),
     rRow (r),
-    pRow (p)
+    pRow (p),
+    lSub (Sampler::preMultiply (lSeq, lLogProbModel.logSubProb)),
+    rSub (Sampler::preMultiply (rSeq, rLogProbModel.logSubProb)),
+    lIns (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb)),
+    rIns (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb))
 {
   // WRITE ME
 }

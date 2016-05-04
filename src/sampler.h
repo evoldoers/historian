@@ -87,6 +87,7 @@ struct Sampler {
     AlignRowIndex xRow, yRow;
     const PosWeightMatrix& xSeq;
     const PosWeightMatrix ySub;
+    const vguard<LogProb> yIns;
    
     BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
@@ -142,13 +143,12 @@ struct Sampler {
     //    LogProb idi_imm, idi_imd, idi_idm, idi_idd,                   idi_idi,          idi_eee;
     //    LogProb iix_imm, iix_imd, iix_idm, iix_idd,                            iix_iix, iix_eee;
     
-    // Within the DP, score substitutions with a log-odds-ratio matrix & gap emissions with zeroes, for speed.
-    // When estimating the parent sequence conditioned on the alignment, we use the "proper" gap emissions.
     vguard<vguard<LogProb> > submat;
 
     AlignRowIndex lRow, rRow, pRow;
     const PosWeightMatrix lSub, rSub;
-
+    const vguard<LogProb> lIns, rIns;
+    
     SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
     AlignPath sampleAlign (random_engine& generator) const;
@@ -230,6 +230,7 @@ struct Sampler {
   static AlignPath triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent);
   static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
   static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
+  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
 };
 
 #endif /* SAMPLER_INCLUDED */
