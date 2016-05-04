@@ -85,11 +85,9 @@ struct Sampler {
     LogProb lpTrans[SourceStates][DestStates];
     vguard<vguard<LogProb> > submat;  // log odds-ratio
 
-    // cell accessors
-    static inline AlignRowIndex xRow() { return 0; }  // parent
-    static inline AlignRowIndex yRow() { return 1; }  // child
-
-    BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos);
+    AlignRowIndex xRow, yRow;
+    
+    BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
     AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
@@ -107,7 +105,8 @@ struct Sampler {
 
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
-
+    AlignRowIndex lRow, rRow, pRow;
+    
     // Transition log-probabilities.
     // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
     // The outgoing paths from wxx are replaced with the following transitions:
@@ -146,11 +145,7 @@ struct Sampler {
     // When estimating the parent sequence conditioned on the alignment, we use the "proper" gap emissions.
     vguard<vguard<LogProb> > submat;
 
-    static inline AlignRowIndex lRow() { return 0; }
-    static inline AlignRowIndex rRow() { return 1; }
-    static inline AlignRowIndex pRow() { return 2; }
-
-    SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos);
+    SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
     AlignPath sampleAlign (random_engine& generator) const;
     LogProb logAlignPostProb (const AlignPath& plrPath) const;
@@ -234,10 +229,8 @@ struct Sampler {
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
-  static AlignPath treePathToSiblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
-  static AlignPath siblingPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
-  static AlignPath treePathToBranchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
-  static AlignPath branchPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
+  static AlignPath siblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent);
+  static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
 };
 
 #endif /* SAMPLER_INCLUDED */

@@ -84,40 +84,21 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
   return alignPathRemoveEmptyColumns (p);
 }
 
-AlignPath Sampler::treePathToSiblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent) {
+AlignPath Sampler::siblingPath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent) {
   AlignPath p;
   Assert (tree.nChildren(parent) == 2, "Non-binary tree");
-  p[SiblingMatrix::pRow()] = path.at(parent);
-  p[SiblingMatrix::lRow()] = path.at(tree.getChild(parent,0));
-  p[SiblingMatrix::rRow()] = path.at(tree.getChild(parent,1));
+  const TreeNodeIndex lChild = tree.getChild(parent,0);
+  const TreeNodeIndex rChild = tree.getChild(parent,1);
+  p[parent] = path.at(parent);
+  p[lChild] = path.at(lChild);
+  p[rChild] = path.at(rChild);
   return alignPathRemoveEmptyColumns (p);
 }
 
-AlignPath Sampler::siblingPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex parent) {
-  AlignPath p;
-  Assert (tree.nChildren(parent) == 2, "Non-binary tree");
-  p[parent] = path.at(SiblingMatrix::pRow());
-  p[tree.getChild(parent,0)] = path.at(SiblingMatrix::lRow());
-  p[tree.getChild(parent,1)] = path.at(SiblingMatrix::rRow());
-  return p;
-}
-
-AlignPath Sampler::treePathToBranchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
-  AlignPath p;
+AlignPath Sampler::branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
   const TreeNodeIndex parent = tree.parentNode(node);
   Assert (parent >= 0, "Parent node not found");
-  p[BranchMatrix::xRow()] = path.at(parent);
-  p[BranchMatrix::yRow()] = path.at(node);
-  return alignPathRemoveEmptyColumns (p);
-}
-
-AlignPath Sampler::branchPathToTreePath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
-  AlignPath p;
-  const TreeNodeIndex parent = tree.parentNode(node);
-  Assert (parent >= 0, "Parent node not found");
-  p[parent] = path.at(BranchMatrix::xRow());
-  p[node] = path.at(BranchMatrix::yRow());
-  return p;
+  return pairPath (path, parent, node);
 }
 
 Sampler::Move::Move (Type type, const History& history)
@@ -165,17 +146,15 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, Sampler& samp
   const TokSeq pSeq = sampler.removeGapsAndTokenize (history.gapped[parent]);
   const TokSeq nSeq = sampler.removeGapsAndTokenize (history.gapped[node]);
 
-  const BranchMatrix branchMatrix (sampler.model, pSeq, nSeq, dist, branchEnv, parentEnvPos, nodeEnvPos);
+  const BranchMatrix branchMatrix (sampler.model, pSeq, nSeq, dist, branchEnv, parentEnvPos, nodeEnvPos, parent, node);
 
   const AlignPath newBranchPath = branchMatrix.sample (generator);
   const LogProb logPostNewBranchPath = branchMatrix.logPostProb (newBranchPath);
 
-  const AlignPath oldBranchPath = Sampler::treePathToBranchPath (oldAlign.path, history.tree, node);
+  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
   const LogProb logPostOldBranchPath = branchMatrix.logPostProb (oldBranchPath);
 
-  const AlignPath newParentPath = Sampler::branchPathToTreePath (newBranchPath, history.tree, node);
-
-  const vguard<AlignPath> mergeComponents = { pCladePath, newParentPath, nCladePath };
+  const vguard<AlignPath> mergeComponents = { pCladePath, newBranchPath, nCladePath };
   const AlignPath newPath = alignPathMerge (mergeComponents);
 
   logForwardProposal = logPostNewBranchPath;
@@ -215,25 +194,23 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler,
   const TokSeq lSeq = sampler.removeGapsAndTokenize (history.gapped[leftChild]);
   const TokSeq rSeq = sampler.removeGapsAndTokenize (history.gapped[rightChild]);
 
-  const SiblingMatrix sibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, siblingEnv, leftChildEnvPos, rightChildEnvPos);
+  const SiblingMatrix sibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, siblingEnv, leftChildEnvPos, rightChildEnvPos, leftChild, rightChild, node);
   const AlignPath newSiblingPath = sibMatrix.sampleAlign (generator);
   const LogProb logPostNewSiblingPath = sibMatrix.logAlignPostProb (newSiblingPath);
 
   const TokSeq newNodeSeq = sibMatrix.sampleParent (newSiblingPath, generator);
   const LogProb logPostNewSeq = sibMatrix.logParentPostProb (newNodeSeq, newSiblingPath);
 
-  const AlignPath oldSiblingPath = Sampler::treePathToSiblingPath (oldAlign.path, history.tree, node);
+  const AlignPath oldSiblingPath = Sampler::siblingPath (oldAlign.path, history.tree, node);
   const LogProb logPostOldSiblingPath = sibMatrix.logAlignPostProb (oldSiblingPath);
 
   const TokSeq& oldNodeSeq = sampler.removeGapsAndTokenize (history.gapped[node]);
   const LogProb logPostOldSeq = sibMatrix.logParentPostProb (newNodeSeq, oldSiblingPath);
 
-  const AlignPath newNodePath = Sampler::siblingPathToTreePath (newSiblingPath, history.tree, node);
-
   logForwardProposal = logPostNewSiblingPath + logPostNewSeq;
   logReverseProposal = logPostOldSiblingPath + logPostOldSeq;
 
-  vguard<AlignPath> mergeComponents = { lCladePath, rCladePath, newNodePath };
+  vguard<AlignPath> mergeComponents = { lCladePath, rCladePath, newSiblingPath };
   AlignPath newPath = alignPathMerge (mergeComponents);
 
   vguard<FastSeq> newUngapped = oldAlign.ungapped;
@@ -254,22 +231,20 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, Sampler& sampler,
     const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
     const vguard<SeqIdx> parentEnvPos = guideSeqPos (oldAlign.path, parent, parentClosestLeaf);
 
-    const BranchMatrix newBranchMatrix (sampler.model, pSeq, newNodeSeq, pDist, branchEnv, parentEnvPos, newNodeEnvPos);
+    const BranchMatrix newBranchMatrix (sampler.model, pSeq, newNodeSeq, pDist, branchEnv, parentEnvPos, newNodeEnvPos, parent, node);
 
     const AlignPath newBranchPath = newBranchMatrix.sample (generator);
     const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
-    const BranchMatrix oldBranchMatrix (sampler.model, pSeq, oldNodeSeq, pDist, branchEnv, parentEnvPos, oldNodeEnvPos);
-    const AlignPath oldBranchPath = Sampler::treePathToBranchPath (oldAlign.path, history.tree, node);
+    const BranchMatrix oldBranchMatrix (sampler.model, pSeq, oldNodeSeq, pDist, branchEnv, parentEnvPos, oldNodeEnvPos, parent, node);
+    const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
     const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
-    const AlignPath newParentPath = Sampler::branchPathToTreePath (newBranchPath, history.tree, node);
-      
     logForwardProposal += logPostNewBranchPath;
     logReverseProposal += logPostOldBranchPath;
 
     mergeComponents.push_back (pCladePath);
-    mergeComponents.push_back (newParentPath);
+    mergeComponents.push_back (newBranchPath);
     newPath = alignPathMerge (mergeComponents);
   }
 
@@ -325,8 +300,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   const AlignPath oldGranCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldGrandparent, parent);
   const AlignPath newGranCladePath = Sampler::cladePath (oldAlign.path, newTree, newGrandparent, parent);
 
-  const AlignPath oldSiblingPath = Sampler::treePathToSiblingPath (oldAlign.path, oldTree, parent);
-  const AlignPath oldBranchPath = Sampler::treePathToBranchPath (oldAlign.path, oldTree, parent);
+  const AlignPath oldSiblingPath = Sampler::siblingPath (oldAlign.path, oldTree, parent);
+  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, oldTree, parent);
 
   const AlignPath oldGranSibPath = Sampler::pairPath (oldAlign.path, oldGrandparent, oldSibling);
 
@@ -346,20 +321,18 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   const TokSeq newSibSeq = sampler.removeGapsAndTokenize (history.gapped[newSibling]);
   const TokSeq newGranSeq = sampler.removeGapsAndTokenize (history.gapped[newGrandparent]);
 
-  const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos);
+  const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
   const AlignPath newSiblingPath = newSibMatrix.sampleAlign (generator);
   const LogProb logPostNewSiblingPath = newSibMatrix.logAlignPostProb (newSiblingPath);
 
   const TokSeq newParentSeq = newSibMatrix.sampleParent (newSiblingPath, generator);
   const LogProb logPostNewSeq = newSibMatrix.logParentPostProb (newParentSeq, newSiblingPath);
 
-  const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos);
+  const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
   const LogProb logPostOldSiblingPath = oldSibMatrix.logAlignPostProb (oldSiblingPath);
   const LogProb logPostOldSeq = oldSibMatrix.logParentPostProb (oldParentSeq, oldSiblingPath);
 
-  const AlignPath newParentPath = Sampler::siblingPathToTreePath (newSiblingPath, history.tree, parent);
-
-  vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newParentPath };
+  vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
   const AlignPath newParentSubtreePath = alignPathMerge (mergeComponents);
 
   const GuideAlignmentEnvelope newBranchEnv (sampler.guide.path, newGranClosestLeaf, newParentClosestLeaf, sampler.maxDistanceFromGuide);
@@ -368,21 +341,19 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, Sampl
   const vguard<SeqIdx> newParentEnvPos = guideSeqPos (newParentSubtreePath, parent, newParentClosestLeaf);
   const vguard<SeqIdx> oldParentEnvPos = guideSeqPos (oldAlign.path, parent, oldParentClosestLeaf);
 
-  const BranchMatrix newBranchMatrix (sampler.model, newGranSeq, newParentSeq, newGranParentDist, newBranchEnv, newGranEnvPos, newParentEnvPos);
+  const BranchMatrix newBranchMatrix (sampler.model, newGranSeq, newParentSeq, newGranParentDist, newBranchEnv, newGranEnvPos, newParentEnvPos, newGrandparent, parent);
 
   const AlignPath newBranchPath = newBranchMatrix.sample (generator);
   const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
-  const BranchMatrix oldBranchMatrix (sampler.model, oldGranSeq, oldParentSeq, oldGranParentDist, oldBranchEnv, oldGranEnvPos, oldParentEnvPos);
+  const BranchMatrix oldBranchMatrix (sampler.model, oldGranSeq, oldParentSeq, oldGranParentDist, oldBranchEnv, oldGranEnvPos, oldParentEnvPos, oldGrandparent, parent);
   const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
-
-  const AlignPath newGranParentPath = Sampler::branchPathToTreePath (newBranchPath, newTree, parent);
 
   logForwardProposal = logPostNewSiblingPath + logPostNewSeq + logPostNewBranchPath;
   logReverseProposal = logPostOldSiblingPath + logPostOldSeq + logPostOldBranchPath;
 
   mergeComponents.push_back (newGranCladePath);
-  mergeComponents.push_back (newGranParentPath);
+  mergeComponents.push_back (newBranchPath);
   const AlignPath newPath = alignPathMerge (mergeComponents);
 
   vguard<FastSeq> newUngapped = oldAlign.ungapped;
@@ -446,10 +417,12 @@ Sampler::AncestralSequenceMove::AncestralSequenceMove (const History& history, S
   // WRITE ME
 }
 
-Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
+Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const TokSeq& xSeq, const TokSeq& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (xSeq, ySeq, env, xEnvPos, yEnvPos),
     model (model),
-    probModel (model, dist)
+    probModel (model, dist),
+    xRow (x),
+    yRow (y)
 {
   // WRITE ME
 }
@@ -466,11 +439,14 @@ LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const
   return -numeric_limits<double>::infinity();
 }
 
-Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos)
+Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const TokSeq& lSeq, const TokSeq& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
   : SparseDPMatrix (lSeq, rSeq, env, lEnvPos, rEnvPos),
     model (model),
     lProbModel (model, plDist),
-    rProbModel (model, prDist)
+    rProbModel (model, prDist),
+    lRow (l),
+    rRow (r),
+    pRow (p)
 {
   // WRITE ME
 }
