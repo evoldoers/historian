@@ -21,6 +21,18 @@ struct Sampler {
   template <size_t CellStates>
   class SparseDPMatrix {
   protected:
+    struct CellCoords {
+      SeqIdx xpos, ypos;
+      unsigned int state;
+      CellCoords (SeqIdx xpos, SeqIdx ypos, unsigned int state)
+	: xpos(xpos), ypos(ypos), state(state)
+      { }
+      bool operator< (const CellCoords& c) const
+      { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
+      bool operator== (const CellCoords& c) const
+      { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
+    };
+
     struct XYCell {
       LogProb lp[CellStates];
       XYCell() {
@@ -110,10 +122,14 @@ struct Sampler {
     AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
 
-    // scoring helper methods
+    // helper methods
+    static void getColumn (State s, bool& xUngapped, bool& yUngapped);
+    
     inline LogProb logMatch (SeqIdx xpos, SeqIdx ypos) const {
       return logInnerProduct (xSeq[xpos-1], ySub[ypos-1]);
     }
+
+    LogProb logEmit (const CellCoords& coords) const;
   };
 
   // Sampler::SiblingMatrix
@@ -172,10 +188,12 @@ struct Sampler {
     LogProb logPostProb (const AlignPath& lrpPath) const;
     PosWeightMatrix parentSeq (const AlignPath& lrpPath) const;
 
+    // helper methods
     static State getState (State src, bool leftUngapped, bool rightUngapped, bool parentUngapped);
+    static void getColumn (State s, bool& leftUngapped, bool& rightUngapped, bool& parentUngapped);
+    
     LogProb lpTrans (State src, State dest) const;
 
-    // scoring helper methods
     inline double iddSelfLoopProb() const { return Sampler::rootExtProb(model) * lProbModel.delExt * rProbModel.delExt; }
     inline LogProb iddExit() const { return log (1 / (1 - iddSelfLoopProb())); }
     
@@ -205,6 +223,8 @@ struct Sampler {
     inline LogProb logMatch (SeqIdx xpos, SeqIdx ypos) const {
       return logInnerProduct (logRoot, lSub[xpos-1], rSub[ypos-1]);
     }
+
+    LogProb logEmit (const CellCoords& coords) const;
   };
 
   // Sampler::History

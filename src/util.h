@@ -135,13 +135,51 @@ typename Container::reference random_element (Container& container, Generator ge
 /* random_index */
 template<class T,class Generator>
 size_t random_index (const std::vector<T>& weights, Generator& generator) {
-  const T norm = std::accumulate (weights.begin(), weights.end(), 0);
-  Assert (norm > 0, "Negative weights in random_index");
+  T norm = 0;
+  for (const T& w : weights) {
+    Assert (w >= 0, "Negative weights in random_index");
+    norm += w;
+  }
+  Assert (norm > 0, "Zero weights in random_index");
   T variate = random_double(generator) * norm;
   for (size_t n = 0; n < weights.size(); ++n)
     if ((variate -= weights[n]) <= 0)
       return n;
   return weights.size();
+}
+
+/* random_key */
+template<class T,class Generator>
+const T& random_key (const std::map<T,double>& weight, Generator& generator) {
+  double norm = 0;
+  for (const auto& kv : weight) {
+    Assert (kv.second >= 0, "Negative weights in random_key");
+    norm += kv.second;
+  }
+  Assert (norm > 0, "Zero weights in random_key");
+  T variate = random_double(generator) * norm;
+  for (const auto& kv : weight)
+    if ((variate -= kv.second) <= 0)
+      return kv.first;
+  Abort ("random_key failed");
+  return *(weight.begin()).first;
+}
+
+/* random_key_log */
+template<class T,class Generator>
+const T& random_key_log (const std::map<T,double>& logWeight, Generator& generator) {
+  double norm = 0, logmax = -numeric_limits<double>::infinity();
+  for (const auto& kv : logWeight)
+    logmax = max (logmax, kv.second);
+  for (const auto& kv : logWeight)
+    norm += exp (kv.second - logmax);
+  Assert (norm > 0, "Zero weights in random_key_log");
+  T variate = random_double(generator) * norm;
+  for (const auto& kv : logWeight)
+    if ((variate -= exp (kv.second - logmax)) <= 0)
+      return kv.first;
+  Abort ("random_key_log failed");
+  return *(logWeight.begin()).first;
 }
 
 /* index sort
