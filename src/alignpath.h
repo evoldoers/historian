@@ -22,6 +22,8 @@ AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const Align
 
 AlignPath alignPathRemoveEmptyColumns (const AlignPath& a);
 
+string alignPathString (const AlignPath& a);
+
 struct Alignment {
   static const char gapChar, wildcardChar;
   vguard<FastSeq> ungapped;

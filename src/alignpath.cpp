@@ -1,3 +1,4 @@
+#include <iomanip>
 #include "alignpath.h"
 #include "util.h"
 #include "logger.h"
@@ -77,6 +78,17 @@ AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2) {
 
 AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const AlignPath& a3) {
   return alignPathConcat (alignPathConcat (a1, a2), a3);
+}
+
+string alignPathString (const AlignPath& a) {
+  ostringstream out;
+  for (auto& row_path : a) {
+    out << setw(4) << row_path.first << ' ';
+    for (bool s : row_path.second)
+      out << (s ? '*' : '-');
+    out << endl;
+  }
+  return out.str();
 }
 
 AlignSeqMap::AlignSeqMap (const vguard<AlignPath>& alignments)

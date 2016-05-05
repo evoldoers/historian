@@ -10,6 +10,7 @@
 
 struct SimpleTreePrior {
   double populationSize;
+  SimpleTreePrior() : populationSize(1) { }
   double coalescenceRate (int lineages) const;
   LogProb treeLogLikelihood (const Tree& tree) const;
 };
@@ -311,7 +312,7 @@ struct Sampler {
 
   // Sampler methods
   void addLogger (Logger& logger);
-  LogProb logLikelihood (const History& history) const;
+  LogProb logLikelihood (const History& history, const char* prefix = "") const;
   Move proposeMove (const History& oldHistory, random_engine& generator) const;
   History run (const History& initialHistory, random_engine& generator, unsigned int nSamples = 1);
 

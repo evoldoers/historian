@@ -3,7 +3,7 @@
 #include "util.h"
 
 double SimpleTreePrior::coalescenceRate (int lineages) const {
-  return (lineages * (lineages-1) / 2) / populationSize;
+  return (((double) lineages * (lineages-1)) / 2) / (double) populationSize;
 }
 
 LogProb SimpleTreePrior::treeLogLikelihood (const Tree& tree) const {
@@ -201,23 +201,27 @@ map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const H
   return pwms;
 }
 
-LogProb Sampler::logLikelihood (const History& history) const {
+LogProb Sampler::logLikelihood (const History& history, const char* suffix) const {
   const Alignment align (history.gapped);
-  LogProb lp = treePrior.treeLogLikelihood (history.tree);
+  const LogProb lpTree = treePrior.treeLogLikelihood (history.tree);
   const double rootExt = rootExtProb (model);
-  lp += log(1. - rootExt) + log(rootExt) * alignPathResiduesInRow (align.path.at (history.tree.root()));
+  const LogProb lpRoot = log(1. - rootExt) + log(rootExt) * alignPathResiduesInRow (align.path.at (history.tree.root()));
+  LogProb lpGaps = 0;
   for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
     const TreeNodeIndex parent = history.tree.parentNode (node);
     const ProbModel probModel (model, history.tree.branchLength (node));
     const AlignPath path = pairPath (align.path, parent, node);
-    lp += logBranchPathLikelihood (probModel, path, parent, node);
+    lpGaps += logBranchPathLikelihood (probModel, path, parent, node);
   }
   AlignColSumProduct colSumProd (model, history.tree, history.gapped);
+  LogProb lpSub = 0;
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
-    lp += colSumProd.colLogLike;
+    lpSub += colSumProd.colLogLike;
     colSumProd.nextColumn();
   }
+  const LogProb lp = lpTree + lpRoot + lpGaps + lpSub;
+  LogThisAt(6,"log(L" << suffix << ") = " << setw(10) << lpTree << " (tree) + " << setw(10) << lpRoot << " (root) + " << setw(10) << lpGaps << " (indels) + " << setw(10) << lpSub << " (substitutions) = " << lp << endl);
   return lp;
 }
 
@@ -275,17 +279,24 @@ void Sampler::Move::initNewHistory (const Tree& tree, const vguard<FastSeq>& gap
 }
 
 void Sampler::Move::initRatio (const Sampler& sampler) {
-  oldLogLikelihood = sampler.logLikelihood (oldHistory);
-  newLogLikelihood = sampler.logLikelihood (newHistory);
+  oldLogLikelihood = sampler.logLikelihood (oldHistory, "_old");
+  newLogLikelihood = sampler.logLikelihood (newHistory, "_new");
+
+  LogThisAt(5,"log(L_old) = " << oldLogLikelihood << ", log(L_new) = " << newLogLikelihood << ", log(Q_fwd) = " << logForwardProposal << ", log(Q_rev) = " << logReverseProposal << endl);
 
   logHastingsRatio = (newLogLikelihood - oldLogLikelihood) - (logForwardProposal - logReverseProposal);
 }
 
 bool Sampler::Move::accept (random_engine& generator) const {
+  bool a;
   if (logHastingsRatio > 0)
-    return true;
-  bernoulli_distribution distribution (exp (logHastingsRatio));
-  return distribution (generator);
+    a = true;
+  else {
+    bernoulli_distribution distribution (exp (logHastingsRatio));
+    a = distribution (generator);
+  }
+  LogThisAt(4,"Move " << (a ? "accepted" : "rejected") << " with log-Hastings ratio " << logHastingsRatio << endl);
+  return a;
 }
 
 Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
@@ -293,6 +304,8 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
 {
   node = Sampler::randomChildNode (history.tree, generator);
   parent = history.tree.parentNode (node);
+
+  LogThisAt(4,"Proposing branch realignment move between...\n   node #" << node << ": " << history.tree.seqName(node) << "\n parent #" << parent << ": " << history.tree.seqName(parent) << endl);
 
   const TreeBranchLength dist = history.tree.branchLength(parent,node);
   
@@ -343,6 +356,8 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
   rightChild = history.tree.getChild (node, 1);
 
   parent = history.tree.parentNode (node);
+
+  LogThisAt(4,"Proposing node realignment move between...\n        node #" << node << ": " << history.tree.seqName(node) << "\n  left-child #" << leftChild << ": " << history.tree.seqName(leftChild) << "\n right-child #" << rightChild << ": " << history.tree.seqName(rightChild) << (parent >= 0 ? (string("\n      parent #") + to_string(parent) + ": " + history.tree.seqName(parent)) : string()) << endl);
 
   const TreeBranchLength lDist = history.tree.branchLength(node,leftChild);
   const TreeBranchLength rDist = history.tree.branchLength(node,rightChild);
@@ -415,6 +430,9 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
     logForwardProposal += logPostNewBranchPath;
     logReverseProposal += logPostOldBranchPath;
 
+    LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (node:children) + " << setw(10) << logPostNewBranchPath << " (parent:node) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (node:children) + " << setw(10) << logPostOldBranchPath << " (parent:node) = " << logReverseProposal << endl);
+
     mergeComponents.push_back (pCladePath);
     mergeComponents.push_back (newBranchPath);
     newPath = alignPathMerge (mergeComponents);
@@ -442,6 +460,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   Assert (newGrandparent >= 0, "Grandparent node not found");
 
   oldSibling = history.tree.getSibling (node);
+
+  LogThisAt(4,"Proposing prune-and-regraft move at...\n            node #" << node << ": " << history.tree.seqName(node) << "\n          parent #" << parent << ": " << history.tree.seqName(parent) << "\n     old sibling #" << oldSibling << ": " << history.tree.seqName(oldSibling) << "\n old grandparent #" << oldGrandparent << ": " << history.tree.seqName(oldGrandparent) << "\n     new sibling #" << newSibling << ": " << history.tree.seqName(newSibling) << "\n new grandparent #" << newGrandparent << ": " << history.tree.seqName(newGrandparent) << endl);
 
   const Tree& oldTree = history.tree;
   
@@ -529,6 +549,9 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   logForwardProposal = logPostNewSiblingPath + logPostNewBranchPath;
   logReverseProposal = logPostOldSiblingPath + logPostOldBranchPath;
 
+  LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (parent:node,newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+  LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (parent:node,oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+
   mergeComponents.push_back (newGranCladePath);
   mergeComponents.push_back (newBranchPath);
   const AlignPath newPath = alignPathMerge (mergeComponents);
@@ -550,38 +573,46 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& 
 {
   node = Sampler::randomInternalNode (history.tree, generator);
   Assert (history.tree.nChildren(node) == 2, "Tree is not binary");
-  const TreeNodeIndex lChild = history.tree.getChild (node, 0);
-  const TreeNodeIndex rChild = history.tree.getChild (node, 1);
-  const TreeBranchLength lChildDist = history.tree.branchLength(lChild);
-  const TreeBranchLength rChildDist = history.tree.branchLength(rChild);
+  leftChild = history.tree.getChild (node, 0);
+  rightChild = history.tree.getChild (node, 1);
+  parent = history.tree.parentNode (node);
+
+  LogThisAt(4,"Proposing node-height move at...\n        node #" << node << ": " << history.tree.seqName(node) << "\n  left-child #" << leftChild << ": " << history.tree.seqName(leftChild) << "\n right-child #" << rightChild << ": " << history.tree.seqName(rightChild) << (parent >= 0 ? (string("\n      parent #") + to_string(parent) + ": " + history.tree.seqName(parent)) : string()) << endl);
+
+  const TreeBranchLength lChildDist = history.tree.branchLength(leftChild);
+  const TreeBranchLength rChildDist = history.tree.branchLength(rightChild);
   const TreeBranchLength minChildDist = max (0., (double) min (lChildDist, rChildDist) - Tree::minBranchLength);
 
   Tree newTree = history.tree;
 
-  if (node == history.tree.root()) {
+  if (parent < 0) {
     const double lambda = sampler.treePrior.coalescenceRate (2);
     exponential_distribution<TreeBranchLength> distribution (lambda);
     const TreeBranchLength coalescenceTime = distribution (generator);
 
-    newTree.node[lChild].d = (lChildDist - minChildDist) + coalescenceTime;
-    newTree.node[rChild].d = (rChildDist - minChildDist) + coalescenceTime;
+    newTree.node[leftChild].d = (lChildDist - minChildDist) + coalescenceTime;
+    newTree.node[rightChild].d = (rChildDist - minChildDist) + coalescenceTime;
     
     logForwardProposal = log(lambda) - lambda * coalescenceTime;
     logReverseProposal = log(lambda) - lambda * minChildDist;
 
+    LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << coalescenceTime << " (previously " << minChildDist << ")" << endl);
+
   } else {
     const TreeBranchLength pDist = max (0., (double) history.tree.branchLength(node) - Tree::minBranchLength);
     const TreeBranchLength pDistRange = pDist + minChildDist;
-    uniform_real_distribution<TreeBranchLength> distribution (pDistRange);
 
+    uniform_real_distribution<TreeBranchLength> distribution (0, pDistRange);
     const TreeBranchLength pDistNew = distribution (generator);
     const TreeBranchLength cDistNew = pDistRange - pDistNew;
 
     newTree.node[node].d = pDistNew + Tree::minBranchLength;
-    newTree.node[lChild].d = (lChildDist - minChildDist) + cDistNew;
-    newTree.node[rChild].d = (rChildDist - minChildDist) + cDistNew;
+    newTree.node[leftChild].d = (lChildDist - minChildDist) + cDistNew;
+    newTree.node[rightChild].d = (rChildDist - minChildDist) + cDistNew;
 
     logForwardProposal = logReverseProposal = 0;
+
+    LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << cDistNew << " (previously " << minChildDist << ", maximum " << pDist << ")" << endl);
   }
 
   initNewHistory (newTree, oldHistory.gapped);
@@ -687,6 +718,9 @@ AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
   AlignPath path;
   path[xRow] = AlignRowPath (xPath.rbegin(), xPath.rend());
   path[yRow] = AlignRowPath (yPath.rbegin(), yPath.rend());
+
+  LogThisAt(6,"Sampled parent-child alignment:" << endl << alignPathString(path));
+
   return path;
 }
 
@@ -892,6 +926,9 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
   path[lRow] = AlignRowPath (lPath.rbegin(), lPath.rend());
   path[rRow] = AlignRowPath (rPath.rbegin(), rPath.rend());
   path[pRow] = AlignRowPath (pPath.rbegin(), pPath.rend());
+
+  LogThisAt(6,"Sampled sibling-parent alignment:" << endl << alignPathString(path));
+
   return path;
 }
 
