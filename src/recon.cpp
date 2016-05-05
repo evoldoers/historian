@@ -57,6 +57,11 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-mcmc") {
+      runMCMC = true;
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-ancprob") {
       reportAncestralSequenceProbability = true;
       predictAncestralSequence = true;
@@ -115,7 +120,7 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
 
     }
   }
-  return parsePostArgs (argvec);
+  return false;
 }
 
 void Reconstructor::checkUniqueSeqFile() {
@@ -127,7 +132,7 @@ void Reconstructor::checkUniqueTreeFile() {
   Require (treeFilename.empty() || (seqFilenames.size() + fastaGuideFilenames.size() + (fastaReconFilename.empty() ? 0 : 1) == 1), "If you specify a tree file, there can be one and only one sequence file, otherwise matching up trees to sequence files involves too much guesswork for my liking. To avoid complication, I recommend that if you want to analyze multiple datasets, you please use Nexus or Stockholm format to encode the tree and sequence data directly into the same file.");
 }
 
-bool Reconstructor::parsePostArgs (deque<string>& argvec) {
+bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-auto") {
@@ -241,27 +246,6 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-mcmc") {
-      runMCMC = true;
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-samples") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      mcmcSamplesPerSeq = atoi (argvec[1].c_str());
-      runMCMC = true;
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-trace") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      mcmcTraceFilename = argvec[1].c_str();
-      runMCMC = true;
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-seed") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       rndSeed = atoi (argvec[1].c_str());
@@ -295,6 +279,10 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
     }
   }
 
+  return false;
+}
+
+bool Reconstructor::parseDiagEnvArgs (deque<string>& argvec) {
   return diagEnvParams.parseDiagEnvParams (argvec);
 }
 
@@ -327,10 +315,34 @@ bool Reconstructor::parseFitArgs (deque<string>& argvec) {
     }
   }
 
-  return parseCountArgs (argvec);
+  return false;
 }
 
-bool Reconstructor::parseCountArgs (deque<string>& argvec) {
+bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-samples") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      mcmcSamplesPerSeq = atoi (argvec[1].c_str());
+      runMCMC = true;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-trace") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      mcmcTraceFilename = argvec[1].c_str();
+      runMCMC = true;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool Reconstructor::parsePremadeArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-recon") {
@@ -353,15 +365,23 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+    }
+  }
 
-    } else if (arg == "-nolaplace") {
+  return false;
+}
+
+bool Reconstructor::parseCountArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-nolaplace") {
       useLaplacePseudocounts = false;
       argvec.pop_front();
       return true;
     }
   }
 
-  return parseSumArgs (argvec) || parsePostArgs (argvec);
+  return false;
 }
 
 void Reconstructor::setTreeFilename (const string& fn) {
@@ -772,6 +792,8 @@ void Reconstructor::loadRecon() {
 
     dataset.tree.reorder (dataset.gappedRecon);
     dataset.reconstruction = Alignment (dataset.gappedRecon);
+
+    dataset.gappedGuide = dataset.gappedRecon;
   }
 
   for (const auto& nexusReconFilename : nexusReconFilenames) {
@@ -788,6 +810,8 @@ void Reconstructor::loadRecon() {
 
     dataset.tree.reorder (dataset.gappedRecon);
     dataset.reconstruction = Alignment (dataset.gappedRecon);
+
+    dataset.gappedGuide = dataset.gappedRecon;
   }
 
   for (const auto& stockholmReconFilename : stockholmReconFilenames) {
@@ -807,6 +831,7 @@ void Reconstructor::loadRecon() {
       dataset.tree = stock.getTree();
       dataset.tree.reorder (dataset.gappedRecon);
       dataset.reconstruction = Alignment (dataset.gappedRecon);
+      dataset.gappedGuide = dataset.gappedRecon;
     }
   }
 }

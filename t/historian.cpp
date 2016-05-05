@@ -185,6 +185,9 @@ int main (int argc, char** argv) {
 
       while (logger.parseLogArgs (argvec)
 	     || recon.parseReconArgs (argvec)
+	     || recon.parseProfileArgs (argvec)
+	     || recon.parseDiagEnvArgs (argvec)
+	     || recon.parseSamplerArgs (argvec)
 	     || usage.parseUnknown())
 	{ }
 
@@ -199,6 +202,30 @@ int main (int argc, char** argv) {
 
   if (command == "reconstruct" || command == "recon" || command == "r") {
     reconstruct();
+
+  } else if (command == "mcmc" || command == "m") {
+
+    recon.reconstructRoot = true;
+    recon.runMCMC = true;
+    recon.accumulateSubstCounts = false;
+    recon.accumulateIndelCounts = false;
+
+    usage.implicitSwitches.push_back (string ("-auto"));
+    usage.unlimitImplicitSwitches = true;
+
+    while (logger.parseLogArgs (argvec)
+	   || recon.parsePremadeArgs (argvec)
+	   || recon.parseSamplerArgs (argvec)
+	   || recon.parseProfileArgs (argvec)
+	   || recon.parseDiagEnvArgs (argvec)
+	   || usage.parseUnknown())
+      { }
+
+    recon.loadModel();
+    recon.loadSeqs();
+    recon.loadRecon();
+
+    recon.sampleAll();
     
   } else if (command == "count" || command == "c") {
 
@@ -210,7 +237,11 @@ int main (int argc, char** argv) {
     usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
+	   || recon.parsePremadeArgs (argvec)
 	   || recon.parseCountArgs (argvec)
+	   || recon.parseSumArgs (argvec)
+	   || recon.parseProfileArgs (argvec)
+	   || recon.parseDiagEnvArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
@@ -248,6 +279,11 @@ int main (int argc, char** argv) {
     
     while (logger.parseLogArgs (argvec)
 	   || recon.parseFitArgs (argvec)
+	   || recon.parsePremadeArgs (argvec)
+	   || recon.parseCountArgs (argvec)
+	   || recon.parseSumArgs (argvec)
+	   || recon.parseProfileArgs (argvec)
+	   || recon.parseDiagEnvArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
