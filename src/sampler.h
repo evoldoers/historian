@@ -1,10 +1,12 @@
 #ifndef SAMPLER_INCLUDED
 #define SAMPLER_INCLUDED
 
+#include <iomanip>
 #include "model.h"
 #include "tree.h"
 #include "fastseq.h"
 #include "forward.h"
+#include "logger.h"
 
 struct SimpleTreePrior {
   double populationSize;
@@ -102,6 +104,25 @@ struct Sampler {
 	cellStorage(xSize),
 	lpEnd(-numeric_limits<double>::infinity())
     { }
+
+    // output
+    void writeToLog (int logLevel) const {
+      ostringstream out;
+      out << setw(5) << "x" << setw(5) << "y";
+      for (size_t s = 0; s < CellStates; ++s)
+	out << setw(8) << s;
+      LogStream(logLevel,out.str() << endl);
+      for (SeqIdx xpos = 0; xpos < xSize; ++xpos)
+	for (SeqIdx ypos = 0; ypos < ySize; ++ypos)
+	  if (inEnvelope (xpos, ypos)) {
+	    out.str("");
+	    out.clear();
+	    out << setw(5) << xpos << setw(5) << ypos;
+	    for (size_t s = 0; s < CellStates; ++s)
+	      out << setw(10) << scientific << setprecision(2) << cell(xpos,ypos,s);
+	    LogStream(logLevel,out.str() << endl);
+	  }
+    }
   };
   
   // Sampler::BranchMatrix

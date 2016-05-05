@@ -613,7 +613,14 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
   dd = lpTrans (ProbModel::Delete, ProbModel::Delete);
   de = lpTrans (ProbModel::Delete, ProbModel::End);
 
-  for (SeqIdx xpos = 0; xpos < xSize; ++xpos)
+  ProgressLog (plog, 5);
+  plog.initProgress ("Branch alignment matrix (%u*%u)", xSize, ySize);
+
+  lpStart() = 0;
+  for (SeqIdx xpos = 0; xpos < xSize; ++xpos) {
+
+    plog.logProgress (xpos / (double) (xSize - 1), "row %d/%d", xpos + 1, xSize);
+
     for (SeqIdx ypos = 0; ypos < ySize; ++ypos)
       if (inEnvelope (xpos, ypos)) {
 	XYCell& dest = xyCell (xpos, ypos);
@@ -643,12 +650,18 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
 							      mSrc(ProbModel::Delete) + dm);
 	}
       }
+  }
 
   const XYCell& endCell = xyCell (xSize - 1, ySize - 1);
 
   lpEnd = log_sum_exp (endCell(ProbModel::Match) + me,
 		       endCell(ProbModel::Insert) + ie,
 		       endCell(ProbModel::Delete) + de);
+
+  if (LoggingThisAt(9))
+    writeToLog(9);
+
+  LogThisAt(6,"Forward log-likelihood is " << lpEnd << endl);
 }
 
 AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
@@ -766,8 +779,14 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
   iix_wwx = lNoInsExt();
   iix_iix = lInsExt();
 
+  ProgressLog (plog, 5);
+  plog.initProgress ("Parent proposal matrix (%u*%u)", xSize, ySize);
+
   lpStart() = 0;
-  for (SeqIdx xpos = 0; xpos < xSize; ++xpos)
+  for (SeqIdx xpos = 0; xpos < xSize; ++xpos) {
+
+    plog.logProgress (xpos / (double) (xSize - 1), "row %d/%d", xpos + 1, xSize);
+
     for (SeqIdx ypos = 0; ypos < ySize; ++ypos)
       if (inEnvelope (xpos, ypos)) {
 	XYCell& dest = xyCell (xpos, ypos);
@@ -833,6 +852,7 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
 				 dest(WWX) + wwx_idd,
 				 dest(WXW) + wxw_idd);
       }
+  }
 
   const XYCell& endCell = xyCell (xSize - 1, ySize - 1);
 
@@ -840,6 +860,11 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
 		       endCell(WWW) + www_eee,
 		       endCell(WWX) + wwx_eee,
 		       endCell(WXW) + wxw_eee);
+
+  if (LoggingThisAt(9))
+    writeToLog(9);
+
+  LogThisAt(6,"Forward log-likelihood is " << lpEnd << endl);
 }
 
 AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
