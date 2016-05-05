@@ -199,7 +199,7 @@ int main (int argc, char** argv) {
     usage.unlimitImplicitSwitches = true;
 
     while (logger.parseLogArgs (argvec)
-	   || recon.parseFitArgs (argvec)
+	   || recon.parseCountArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
