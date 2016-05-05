@@ -613,8 +613,8 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
   dd = lpTrans (ProbModel::Delete, ProbModel::Delete);
   de = lpTrans (ProbModel::Delete, ProbModel::End);
 
-  for (SeqIdx xpos = 0; xpos <= xSize; ++xpos)
-    for (SeqIdx ypos = 0; ypos <= xSize; ++ypos)
+  for (SeqIdx xpos = 0; xpos < xSize; ++xpos)
+    for (SeqIdx ypos = 0; ypos < ySize; ++ypos)
       if (inEnvelope (xpos, ypos)) {
 	XYCell& dest = xyCell (xpos, ypos);
 
@@ -767,8 +767,8 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
   iix_iix = lInsExt();
 
   lpStart() = 0;
-  for (SeqIdx xpos = 0; xpos <= xSize; ++xpos)
-    for (SeqIdx ypos = 0; ypos <= xSize; ++ypos)
+  for (SeqIdx xpos = 0; xpos < xSize; ++xpos)
+    for (SeqIdx ypos = 0; ypos < ySize; ++ypos)
       if (inEnvelope (xpos, ypos)) {
 	XYCell& dest = xyCell (xpos, ypos);
 
