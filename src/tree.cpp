@@ -500,10 +500,10 @@ vguard<TreeNodeIndex> Tree::rerootedParent (TreeNodeIndex newRoot) const {
 }
 
 TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const {
-  const auto newParent = rerootedParent (node);
+  const auto newParent = rerootedParent (parent < 0 ? node : parent);
   auto post = rerootedPreorderSort (node, parent);
   reverse (post.begin(), post.end());
-  vguard<TreeNodeIndex> closest (nodes());
+  vguard<TreeNodeIndex> closest (nodes(), -1);
   vguard<double> dist (nodes());
   for (auto n : post) {
     if (isLeaf(n)) {
@@ -512,6 +512,7 @@ TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const
     } else {
       closest[n] = -1;
       for (auto c : rerootedChildren(n,newParent[n])) {
+	//	LogThisAt(9,"node=" << node << " parent=" << parent << " n=" << n << " newParent[n]=" << newParent[n] << " c=" << c << " closest[c]=" << closest[c] << " dist[c]=" << dist[c] << " branch(n,c)=" << branchLength(n,c) << endl);
 	const TreeBranchLength d = dist[c] + branchLength(n,c);
 	if (closest[n] < 0 || d < dist[n]) {
 	  closest[n] = closest[c];

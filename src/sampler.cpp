@@ -27,6 +27,7 @@ LogProb SimpleTreePrior::treeLogLikelihood (const Tree& tree) const {
 }
 
 void Sampler::History::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
+  LogThisAt(6,"Swapping nodes #" << x << " and #" << y << " to maintain preorder sort" << endl);
   tree.swapNodes (x, y);
   iter_swap (gapped.begin() + x, gapped.begin() + y);
 }
@@ -70,6 +71,7 @@ TreeNodeIndex Sampler::randomContemporaneousNode (const Tree& tree, const vguard
 }
 
 vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
+  LogThisAt(9,"Mapping sequence coordinates between node #" << row << " and closest leaf #" << guideRow << endl);
   vguard<SeqIdx> guidePos;
   const auto cols = alignPathColumns (path);
   guidePos.reserve (cols);
@@ -295,7 +297,7 @@ bool Sampler::Move::accept (random_engine& generator) const {
     bernoulli_distribution distribution (exp (logHastingsRatio));
     a = distribution (generator);
   }
-  LogThisAt(4,"Move " << (a ? "accepted" : "rejected") << " with log-Hastings ratio " << logHastingsRatio << endl);
+  LogThisAt(4,"Move " << (a ? "ACCEPTED" : "REJECTED") << " with log-Hastings ratio " << logHastingsRatio << endl);
   return a;
 }
 
@@ -331,9 +333,11 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
   const BranchMatrix branchMatrix (sampler.model, pSeq, nSeq, dist, branchEnv, parentEnvPos, nodeEnvPos, parent, node);
 
   const AlignPath newBranchPath = branchMatrix.sample (generator);
+  LogThisAt(6,"Proposed (parent:node) alignment:" << endl << alignPathString(newBranchPath));
   const LogProb logPostNewBranchPath = branchMatrix.logPostProb (newBranchPath);
 
   const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
+  LogThisAt(6,"Previous (parent:node) alignment:" << endl << alignPathString(oldBranchPath));
   const LogProb logPostOldBranchPath = branchMatrix.logPostProb (oldBranchPath);
 
   const vguard<AlignPath> mergeComponents = { pCladePath, newBranchPath, nCladePath };
@@ -387,9 +391,11 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
 
   const SiblingMatrix sibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, siblingEnv, leftChildEnvPos, rightChildEnvPos, leftChild, rightChild, node);
   const AlignPath newSiblingPath = sibMatrix.sample (generator);
+  LogThisAt(6,"Proposed (node:left:right) alignment:" << endl << alignPathString(newSiblingPath));
   const LogProb logPostNewSiblingPath = sibMatrix.logPostProb (newSiblingPath);
 
   const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, leftChild, rightChild, node);
+  LogThisAt(6,"Previous (node:left:right) alignment:" << endl << alignPathString(oldSiblingPath));
   const LogProb logPostOldSiblingPath = sibMatrix.logPostProb (oldSiblingPath);
 
   logForwardProposal = logPostNewSiblingPath;
@@ -420,18 +426,20 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
     const BranchMatrix newBranchMatrix (sampler.model, pSeq, newNodeSeq, pDist, branchEnv, parentEnvPos, newNodeEnvPos, parent, node);
 
     const AlignPath newBranchPath = newBranchMatrix.sample (generator);
+    LogThisAt(6,"Proposed (parent:node) alignment:" << endl << alignPathString(newBranchPath));
     const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
     const PosWeightMatrix& oldNodeSeq = sibMatrix.parentSeq (oldSiblingPath);
     const BranchMatrix oldBranchMatrix (sampler.model, pSeq, oldNodeSeq, pDist, branchEnv, parentEnvPos, oldNodeEnvPos, parent, node);
     const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
+    LogThisAt(6,"Previous (parent:node) alignment:" << endl << alignPathString(oldBranchPath));
     const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
     logForwardProposal += logPostNewBranchPath;
     logReverseProposal += logPostOldBranchPath;
 
-    LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (node:children) + " << setw(10) << logPostNewBranchPath << " (parent:node) = " << logForwardProposal << endl);
-    LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (node:children) + " << setw(10) << logPostOldBranchPath << " (parent:node) = " << logReverseProposal << endl);
+    LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostNewBranchPath << " (parent:node) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostOldBranchPath << " (parent:node) = " << logReverseProposal << endl);
 
     mergeComponents.push_back (pCladePath);
     mergeComponents.push_back (newBranchPath);
@@ -522,9 +530,11 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
 
   const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
   const AlignPath newSiblingPath = newSibMatrix.sample (generator);
+  LogThisAt(6,"Proposed (parent:node:newSibling) alignment:" << endl << alignPathString(newSiblingPath));
   const LogProb logPostNewSiblingPath = newSibMatrix.logPostProb (newSiblingPath);
 
   const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
+  LogThisAt(6,"Previous (parent:node:oldSibling) alignment:" << endl << alignPathString(oldSiblingPath));
   const LogProb logPostOldSiblingPath = oldSibMatrix.logPostProb (oldSiblingPath);
 
   vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
@@ -540,17 +550,19 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   const BranchMatrix newBranchMatrix (sampler.model, newGranSeq, newParentSeq, newGranParentDist, newBranchEnv, newGranEnvPos, newParentEnvPos, newGrandparent, parent);
 
   const AlignPath newBranchPath = newBranchMatrix.sample (generator);
+  LogThisAt(6,"Proposed (newGrandparent:parent) alignment:" << endl << alignPathString(newBranchPath));
   const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
   const PosWeightMatrix oldParentSeq = oldSibMatrix.parentSeq (oldSiblingPath);
   const BranchMatrix oldBranchMatrix (sampler.model, oldGranSeq, oldParentSeq, oldGranParentDist, oldBranchEnv, oldGranEnvPos, oldParentEnvPos, oldGrandparent, parent);
+  LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
   const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
   logForwardProposal = logPostNewSiblingPath + logPostNewBranchPath;
   logReverseProposal = logPostOldSiblingPath + logPostOldBranchPath;
 
-  LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (parent:node,newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
-  LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (parent:node,oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+  LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+  LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
   mergeComponents.push_back (newGranCladePath);
   mergeComponents.push_back (newBranchPath);
@@ -719,7 +731,7 @@ AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
   path[xRow] = AlignRowPath (xPath.rbegin(), xPath.rend());
   path[yRow] = AlignRowPath (yPath.rbegin(), yPath.rend());
 
-  LogThisAt(6,"Sampled parent-child alignment:" << endl << alignPathString(path));
+  LogThisAt(9,"Sampled parent-child alignment:" << endl << alignPathString(path));
 
   return path;
 }
@@ -912,6 +924,15 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
       rPath.push_back (r);
       pPath.push_back (p);
     }
+    if ((State) coords.state == IDD) {
+      geometric_distribution<int> distribution (iddSelfLoopProb());
+      int iddSelfLoops = distribution (generator);
+      while (iddSelfLoops-- > 0) {
+	lPath.push_back (l);
+	rPath.push_back (r);
+	pPath.push_back (p);
+      }
+    }
     CellCoords src = coords;
     if (l) --src.xpos;
     if (r) --src.ypos;
@@ -927,7 +948,7 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
   path[rRow] = AlignRowPath (rPath.rbegin(), rPath.rend());
   path[pRow] = AlignRowPath (pPath.rbegin(), pPath.rend());
 
-  LogThisAt(6,"Sampled sibling-parent alignment:" << endl << alignPathString(path));
+  LogThisAt(9,"Sampled sibling-parent alignment:" << endl << alignPathString(path));
 
   return path;
 }
@@ -938,7 +959,7 @@ LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const {
   const AlignColIndex cols = alignPathColumns (lrpPath);
   for (AlignColIndex col = 0; col < cols; ++col) {
     const State nextState = getState (state, lrpPath.at(lRow)[col], lrpPath.at(rRow)[col], lrpPath.at(pRow)[col]);
-    lp += lpTrans (state, nextState);
+    lp += lpTransElim (state, nextState);
     state = nextState;
   }
   return lp;
@@ -1009,10 +1030,11 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
 
   case IDD:
     switch (dest) {
-    case IMM: return idd_imm;
-    case IMD: return idd_imd;
-    case IDM: return idd_idm;
-    case EEE: return idd_eee;
+    case IDD: return iddStay();
+    case IMM: return idd_imm - iddExit();
+    case IMD: return idd_imd - iddExit();
+    case IDM: return idd_idm - iddExit();
+    case EEE: return idd_eee - iddExit();
     default: break;
     }
     break;
@@ -1089,6 +1111,13 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
   return -numeric_limits<double>::infinity();
 }
 
+LogProb Sampler::SiblingMatrix::lpTransElim (State src, State dest) const {
+  return log_sum_exp (lpTrans (src, dest),
+		      lpTrans (src, WWW) + lpTrans (WWW, dest),
+		      lpTrans (src, WWX) + lpTrans (WWX, dest),
+		      lpTrans (src, WXW) + lpTrans (WXW, dest));
+}
+
 Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrpPath) const {
   PosWeightMatrix pwm;
   pwm.reserve (alignPathResiduesInRow (lrpPath.at (pRow)));
@@ -1144,7 +1173,14 @@ void Sampler::addLogger (Logger& logger) {
 
 Sampler::History Sampler::run (const History& initialHistory, random_engine& generator, unsigned int nSamples) {
   History history (initialHistory);
+
+  ProgressLog (plog, 2);
+  plog.initProgress ("MCMC sampling run");
+
   for (unsigned int n = 0; n < nSamples; ++n) {
+
+    plog.logProgress (n / (double) (nSamples - 1), "step %u/%u", n + 1, nSamples);
+
     const Move move = proposeMove (history, generator);
     if (move.accept (generator))
       history = move.newHistory;

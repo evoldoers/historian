@@ -220,8 +220,10 @@ struct Sampler {
     static void getColumn (const CellCoords& coords, bool& leftUngapped, bool& rightUngapped, bool& parentUngapped);
     
     LogProb lpTrans (State src, State dest) const;
+    LogProb lpTransElim (State src, State dest) const;
 
     inline double iddSelfLoopProb() const { return Sampler::rootExtProb(model) * lProbModel.delExt * rProbModel.delExt; }
+    inline LogProb iddStay() const { return log (iddSelfLoopProb()); }
     inline LogProb iddExit() const { return log (1 / (1 - iddSelfLoopProb())); }
     
     inline LogProb rootExt() const { return log (Sampler::rootExtProb (model)); }
