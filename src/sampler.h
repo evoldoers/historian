@@ -151,8 +151,9 @@ struct Sampler {
     // Transition log-probabilities.
     // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
     // The outgoing transitions from wxx are folded into outgoing transitions from idd.
+    // The self-transition from idd is also eliminated, and factored into outgoing transitions.
     // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}.
-    // Forward fill order: {all other states}, idd.
+    // Forward fill order: {emit states}, {www,wwx,wxw}, idd.
     // (35 transitions)
     //  To:     imm      imd      idm      idd      w**      imi      iiw      idi      iix      eee
     LogProb                                     imm_www, imm_imi, imm_iiw;
