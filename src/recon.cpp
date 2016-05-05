@@ -42,6 +42,9 @@ Reconstructor::Reconstructor()
     minPostProb (DefaultProfilePostProb),
     maxEMIterations (DefaultMaxEMIterations),
     minEMImprovement (DefaultMinEMImprovement),
+    runMCMC (false),
+    mcmcSamplesPerSeq (DefaultMCMCSamplesPerSeq),
+    mcmcTraceFiles (0),
     outputFormat (StockholmFormat),
     guideFile (NULL)
 { }
@@ -205,23 +208,23 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-samples") {
+    } else if (arg == "-profsamples") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       profileSamples = atoi (argvec[1].c_str());
-      argvec.pop_front();
-      argvec.pop_front();
       usePosteriorsForProfile = false;
+      argvec.pop_front();
+      argvec.pop_front();
       return true;
 
-    } else if (arg == "-minpost") {
+    } else if (arg == "-profminpost") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       minPostProb = atof (argvec[1].c_str());
-      argvec.pop_front();
-      argvec.pop_front();
       usePosteriorsForProfile = true;
+      argvec.pop_front();
+      argvec.pop_front();
       return true;
       
-    } else if (arg == "-states") {
+    } else if (arg == "-profmaxstates") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       profileNodeLimit = atoi (argvec[1].c_str());
       argvec.pop_front();
@@ -235,6 +238,27 @@ bool Reconstructor::parsePostArgs (deque<string>& argvec) {
 
     } else if (arg == "-keepgapsopen") {
       keepGapsOpen = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-mcmc") {
+      runMCMC = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-samples") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      mcmcSamplesPerSeq = atoi (argvec[1].c_str());
+      runMCMC = true;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-trace") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      mcmcTraceFilename = argvec[1].c_str();
+      runMCMC = true;
+      argvec.pop_front();
       argvec.pop_front();
       return true;
 
@@ -435,6 +459,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
       if (stock.rows() == 0)
 	break;
       Dataset& dataset = newDataset();
+      dataset.name = stockholmFilename;
       dataset.initGuide (stock.gapped);
       if (stock.hasTree())
 	dataset.tree = stock.getTree();
@@ -447,6 +472,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
     Dataset& dataset = newDataset();
 
     if (nexusFilename.size()) {
+      dataset.name = nexusFilename;
       LogThisAt(1,"Loading guide alignment and tree from " << nexusFilename << endl);
       ifstream nexIn (nexusFilename);
       NexusData nex (nexIn);
@@ -457,6 +483,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
     
     } else {
       if (seqFilename.size()) {
+	dataset.name = seqFilename;
 	LogThisAt(1,"Loading sequences from " << seqFilename << endl);
 	dataset.seqs = readFastSeqs (seqFilename.c_str());
 	if (maxDistanceFromGuide < 0 && treeFilename.size())
@@ -478,6 +505,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
 
       } else {
 	LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
+	dataset.name = guideFilename;
 	dataset.initGuide (readFastSeqs (guideFilename.c_str()));
       }
 
@@ -500,6 +528,7 @@ void Reconstructor::Dataset::initGuide (const vguard<FastSeq>& gapped) {
 
 Reconstructor::Dataset& Reconstructor::newDataset() {
   datasets.push_back (Dataset());
+  datasets.back().name = string("#") + to_string(datasets.size());
   return datasets.back();
 }
 
@@ -549,7 +578,7 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
   swap (guide, reorderedGuide);
 
   if (recon.guideFile && !gappedGuide.empty())
-    recon.writeTreeAlignment (tree, gappedGuide, *recon.guideFile, false, NULL);
+    recon.writeTreeAlignment (tree, gappedGuide, name, *recon.guideFile, false, NULL);
 }
 
 void Reconstructor::reconstruct (Dataset& dataset) {
@@ -672,7 +701,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
     delete sumProd;
 }
 
-void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction, const ReconPostProbMap* postProb) const {
+void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, const string& name, ostream& out, bool isReconstruction, const ReconPostProbMap* postProb) const {
   Tree t (tree);
   vguard<FastSeq> g (gapped);
   switch (outputFormat) {
@@ -700,6 +729,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 	  for (auto& col_charprob: row_colcharprob.second)
 	    for (auto& char_prob: col_charprob.second)
 	      stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + to_string(col_charprob.first + 1) + " " + char_prob.first + " " + to_string(char_prob.second));
+      stock.gf[StockholmIDTag].push_back (name);
       stock.write (out, 0);
     }
     break;
@@ -710,7 +740,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 }
 
 void Reconstructor::writeRecon (const Dataset& dataset, ostream& out) const {
-  writeTreeAlignment (dataset.tree, predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon, out, true, reportAncestralSequenceProbability ? &dataset.gappedAncestralReconPostProb : NULL);
+  writeTreeAlignment (dataset.tree, predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon, dataset.name, out, true, reportAncestralSequenceProbability ? &dataset.gappedAncestralReconPostProb : NULL);
 }
 
 void Reconstructor::writeRecon (ostream& out) const {
@@ -733,6 +763,8 @@ void Reconstructor::loadRecon() {
     datasets.push_back (Dataset());
     Dataset& dataset = datasets.back();
 
+    dataset.name = fastaReconFilename;
+
     loadTree (dataset);
 
     LogThisAt(1,"Loading reconstruction from " << fastaReconFilename << endl);
@@ -744,6 +776,7 @@ void Reconstructor::loadRecon() {
 
   for (const auto& nexusReconFilename : nexusReconFilenames) {
     Dataset& dataset = newDataset();
+    dataset.name = nexusReconFilename;
 
     LogThisAt(1,"Loading reconstruction and tree from " << nexusReconFilename << endl);
 
@@ -762,12 +795,14 @@ void Reconstructor::loadRecon() {
     LogThisAt(1,"Loading reconstructions and trees from " << stockholmReconFilename << endl);
 
     ifstream stockIn (stockholmReconFilename);
+    size_t nStock = 0;
     while (stockIn && !stockIn.eof()) {
       Stockholm stock (stockIn);
       if (stock.rows() == 0)
 	break;
       Require (stock.hasTree(), "Stockholm alignment lacks tree");
       Dataset& dataset = newDataset();
+      dataset.name = stockholmReconFilename + " alignment #" + to_string(++nStock);
       dataset.gappedRecon = stock.gapped;
       dataset.tree = stock.getTree();
       dataset.tree.reorder (dataset.gappedRecon);
@@ -805,6 +840,38 @@ void Reconstructor::count (Dataset& dataset) {
     dataCounts += dataset.eigenCounts.transform (model);
   else if (accumulateIndelCounts)
     dataCounts.indelCounts += dataset.eigenCounts.indelCounts;
+}
+
+Reconstructor::HistoryLogger::HistoryLogger (Reconstructor& recon, const string& name)
+  : recon (&recon),
+    out (NULL),
+    name (name)
+{
+  if (recon.mcmcTraceFilename.size())
+    out = new ofstream (recon.mcmcTraceFilename + "." + to_string(++recon.mcmcTraceFiles));
+}
+
+Reconstructor::HistoryLogger::~HistoryLogger() {
+  if (out)
+    delete out;
+}
+
+void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) {
+  recon->writeTreeAlignment (history.tree, history.gapped, name, out ? *out : cout, true);
+}
+
+void Reconstructor::sampleAll() {
+  if (runMCMC)
+    for (auto& dataset: datasets) {
+      SimpleTreePrior treePrior;
+      Sampler sampler (model, treePrior, dataset.gappedGuide);
+      HistoryLogger logger (*this, dataset.name);
+      sampler.addLogger (logger);
+      Sampler::History history;
+      history.tree = dataset.tree;
+      history.gapped = dataset.gappedRecon;
+      sampler.run (history, generator, mcmcSamplesPerSeq * dataset.tree.nodes());
+    }
 }
 
 void Reconstructor::reconstructAll() {

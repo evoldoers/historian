@@ -3,6 +3,7 @@
 
 #include <numeric>
 #include <vector>
+#include <map>
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -168,7 +169,7 @@ const T& random_key (const std::map<T,double>& weight, Generator& generator) {
 /* random_key_log */
 template<class T,class Generator>
 const T& random_key_log (const std::map<T,double>& logWeight, Generator& generator) {
-  double norm = 0, logmax = -numeric_limits<double>::infinity();
+  double norm = 0, logmax = -std::numeric_limits<double>::infinity();
   for (const auto& kv : logWeight)
     logmax = max (logmax, kv.second);
   for (const auto& kv : logWeight)

@@ -7,12 +7,15 @@
 #include "model.h"
 #include "forward.h"
 #include "diagenv.h"
+#include "sampler.h"
 
 #define DefaultProfileSamples 100
 #define DefaultProfilePostProb .01
 #define DefaultMaxDistanceFromGuide 10
 #define DefaultMaxEMIterations 100
 #define DefaultMinEMImprovement .001
+
+#define DefaultMCMCSamplesPerSeq 100
 
 #define AncestralSequencePostProbTag "PP"
 
@@ -23,14 +26,15 @@ public:
   string fastaReconFilename, treeFilename, modelFilename;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
   string treeRoot;
-  string modelSaveFilename, guideSaveFilename, dotSaveFilename;
-  size_t profileSamples, profileNodeLimit, maxEMIterations;
+  string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
+  size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen;
+  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
   ofstream* guideFile;
+  size_t mcmcTraceFiles;
   
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
@@ -40,6 +44,8 @@ public:
   RateModel model;
 
   struct Dataset {
+    string name;
+
     Tree tree;
     vguard<FastSeq> seqs, gappedGuide, gappedRecon, gappedAncestralRecon;
     ReconPostProbMap gappedAncestralReconPostProb;
@@ -84,12 +90,22 @@ public:
 
   void reconstructAll();
   void countAll();
+  void sampleAll();
 
   void reconstruct (Dataset& dataset);
   void count (Dataset& dataset);
   void fit();
 
-  void writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, bool isReconstruction = false, const ReconPostProbMap* postProb = NULL) const;
+  struct HistoryLogger : Sampler::Logger {
+    Reconstructor* recon;
+    ofstream* out;
+    const string& name;
+    HistoryLogger (Reconstructor& recon, const string& name);
+    ~HistoryLogger();
+    void logHistory (const Sampler::History& history);
+  };
+
+  void writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, const string& name, ostream& out, bool isReconstruction = false, const ReconPostProbMap* postProb = NULL) const;
   void writeRecon (const Dataset& dataset, ostream& out) const;
   void writeRecon (ostream& out) const;
   void writeCounts (ostream& out) const;

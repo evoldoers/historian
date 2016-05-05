@@ -7,6 +7,7 @@
 #include "alignpath.h"
 
 #define StockholmNewHampshireTag "NH"
+#define StockholmIDTag "ID"
 
 #define MinStockholmCharsPerRow 10
 #define DefaultStockholmRowLength 80

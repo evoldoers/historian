@@ -1087,7 +1087,7 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     if (move.accept (generator))
       history = move.newHistory;
     for (auto& logger : loggers)
-      logger->log (history);
+      logger->logHistory (history);
   }
   return history;
 }

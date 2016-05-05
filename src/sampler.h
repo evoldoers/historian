@@ -48,15 +48,16 @@ struct Sampler {
     };
 
   private:
-    vguard<map<SeqIdx,XYCell> > cellStorage;  // partial Forward sums by cell
-    XYCell emptyCell;  // always -inf
-
     const GuideAlignmentEnvelope& env;
     const vguard<SeqIdx>& xEnvPos;
     const vguard<SeqIdx>& yEnvPos;
 
   protected:
     const SeqIdx xSize, ySize;
+
+  private:
+    vguard<map<SeqIdx,XYCell> > cellStorage;  // partial Forward sums by cell
+    XYCell emptyCell;  // always -inf
     
   public:
     LogProb lpEnd;
@@ -97,6 +98,7 @@ struct Sampler {
 	yEnvPos(yEnvPos),
 	xSize(xEnvPos.size()),
 	ySize(yEnvPos.size()),
+	cellStorage(xSize),
 	lpEnd(-numeric_limits<double>::infinity())
     { }
   };
@@ -238,7 +240,7 @@ struct Sampler {
 
   // Sampler::Logger
   struct Logger {
-    virtual void log (const History& history) = 0;
+    virtual void logHistory (const History& history) = 0;
   };
   
   // Sampler::Move
@@ -281,10 +283,10 @@ struct Sampler {
   vguard<double> moveRate;
   const Alignment guide;
   int maxDistanceFromGuide;
-  
+
   // Sampler constructor
   Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide);
-  
+
   // Sampler methods
   void addLogger (Logger& logger);
   LogProb logLikelihood (const History& history) const;
