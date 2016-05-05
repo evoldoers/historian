@@ -20,16 +20,22 @@ struct Sampler {
   // Sampler::SparseDPMatrix
   template <size_t CellStates>
   class SparseDPMatrix {
-  private:
+  protected:
     struct XYCell {
       LogProb lp[CellStates];
       XYCell() {
 	for (size_t s = 0; s < CellStates; ++s)
 	  lp[s] = -numeric_limits<double>::infinity();
       }
-      LogProb& operator() (unsigned int s) { return lp[s]; }
-      LogProb operator() (unsigned int s) const { return lp[s]; }
+
+      template<class State>
+      LogProb& operator() (State s) { return lp[(unsigned int) s]; }
+
+      template<class State>
+      LogProb operator() (State s) const { return lp[(unsigned int) s]; }
     };
+
+  private:
     vguard<map<SeqIdx,XYCell> > cellStorage;  // partial Forward sums by cell
     XYCell emptyCell;  // always -inf
 
@@ -37,6 +43,9 @@ struct Sampler {
     const vguard<SeqIdx>& xEnvPos;
     const vguard<SeqIdx>& yEnvPos;
 
+  protected:
+    const SeqIdx xSize, ySize;
+    
   public:
     LogProb lpEnd;
 
@@ -48,13 +57,18 @@ struct Sampler {
       return iter == column.end() ? emptyCell : iter->second;
     }
 
-    inline LogProb& cell (SeqIdx xpos, SeqIdx ypos, unsigned int state)
-    { return cellStorage[xpos][ypos].lp[state]; }
-    inline LogProb cell (SeqIdx xpos, SeqIdx ypos, unsigned int state) const
+    template<class State>
+    inline LogProb& cell (SeqIdx xpos, SeqIdx ypos, State state)
+    { return cellStorage[xpos][ypos].lp[(unsigned int) state]; }
+
+    template<class State>
+    inline LogProb cell (SeqIdx xpos, SeqIdx ypos, State state) const
     {
       const auto& column = cellStorage[xpos];
       auto iter = column.find(ypos);
-      return iter == column.end() ? -numeric_limits<double>::infinity() : iter->second.lp[state];
+      return iter == column.end()
+	? -numeric_limits<double>::infinity()
+	: iter->second.lp[(unsigned int) state];
     }
 
     inline LogProb& lpStart() { return cell(0,0,0); }
@@ -66,7 +80,12 @@ struct Sampler {
     
     // constructor
     SparseDPMatrix (const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos)
-      : env(env), xEnvPos(xEnvPos), yEnvPos(yEnvPos), lpEnd(-numeric_limits<double>::infinity())
+      : env(env),
+	xEnvPos(xEnvPos),
+	yEnvPos(yEnvPos),
+	xSize(xEnvPos.size()),
+	ySize(yEnvPos.size()),
+	lpEnd(-numeric_limits<double>::infinity())
     { }
   };
   
@@ -116,7 +135,7 @@ struct Sampler {
     // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
     // The outgoing transitions from wxx are folded into outgoing transitions from idd.
     // States {sss,ssi,siw} have same outgoing transition weights as states {imm,imi,iiw}.
-    // Forward fill order: {emit states}, {www,wwx,wxw}, idd.
+    // Forward fill order: {all other states}, idd.
     // (35 transitions)
     //  To:     imm      imd      idm      idd      w**      imi      iiw      idi      iix      eee
     LogProb                                     imm_www, imm_imi, imm_iiw;

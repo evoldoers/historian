@@ -613,7 +613,42 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
   dd = log (probModel.transProb (ProbModel::Delete, ProbModel::Delete));
   de = log (probModel.transProb (ProbModel::Delete, ProbModel::End));
 
-  // WRITE ME
+  for (SeqIdx xpos = 0; xpos <= xSize; ++xpos)
+    for (SeqIdx ypos = 0; ypos <= xSize; ++ypos)
+      if (inEnvelope (xpos, ypos)) {
+	XYCell& dest = xyCell (xpos, ypos);
+
+	if (xpos > 0 && inEnvelope (xpos - 1, ypos)) {
+	  const XYCell& dSrc = xyCell (xpos - 1, ypos);
+
+	  dest(ProbModel::Delete) = log_sum_exp (dSrc(ProbModel::Match) + md,
+						 dSrc(ProbModel::Insert) + id,
+						 dSrc(ProbModel::Delete) + dd);
+	}
+
+      	if (ypos > 0 && inEnvelope (xpos, ypos - 1)) {
+	  const XYCell& iSrc = xyCell (xpos, ypos - 1);
+	  const LogProb yEmitScore = yEmit[ypos - 1];
+
+	  dest(ProbModel::Insert) = yEmitScore + log_sum_exp (iSrc(ProbModel::Match) + mi,
+							      iSrc(ProbModel::Insert) + ii);
+	}
+
+	if (xpos > 0 && ypos > 0 && inEnvelope (xpos - 1, ypos - 1)) {
+	  const XYCell& mSrc = xyCell (xpos - 1, ypos - 1);
+	  const LogProb xyEmitScore = logMatch (xpos, ypos);
+	  
+	  dest(ProbModel::Match) = xyEmitScore + log_sum_exp (mSrc(ProbModel::Match) + mm,
+							      mSrc(ProbModel::Insert) + im,
+							      mSrc(ProbModel::Delete) + dm);
+	}
+      }
+
+  const XYCell& endCell = xyCell (xSize - 1, ySize - 1);
+
+  lpEnd = log_sum_exp (endCell(ProbModel::Match) + me,
+		       endCell(ProbModel::Insert) + ie,
+		       endCell(ProbModel::Delete) + de);
 }
 
 AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const
@@ -689,7 +724,80 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
   iix_wwx = lNoInsExt();
   iix_iix = lInsExt();
 
-  // WRITE ME
+  lpStart() = 0;
+  for (SeqIdx xpos = 0; xpos <= xSize; ++xpos)
+    for (SeqIdx ypos = 0; ypos <= xSize; ++ypos)
+      if (inEnvelope (xpos, ypos)) {
+	XYCell& dest = xyCell (xpos, ypos);
+
+	if (xpos > 0 && inEnvelope (xpos - 1, ypos)) {
+	  const XYCell& lSrc = xyCell (xpos - 1, ypos);
+	  const LogProb lEmitScore = lEmit[xpos - 1];
+
+	  dest(IIW) = lEmitScore + log_sum_exp (lSrc(IMM) + imm_iiw,
+						lSrc(IMI) + imi_iiw,
+						lSrc(IIW) + iiw_iiw);
+
+	  dest(IIX) = lEmitScore + log_sum_exp (lSrc(IMD) + imd_iix,
+						lSrc(IIX) + iix_iix);
+
+	  dest(IMD) = lEmitScore + log_sum_exp (lSrc(WWW) + www_imd,
+						lSrc(WWX) + wwx_imd,
+						lSrc(WXW) + wxw_imd,
+						lSrc(IDD) + idd_imd);
+
+	  dest(WWW) = dest(IIW) + imm_www;
+
+	  dest(WWX) = log_sum_exp (dest(IIX) + iix_wwx,
+				   dest(IMD) + imd_wwx);
+	}
+
+      	if (ypos > 0 && inEnvelope (xpos, ypos - 1)) {
+	  const XYCell& rSrc = xyCell (xpos, ypos - 1);
+	  const LogProb rEmitScore = rEmit[ypos - 1];
+
+	  dest(IMI) = rEmitScore + log_sum_exp (rSrc(IMM) + imm_imi,
+						rSrc(IMI) + imi_imi);
+
+	  dest(IDI) = rEmitScore + log_sum_exp (rSrc(IDM) + idm_idi,
+						rSrc(IDI) + idi_idi);
+
+	  dest(IDM) = rEmitScore + log_sum_exp (rSrc(WWW) + www_idm,
+						rSrc(WWX) + wwx_idm,
+						rSrc(WXW) + wxw_idm,
+						rSrc(IDD) + idd_idm);
+
+	  dest(WWW) = log_sum_exp (dest(WWW),
+				   dest(IMI) + imi_www);
+
+	  dest(WXW) = log_sum_exp (dest(IDI) + idi_wxw,
+				   dest(IDM) + idm_wxw);
+	}
+
+	if (xpos > 0 && ypos > 0 && inEnvelope (xpos - 1, ypos - 1)) {
+	  const XYCell& lrSrc = xyCell (xpos - 1, ypos - 1);
+	  const LogProb lrEmitScore = logMatch (xpos, ypos);
+	  
+	  dest(IMM) = lrEmitScore + log_sum_exp (lrSrc(WWW) + www_imm,
+						 lrSrc(WWX) + wwx_imm,
+						 lrSrc(WXW) + wxw_imm,
+						 lrSrc(IDD) + idd_imm);
+
+	  dest(WWW) = log_sum_exp (dest(WWW),
+				   dest(IMM) + imm_www);
+	}
+
+	dest(IDD) = log_sum_exp (dest(WWW) + www_idd,
+				 dest(WWX) + wwx_idd,
+				 dest(WXW) + wxw_idd);
+      }
+
+  const XYCell& endCell = xyCell (xSize - 1, ySize - 1);
+
+  lpEnd = log_sum_exp (endCell(IDD) + idd_eee,
+		       endCell(WWW) + www_eee,
+		       endCell(WWX) + wwx_eee,
+		       endCell(WXW) + wxw_eee);
 }
 
 AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const
