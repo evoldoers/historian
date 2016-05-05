@@ -174,12 +174,13 @@ const T& random_key_log (const std::map<T,double>& logWeight, Generator& generat
   for (const auto& kv : logWeight)
     norm += exp (kv.second - logmax);
   Assert (norm > 0, "Zero weights in random_key_log");
-  T variate = random_double(generator) * norm;
+  double variate = random_double(generator) * norm;
   for (const auto& kv : logWeight)
     if ((variate -= exp (kv.second - logmax)) <= 0)
       return kv.first;
   Abort ("random_key_log failed");
-  return *(logWeight.begin()).first;
+  const auto& iter = logWeight.begin();
+  return (*iter).first;
 }
 
 /* index sort

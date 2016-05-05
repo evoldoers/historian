@@ -599,19 +599,19 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
     ySub (Sampler::preMultiply (ySeq, logProbModel.logSubProb)),
     yEmit (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb))
 {
-  mm = log (probModel.transProb (ProbModel::Match, ProbModel::Match));
-  mi = log (probModel.transProb (ProbModel::Match, ProbModel::Insert));
-  md = log (probModel.transProb (ProbModel::Match, ProbModel::Delete));
-  me = log (probModel.transProb (ProbModel::Match, ProbModel::End));
+  mm = lpTrans (ProbModel::Match, ProbModel::Match);
+  mi = lpTrans (ProbModel::Match, ProbModel::Insert);
+  md = lpTrans (ProbModel::Match, ProbModel::Delete);
+  me = lpTrans (ProbModel::Match, ProbModel::End);
 
-  im = log (probModel.transProb (ProbModel::Insert, ProbModel::Match));
-  ii = log (probModel.transProb (ProbModel::Insert, ProbModel::Insert));
-  id = log (probModel.transProb (ProbModel::Insert, ProbModel::Delete));
-  ie = log (probModel.transProb (ProbModel::Insert, ProbModel::End));
+  im = lpTrans (ProbModel::Insert, ProbModel::Match);
+  ii = lpTrans (ProbModel::Insert, ProbModel::Insert);
+  id = lpTrans (ProbModel::Insert, ProbModel::Delete);
+  ie = lpTrans (ProbModel::Insert, ProbModel::End);
 
-  dm = log (probModel.transProb (ProbModel::Delete, ProbModel::Match));
-  dd = log (probModel.transProb (ProbModel::Delete, ProbModel::Delete));
-  de = log (probModel.transProb (ProbModel::Delete, ProbModel::End));
+  dm = lpTrans (ProbModel::Delete, ProbModel::Match);
+  dd = lpTrans (ProbModel::Delete, ProbModel::Delete);
+  de = lpTrans (ProbModel::Delete, ProbModel::End);
 
   for (SeqIdx xpos = 0; xpos <= xSize; ++xpos)
     for (SeqIdx ypos = 0; ypos <= xSize; ++ypos)
@@ -652,15 +652,40 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
 }
 
 AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
-  // WRITE ME
-  return AlignPath();
+  CellCoords coords (xSize - 1, ySize - 1, ProbModel::End);
+  AlignRowPath xPath, yPath;
+  while (coords.xpos > 0 || coords.ypos > 0) {
+    bool x, y;
+    getColumn (coords, x, y);
+    if (x || y) {
+      xPath.push_back (x);
+      yPath.push_back (y);
+    }
+    CellCoords src = coords;
+    if (x) --src.xpos;
+    if (y) --src.ypos;
+    const XYCell& srcCell = xyCell (src.xpos, src.ypos);
+    const LogProb e = lpEmit (coords);
+    map<CellCoords,LogProb> srcLogProb;
+    for (src.state = 0; src.state < (unsigned int) ProbModel::End; ++src.state)
+      srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state) + e;
+    coords = random_key_log (srcLogProb, generator);
+  }
+  AlignPath path;
+  path[xRow] = AlignRowPath (xPath.rbegin(), xPath.rend());
+  path[yRow] = AlignRowPath (yPath.rbegin(), yPath.rend());
+  return path;
 }
 
 LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const {
   return logBranchPathLikelihood (probModel, path, xRow, yRow) - lpEnd;
 }
 
-LogProb Sampler::BranchMatrix::logEmit (const CellCoords& coords) const {
+LogProb Sampler::BranchMatrix::lpTrans (State src, State dest) const {
+  return log (probModel.transProb (src, dest));
+}
+
+LogProb Sampler::BranchMatrix::lpEmit (const CellCoords& coords) const {
   switch ((State) coords.state) {
   case ProbModel::Match: return coords.xpos > 0 && coords.ypos > 0 ? logMatch (coords.xpos, coords.ypos) : -numeric_limits<double>::infinity();
   case ProbModel::Insert: return coords.ypos > 0 ? yEmit[coords.ypos - 1] : -numeric_limits<double>::infinity();
@@ -669,10 +694,10 @@ LogProb Sampler::BranchMatrix::logEmit (const CellCoords& coords) const {
   return 0;
 }
 
-void Sampler::BranchMatrix::getColumn (State s, bool& x, bool& y) {
+void Sampler::BranchMatrix::getColumn (const CellCoords& coords, bool& x, bool& y) {
   x = y = false;
-  switch (s) {
-  case ProbModel::Match: x = y = true; break;
+  switch ((State) coords.state) {
+  case ProbModel::Match: if (coords.xpos > 0 && coords.ypos > 0) x = y = true; break;
   case ProbModel::Insert: y = true; break;
   case ProbModel::Delete: x = true; break;
   default: break;
@@ -818,8 +843,31 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
 }
 
 AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
-  // WRITE ME
-  return AlignPath();
+  CellCoords coords (xSize - 1, ySize - 1, EEE);
+  AlignRowPath lPath, rPath, pPath;
+  while (coords.xpos > 0 || coords.ypos > 0) {
+    bool l, r, p;
+    getColumn (coords, l, r, p);
+    if (l || r || p) {
+      lPath.push_back (l);
+      rPath.push_back (r);
+      pPath.push_back (p);
+    }
+    CellCoords src = coords;
+    if (l) --src.xpos;
+    if (r) --src.ypos;
+    const XYCell& srcCell = xyCell (src.xpos, src.ypos);
+    const LogProb e = lpEmit (coords);
+    map<CellCoords,LogProb> srcLogProb;
+    for (src.state = 0; src.state < (unsigned int) EEE; ++src.state)
+      srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state) + e;
+    coords = random_key_log (srcLogProb, generator);
+  }
+  AlignPath path;
+  path[lRow] = AlignRowPath (lPath.rbegin(), lPath.rend());
+  path[rRow] = AlignRowPath (rPath.rbegin(), rPath.rend());
+  path[pRow] = AlignRowPath (pPath.rbegin(), pPath.rend());
+  return path;
 }
 
 LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const {
@@ -834,7 +882,7 @@ LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const {
   return lp;
 }
 
-LogProb Sampler::SiblingMatrix::logEmit (const CellCoords& coords) const {
+LogProb Sampler::SiblingMatrix::lpEmit (const CellCoords& coords) const {
   switch ((State) coords.state) {
   case IMM: return coords.xpos > 0 && coords.ypos > 0 ? logMatch (coords.xpos, coords.ypos) : -numeric_limits<double>::infinity();
   case IDM: case IMI: case IDI: return coords.ypos > 0 ? rEmit[coords.ypos - 1] : -numeric_limits<double>::infinity();
@@ -858,14 +906,14 @@ Sampler::SiblingMatrix::State Sampler::SiblingMatrix::getState (State src, bool 
   return WWW;
 }
 
-void Sampler::SiblingMatrix::getColumn (State s, bool& l, bool& r, bool& p) {
+void Sampler::SiblingMatrix::getColumn (const CellCoords& coords, bool& l, bool& r, bool& p) {
   p = l = r = false;
-  switch (s) {
-  case IMM: p = l = r = true; break;
+  switch ((State) coords.state) {
+  case IMM: if (coords.xpos > 0 && coords.ypos > 0) p = l = r = true; break;
   case IMD: p = l = true; break;
   case IDM: p = r = true; break;
-  case IIW: case IIX: l = true; break;
-  case IMI: case IDI: r = true; break;
+  case IIW: case IIX: if (coords.xpos > 0) l = true; break;
+  case IMI: case IDI: if (coords.ypos > 0) r = true; break;
   default: break;
   }
 }

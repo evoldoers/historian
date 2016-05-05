@@ -123,13 +123,14 @@ struct Sampler {
     LogProb logPostProb (const AlignPath& path) const;
 
     // helper methods
-    static void getColumn (State s, bool& xUngapped, bool& yUngapped);
+    static void getColumn (const CellCoords& coords, bool& xUngapped, bool& yUngapped);
     
     inline LogProb logMatch (SeqIdx xpos, SeqIdx ypos) const {
       return logInnerProduct (xSeq[xpos-1], ySub[ypos-1]);
     }
 
-    LogProb logEmit (const CellCoords& coords) const;
+    LogProb lpTrans (State src, State dest) const;
+    LogProb lpEmit (const CellCoords& coords) const;
   };
 
   // Sampler::SiblingMatrix
@@ -190,7 +191,7 @@ struct Sampler {
 
     // helper methods
     static State getState (State src, bool leftUngapped, bool rightUngapped, bool parentUngapped);
-    static void getColumn (State s, bool& leftUngapped, bool& rightUngapped, bool& parentUngapped);
+    static void getColumn (const CellCoords& coords, bool& leftUngapped, bool& rightUngapped, bool& parentUngapped);
     
     LogProb lpTrans (State src, State dest) const;
 
@@ -224,7 +225,7 @@ struct Sampler {
       return logInnerProduct (logRoot, lSub[xpos-1], rSub[ypos-1]);
     }
 
-    LogProb logEmit (const CellCoords& coords) const;
+    LogProb lpEmit (const CellCoords& coords) const;
   };
 
   // Sampler::History
