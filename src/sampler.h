@@ -283,12 +283,13 @@ struct Sampler {
   
   // Sampler::Move
   struct Move {
-    enum Type { BranchAlign = 0, NodeAlign, PruneAndRegraft, NodeHeight, TotalMoveTypes };
+    enum Type { BranchAlign = 0, NodeAlign, PruneAndRegraft, NodeHeight, Rescale, TotalMoveTypes };
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
     LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
-
+    bool nullified;
+    
     Move() { }
     Move (Type type, const History& history);
     
@@ -297,6 +298,8 @@ struct Sampler {
     void initRatio (const Sampler& sampler);
     void nullify();
     bool accept (random_engine& generator) const;
+
+    static const char* typeName (Type t);
   };
 
   struct BranchAlignMove : Move {
@@ -315,11 +318,16 @@ struct Sampler {
     NodeHeightMove (const History&, const Sampler&, random_engine&);
   };
 
+  struct RescaleMove : Move {
+    RescaleMove (const History&, const Sampler&, random_engine&);
+  };
+
   // Sampler member variables
   const RateModel& model;
   const SimpleTreePrior& treePrior;
   list<Logger*> loggers;
-  vguard<double> moveRate;
+  vguard<double> moveRate, moveNanosecs;
+  vguard<int> movesProposed, movesAccepted;
   const Alignment guide;
   map<string,AlignRowIndex> guideRowByName;
   int maxDistanceFromGuide;
@@ -333,6 +341,8 @@ struct Sampler {
   Move proposeMove (const History& oldHistory, random_engine& generator) const;
   History run (const History& initialHistory, random_engine& generator, unsigned int nSamples = 1);
 
+  string moveStats() const;
+  
   // Sampler helpers
   static double rootExtProb (const RateModel& model) { return model.insExtProb; }
   
@@ -347,11 +357,13 @@ struct Sampler {
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
   map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const History& history, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const;
 
-  static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent);
+  static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude = -1);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
   static AlignPath triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent);
   static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
 
+  static bool subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex>& nodes);
+  
   static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
 
   static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);

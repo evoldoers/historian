@@ -2,6 +2,7 @@
 #define TREE_INCLUDED
 
 #include <string>
+#include <set>
 #include "vguard.h"
 #include "fastseq.h"
 
@@ -41,7 +42,10 @@ struct Tree {
   TreeNodeIndex getChild (TreeNodeIndex node, size_t childNum) const;
   TreeNodeIndex getSibling (TreeNodeIndex node) const;
 
-  vguard<TreeNodeIndex> nodeAndDescendants (TreeNodeIndex node) const;
+  set<TreeNodeIndex> nodeAndAncestors (TreeNodeIndex node) const;
+  set<TreeNodeIndex> nodeAndDescendants (TreeNodeIndex node) const;
+  TreeNodeIndex mostRecentCommonAncestor (TreeNodeIndex node1, TreeNodeIndex node2) const;
+  
   TreeNodeIndex findNode (const string& name) const;
 
   bool isBinary() const;
@@ -49,7 +53,6 @@ struct Tree {
 
   bool isUltrametric (double epsilon = 1e-4) const;
   void assertUltrametric (double epsilon = 1e-4) const;
-  string pathsToRoot() const;
 
   bool isPostorderSorted() const;
   void assertPostorderSorted() const;
@@ -65,7 +68,6 @@ struct Tree {
   void setParent (TreeNodeIndex node, TreeNodeIndex parent, TreeBranchLength branchLength);  // WARNING! does not check for cycles, may leave tree in a non-preorder-sorted state
 
   vguard<TreeBranchLength> distanceFromRoot() const;
-  vguard<vguard<TreeNodeIndex> > pathToRoot() const;
   
   // I/O
   void parse (const string& nhx);

@@ -109,10 +109,17 @@ vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, A
   return guidePos;
 }
 
-AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent) {
+AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude) {
   AlignPath p;
-  for (auto n : tree.rerootedPreorderSort(cladeRoot,cladeRootParent))
-    p[n] = path.at(n);
+  const vguard<TreeNodeIndex> rerootedParent = tree.rerootedParent (cladeRootParent);
+  vguard<bool> childrenIncluded (tree.nodes(), false);
+  childrenIncluded[cladeRootParent] = true;
+  for (auto n : tree.rerootedPreorderSort(cladeRoot,cladeRootParent)) {
+    if (n != exclude && childrenIncluded[rerootedParent[n]]) {
+      p[n] = path.at(n);
+      childrenIncluded[n] = true;
+    }
+  }
   return alignPathRemoveEmptyColumns (p);
 }
 
@@ -216,6 +223,19 @@ AlignPath Sampler::branchPath (const AlignPath& path, const Tree& tree, TreeNode
   return pairPath (path, parent, node);
 }
 
+bool Sampler::subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex>& rows) {
+  const AlignColIndex cols = alignPathColumns (path);
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    size_t n = 0;
+    for (auto row : rows)
+      if (path.at(row)[col])
+	++n;
+    if (n != 0 && n != rows.size())
+      return false;
+  }
+  return true;
+}
+
 map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const History& history, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
   AlignColSumProduct colSumProd (model, history.tree, history.gapped);
@@ -294,6 +314,7 @@ vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogPr
 
 Sampler::Move::Move (Type type, const History& history)
   : type (type),
+    nullified (false),
     oldHistory (history)
 { }
 
@@ -318,19 +339,39 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
 
 void Sampler::Move::nullify() {
   newHistory = oldHistory;
-  newLogLikelihood = oldLogLikelihood = logForwardProposal = logReverseProposal = 0;
-  logHastingsRatio = -numeric_limits<double>::infinity();
+  logHastingsRatio = newLogLikelihood = oldLogLikelihood = logForwardProposal = logReverseProposal = 0;
+  nullified = true;
+}
+
+const char* Sampler::Move::typeName (Type t) {
+  switch (t) {
+  case BranchAlign:
+    return "Branch alignment";
+  case NodeAlign:
+    return "Node alignment";
+  case PruneAndRegraft:
+    return "Prune-and-regraft";
+  case NodeHeight:
+    return "Node height";
+  case Rescale:
+    return "Rescale";
+  default:
+    break;
+  }
+  return "Unknown";
 }
 
 bool Sampler::Move::accept (random_engine& generator) const {
   bool a;
-  if (logHastingsRatio > 0)
+  if (nullified)
+    a = false;
+  else if (logHastingsRatio >= 0)
     a = true;
   else {
     bernoulli_distribution distribution (exp (logHastingsRatio));
     a = distribution (generator);
   }
-  LogThisAt(3,"Move " << (a ? "ACCEPTED" : "REJECTED") << " with log-Hastings ratio " << logHastingsRatio << endl);
+  LogThisAt(3,typeName(type) << " move " << (a ? "ACCEPTED" : "REJECTED") << " with log-Hastings ratio " << logHastingsRatio << (nullified ? " (null move)" : "") << endl);
   return a;
 }
 
@@ -365,13 +406,20 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
 
   const BranchMatrix branchMatrix (sampler.model, pSeq, nSeq, dist, branchEnv, parentEnvPos, nodeEnvPos, parent, node);
 
+  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
   const AlignPath newBranchPath = branchMatrix.sample (generator);
+
   LogThisAt(6,"Proposed (parent:node) alignment:" << endl << alignPathString(newBranchPath));
   const LogProb logPostNewBranchPath = branchMatrix.logPostProb (newBranchPath);
 
-  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
   LogThisAt(6,"Previous (parent:node) alignment:" << endl << alignPathString(oldBranchPath));
   const LogProb logPostOldBranchPath = branchMatrix.logPostProb (oldBranchPath);
+
+  if (oldBranchPath == newBranchPath) {
+    LogThisAt(6,"Alignments are identical; abandoning move" << endl);
+    nullify();
+    return;
+  }
 
   const vguard<AlignPath> mergeComponents = { pCladePath, newBranchPath, nCladePath };
   const AlignPath newPath = alignPathMerge (mergeComponents);
@@ -479,6 +527,12 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
     newPath = alignPathMerge (mergeComponents);
   }
 
+  if (newPath == oldAlign.path) {
+    LogThisAt(6,"Alignments are identical; abandoning move" << endl);
+    nullify();
+    return;
+  }
+  
   initNewHistory (oldHistory.tree, newUngapped, newPath);
   initRatio (sampler);
 }
@@ -507,10 +561,11 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   Assert (newGrandparent >= 0, "Grandparent node not found");
 
   oldSibling = history.tree.getSibling (node);
-
+  
   LogThisAt(4,"Proposing prune-and-regraft move at...\n            node #" << node << ": " << history.tree.seqName(node) << "\n          parent #" << parent << ": " << history.tree.seqName(parent) << "\n     old sibling #" << oldSibling << ": " << history.tree.seqName(oldSibling) << "\n old grandparent #" << oldGrandparent << ": " << history.tree.seqName(oldGrandparent) << "\n     new sibling #" << newSibling << ": " << history.tree.seqName(newSibling) << "\n new grandparent #" << newGrandparent << ": " << history.tree.seqName(newGrandparent) << endl);
 
   const Tree& oldTree = history.tree;
+  const Alignment oldAlign (history.gapped);
   
   const TreeBranchLength oldGranParentDist = oldTree.branchLength(oldGrandparent,parent);
   const TreeBranchLength parentNodeDist = oldTree.branchLength(parent,node);
@@ -524,95 +579,106 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   newTree.setParent (newSibling, parent, parentNewSibDist);
   newTree.setParent (parent, newGrandparent, newGranParentDist);
 
-  const TreeNodeIndex nodeClosestLeaf = oldTree.closestLeaf (node, parent);
-  const TreeNodeIndex oldSibClosestLeaf = oldTree.closestLeaf (oldSibling, parent);
-  const TreeNodeIndex oldGranClosestLeaf = oldTree.closestLeaf (oldGrandparent, parent);
-  const TreeNodeIndex newSibClosestLeaf = newTree.closestLeaf (newSibling, parent);
-  const TreeNodeIndex newGranClosestLeaf = newTree.closestLeaf (newGrandparent, parent);
-  const TreeNodeIndex oldParentClosestLeaf = oldTree.closestLeaf (parent, oldGrandparent);
-  const TreeNodeIndex newParentClosestLeaf = newTree.closestLeaf (parent, newGrandparent);
-
-  const Alignment oldAlign (history.gapped);
-  const AlignPath oldSibCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldSibling, parent);
-  const AlignPath nodeCladePath = Sampler::cladePath (oldAlign.path, oldTree, node, parent);
-  const AlignPath newSibCladePath = Sampler::cladePath (oldAlign.path, oldTree, newSibling, newGrandparent);
-  const AlignPath oldGranCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldGrandparent, parent);
-  const AlignPath newGranCladePath = Sampler::cladePath (oldAlign.path, newTree, newGrandparent, parent);
-
-  const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, node, oldSibling, parent);
-  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, oldTree, parent);
-
-  const AlignPath oldGranSibPath = Sampler::pairPath (oldAlign.path, oldGrandparent, oldSibling);
-
-  const vguard<SeqIdx> nodeEnvPos = guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
-  const vguard<SeqIdx> oldSibEnvPos = guideSeqPos (oldAlign.path, oldSibling, oldSibClosestLeaf);
-  const vguard<SeqIdx> oldGranEnvPos = guideSeqPos (oldAlign.path, oldGrandparent, oldGranClosestLeaf);
-  const vguard<SeqIdx> newSibEnvPos = guideSeqPos (oldAlign.path, newSibling, newSibClosestLeaf);
-  const vguard<SeqIdx> newGranEnvPos = guideSeqPos (oldAlign.path, newGrandparent, newGranClosestLeaf);
-
-  const GuideAlignmentEnvelope newSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, newSibClosestLeaf);
-  const GuideAlignmentEnvelope oldSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, oldSibClosestLeaf);
-
-  map<TreeNodeIndex,TreeNodeIndex> exclude;
-  exclude[node] = parent;
-  exclude[oldSibling] = parent;
-  exclude[oldGrandparent] = parent;
-  exclude[newSibling] = newGrandparent;
-  exclude[newGrandparent] = newSibling;
-  const auto pwms = sampler.getConditionalPWMs (history, exclude);
-
-  const PosWeightMatrix& nodeSeq = pwms.at (node);
-  const PosWeightMatrix& oldSibSeq = pwms.at (oldSibling);
-  const PosWeightMatrix& oldGranSeq = pwms.at (oldGrandparent);
-  const PosWeightMatrix& newSibSeq = pwms.at (newSibling);
-  const PosWeightMatrix& newGranSeq = pwms.at (newGrandparent);
-
-  const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
-  const AlignPath newSiblingPath = newSibMatrix.sample (generator);
-  LogThisAt(6,"Proposed (parent:node:newSibling) alignment:" << endl << alignPathString(newSiblingPath));
-  const LogProb logPostNewSiblingPath = newSibMatrix.logPostProb (newSiblingPath);
-
-  const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
-  LogThisAt(6,"Previous (parent:node:oldSibling) alignment:" << endl << alignPathString(oldSiblingPath));
-  const LogProb logPostOldSiblingPath = oldSibMatrix.logPostProb (oldSiblingPath);
-
-  vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
-  const AlignPath newParentSubtreePath = alignPathMerge (mergeComponents);
-
-  const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, newGranClosestLeaf, newParentClosestLeaf);
-  const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, oldGranClosestLeaf, oldParentClosestLeaf);
-
-  const vguard<SeqIdx> newParentEnvPos = guideSeqPos (newParentSubtreePath, parent, newParentClosestLeaf);
-  const vguard<SeqIdx> oldParentEnvPos = guideSeqPos (oldAlign.path, parent, oldParentClosestLeaf);
-
-  const PosWeightMatrix newParentSeq = newSibMatrix.parentSeq (newSiblingPath);
-  const BranchMatrix newBranchMatrix (sampler.model, newGranSeq, newParentSeq, newGranParentDist, newBranchEnv, newGranEnvPos, newParentEnvPos, newGrandparent, parent);
-
-  const AlignPath newBranchPath = newBranchMatrix.sample (generator);
-  LogThisAt(6,"Proposed (newGrandparent:parent) alignment:" << endl << alignPathString(newBranchPath));
-  const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
-
-  const PosWeightMatrix oldParentSeq = oldSibMatrix.parentSeq (oldSiblingPath);
-  const BranchMatrix oldBranchMatrix (sampler.model, oldGranSeq, oldParentSeq, oldGranParentDist, oldBranchEnv, oldGranEnvPos, oldParentEnvPos, oldGrandparent, parent);
-  LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
-  const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
-
   const vector<TreeNodeIndex> newContemps = contemporaneousNodes (newTree, newTree.distanceFromRoot(), node);
 
-  logForwardProposal = -log(contemps.size()) + logPostNewSiblingPath + logPostNewBranchPath;
-  logReverseProposal = -log(newContemps.size()) + logPostOldSiblingPath + logPostOldBranchPath;
+  // optimize special case that (oldSibling,parent,oldGrandparent,newGrandparent,newSibling) form a sub-alignment with no gaps
+  const vguard<TreeNodeIndex> subpathNodes = { oldSibling, parent, oldGrandparent, newGrandparent, newSibling };
+  if (Sampler::subpathUngapped (oldAlign.path, subpathNodes)) {
+    logForwardProposal = -log(contemps.size());
+    logReverseProposal = -log(newContemps.size());
 
-  LogThisAt(6,"log(Q_new) = " << setw(10) << -log(contemps.size()) << " (newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
-  LogThisAt(6,"log(Q_old) = " << setw(10) << -log(newContemps.size()) << " (oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+    initNewHistory (newTree, history.gapped);
 
-  mergeComponents.push_back (newGranCladePath);
-  mergeComponents.push_back (newBranchPath);
-  const AlignPath newPath = alignPathMerge (mergeComponents);
+  } else {
+    // general case: we need to realign
+    const AlignPath oldSibCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldSibling, parent);
+    const AlignPath nodeCladePath = Sampler::cladePath (oldAlign.path, oldTree, node, parent);
+    const AlignPath newSibCladePath = Sampler::cladePath (oldAlign.path, oldTree, newSibling, newGrandparent);
+    const AlignPath oldGranCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldGrandparent, parent, newSibling);
 
-  vguard<FastSeq> newUngapped = oldAlign.ungapped;
-  newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
+    const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, node, oldSibling, parent);
+    const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, oldTree, parent);
 
-  initNewHistory (newTree, newUngapped, newPath);
+    const AlignPath oldGranSibPath = Sampler::pairPath (oldAlign.path, oldGrandparent, oldSibling);
+    
+    const TreeNodeIndex nodeClosestLeaf = oldTree.closestLeaf (node, parent);
+    const TreeNodeIndex oldSibClosestLeaf = oldTree.closestLeaf (oldSibling, parent);
+    const TreeNodeIndex oldGranClosestLeaf = oldTree.closestLeaf (oldGrandparent, parent);
+    const TreeNodeIndex newSibClosestLeaf = newTree.closestLeaf (newSibling, parent);
+    const TreeNodeIndex newGranClosestLeaf = newTree.closestLeaf (newGrandparent, parent);
+    const TreeNodeIndex oldParentClosestLeaf = oldTree.closestLeaf (parent, oldGrandparent);
+    const TreeNodeIndex newParentClosestLeaf = newTree.closestLeaf (parent, newGrandparent);
+
+    const vguard<SeqIdx> nodeEnvPos = guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
+    const vguard<SeqIdx> oldSibEnvPos = guideSeqPos (oldAlign.path, oldSibling, oldSibClosestLeaf);
+    const vguard<SeqIdx> oldGranEnvPos = guideSeqPos (oldAlign.path, oldGrandparent, oldGranClosestLeaf);
+    const vguard<SeqIdx> newSibEnvPos = guideSeqPos (oldAlign.path, newSibling, newSibClosestLeaf);
+    const vguard<SeqIdx> newGranEnvPos = guideSeqPos (oldAlign.path, newGrandparent, newGranClosestLeaf);
+
+    const GuideAlignmentEnvelope newSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, newSibClosestLeaf);
+    const GuideAlignmentEnvelope oldSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, oldSibClosestLeaf);
+
+    map<TreeNodeIndex,TreeNodeIndex> exclude;
+    exclude[node] = parent;
+    exclude[oldSibling] = parent;
+    exclude[oldGrandparent] = parent;
+    exclude[newSibling] = newGrandparent;
+    exclude[newGrandparent] = newSibling;
+    const auto pwms = sampler.getConditionalPWMs (history, exclude);
+
+    const PosWeightMatrix& nodeSeq = pwms.at (node);
+    const PosWeightMatrix& oldSibSeq = pwms.at (oldSibling);
+    const PosWeightMatrix& oldGranSeq = pwms.at (oldGrandparent);
+    const PosWeightMatrix& newSibSeq = pwms.at (newSibling);
+    const PosWeightMatrix& newGranSeq = pwms.at (newGrandparent);
+
+    const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
+    const AlignPath newSiblingPath = newSibMatrix.sample (generator);
+    LogThisAt(6,"Proposed (parent:node:newSibling) alignment:" << endl << alignPathString(newSiblingPath));
+    const LogProb logPostNewSiblingPath = newSibMatrix.logPostProb (newSiblingPath);
+
+    const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
+    LogThisAt(6,"Previous (parent:node:oldSibling) alignment:" << endl << alignPathString(oldSiblingPath));
+    const LogProb logPostOldSiblingPath = oldSibMatrix.logPostProb (oldSiblingPath);
+
+    vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
+    const AlignPath newParentSubtreePath = alignPathMerge (mergeComponents);
+
+    const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, newGranClosestLeaf, newParentClosestLeaf);
+    const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, oldGranClosestLeaf, oldParentClosestLeaf);
+
+    const vguard<SeqIdx> newParentEnvPos = guideSeqPos (newParentSubtreePath, parent, newParentClosestLeaf);
+    const vguard<SeqIdx> oldParentEnvPos = guideSeqPos (oldAlign.path, parent, oldParentClosestLeaf);
+
+    const PosWeightMatrix newParentSeq = newSibMatrix.parentSeq (newSiblingPath);
+    const BranchMatrix newBranchMatrix (sampler.model, newGranSeq, newParentSeq, newGranParentDist, newBranchEnv, newGranEnvPos, newParentEnvPos, newGrandparent, parent);
+
+    const AlignPath newBranchPath = newBranchMatrix.sample (generator);
+    LogThisAt(6,"Proposed (newGrandparent:parent) alignment:" << endl << alignPathString(newBranchPath));
+    const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
+
+    const PosWeightMatrix oldParentSeq = oldSibMatrix.parentSeq (oldSiblingPath);
+    const BranchMatrix oldBranchMatrix (sampler.model, oldGranSeq, oldParentSeq, oldGranParentDist, oldBranchEnv, oldGranEnvPos, oldParentEnvPos, oldGrandparent, parent);
+    LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
+    const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
+
+    logForwardProposal = -log(contemps.size()) + logPostNewSiblingPath + logPostNewBranchPath;
+    logReverseProposal = -log(newContemps.size()) + logPostOldSiblingPath + logPostOldBranchPath;
+
+    LogThisAt(6,"log(Q_new) = " << setw(10) << -log(contemps.size()) << " (newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_old) = " << setw(10) << -log(newContemps.size()) << " (oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+
+    mergeComponents.push_back (oldSibCladePath);
+    mergeComponents.push_back (oldGranSibPath);
+    mergeComponents.push_back (oldGranCladePath);
+    mergeComponents.push_back (newBranchPath);
+    const AlignPath newPath = alignPathMerge (mergeComponents);
+
+    vguard<FastSeq> newUngapped = oldAlign.ungapped;
+    newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
+  
+    initNewHistory (newTree, newUngapped, newPath);
+  }
 
   // we need...
   //  newGrandparent > parent
@@ -670,6 +736,30 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& 
 
     LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << cDistNew << " (previously " << minChildDist << ", maximum " << pDist << ")" << endl);
   }
+
+  initNewHistory (newTree, oldHistory.gapped);
+  initRatio (sampler);
+}
+
+Sampler::RescaleMove::RescaleMove (const History& history, const Sampler& sampler, random_engine& generator)
+  : Move (Rescale, history)
+{
+  LogThisAt(4,"Proposing node-rescale move" << endl);
+
+  const auto dist = history.tree.distanceFromRoot();
+  const TreeBranchLength oldTreeHeight = *max_element (dist.begin(), dist.end());
+
+  const double lambda = sampler.treePrior.coalescenceRate(2) / 2;
+  exponential_distribution<TreeBranchLength> distribution (lambda);
+  const TreeBranchLength newTreeHeight = distribution (generator);
+
+  LogThisAt(6,"Sampled tree height: " << newTreeHeight << " (previously " << oldTreeHeight << ")" << endl);
+
+  Tree newTree = history.tree;
+  for (auto& node : newTree.node)
+    node.d *= newTreeHeight / oldTreeHeight;
+
+  logForwardProposal = logReverseProposal = 0;
 
   initNewHistory (newTree, oldHistory.gapped);
   initRatio (sampler);
@@ -1241,6 +1331,9 @@ Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, cons
   : model (model),
     treePrior (treePrior),
     moveRate (Move::TotalMoveTypes, 1.),
+    movesProposed (Move::TotalMoveTypes, 0),
+    movesAccepted (Move::TotalMoveTypes, 0),
+    moveNanosecs (Move::TotalMoveTypes, 0.),
     guide (gappedGuide),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
 {
@@ -1258,6 +1351,7 @@ Sampler::Move Sampler::proposeMove (const History& oldHistory, random_engine& ge
   case Move::NodeAlign: return NodeAlignMove (oldHistory, *this, generator);
   case Move::PruneAndRegraft: return PruneAndRegraftMove (oldHistory, *this, generator);
   case Move::NodeHeight: return NodeHeightMove (oldHistory, *this, generator);
+  case Move::Rescale: return RescaleMove (oldHistory, *this, generator);
   default: break;
   }
   Abort ("Unknown move type");
@@ -1285,8 +1379,12 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     plog.logProgress (n / (double) (nSamples - 1), "step %u/%u", n + 1, nSamples);
 
     // propose
+    const std::chrono::system_clock::time_point before = std::chrono::system_clock::now();
     const Move move = proposeMove (history, generator);
-
+    const std::chrono::system_clock::time_point after = std::chrono::system_clock::now();
+    moveNanosecs[move.type] += std::chrono::duration_cast<std::chrono::nanoseconds> (after - before).count();
+    ++movesProposed[move.type];
+    
     // do some consistency checks
     move.newHistory.assertNamesMatch();
     move.newHistory.tree.assertPostorderSorted();
@@ -1294,12 +1392,29 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
       move.newHistory.tree.assertUltrametric();
     
     // accept/reject
-    if (move.accept (generator))
+    if (move.accept (generator)) {
       history = move.newHistory;
+      ++movesAccepted[move.type];
+    }
 
     // log
     for (auto& logger : loggers)
       logger->logHistory (history);
   }
+
+  LogThisAt(1,moveStats());
+
   return history;
+}
+
+string Sampler::moveStats() const {
+  ostringstream out;
+  for (int t = 0; t < (int) Move::TotalMoveTypes; ++t)
+    out << setw(20) << Move::typeName ((Move::Type) t) << ": "
+	<< setw(5) << movesProposed[t] << " moves, "
+	<< setw(5) << movesAccepted[t] << " accepted, "
+	<< setw(12) << (moveNanosecs[t] / 1e9) << " seconds, "
+	<< setw(12) << ((double) movesAccepted[t] / (moveNanosecs[t] / 1e9)) << " accepted/sec"
+	<< endl;
+  return out.str();
 }

@@ -186,27 +186,9 @@ bool Tree::isUltrametric (double epsilon) const {
   return true;
 }
 
-string Tree::pathsToRoot() const {
-  ostringstream s;
-  s << "Distances from root:\n";
-  const auto path = pathToRoot();
-  const auto dist = distanceFromRoot();
-  for (TreeNodeIndex node = 0; node < nodes(); ++node)
-    if (isLeaf(node)) {
-      s << "Node #" << node << ": " << dist[node] << " Path ";
-      for (auto p : path[node]) {
-	if (p != root())
-	  s << " : " << branchLength(p) << " : ";
-	s << seqName(p) << " (#" << p << ")";
-      }
-      s << endl;
-    }
-    return s.str();
-}
-
 void Tree::assertUltrametric (double epsilon) const {
   if (!isUltrametric(epsilon))
-    Abort ("Tree is not ultrametric\n%s", pathsToRoot().c_str());
+    Abort ("Tree is not ultrametric");
 }
 
 bool Tree::isPostorderSorted() const {
@@ -552,15 +534,25 @@ void Tree::assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix) {
     seq[n].name = seqName(n);
 }
 
-vguard<TreeNodeIndex> Tree::nodeAndDescendants (TreeNodeIndex node) const {
-  vguard<TreeNodeIndex> d;
-  vguard<bool> inClade (nodes(), false);
-  for (TreeNodeIndex n = nodes() - 1; n >= 0; --n)
-    if (n == node || (n < nodes() - 1 && inClade[parentNode(n)])) {
-      inClade[n] = true;
-      d.push_back (n);
-    }
-  return d;
+set<TreeNodeIndex> Tree::nodeAndAncestors (TreeNodeIndex node) const {
+  set<TreeNodeIndex> a;
+  do {
+    a.insert (node);
+    node = parentNode(node);
+  } while (node >= 0);
+  return a;
+}
+
+set<TreeNodeIndex> Tree::nodeAndDescendants (TreeNodeIndex node) const {
+  const auto d = rerootedPreorderSort (node, parentNode(node));
+  return set<TreeNodeIndex> (d.begin(), d.end());
+}
+
+TreeNodeIndex Tree::mostRecentCommonAncestor (TreeNodeIndex node1, TreeNodeIndex node2) const {
+  const auto anc1 = nodeAndAncestors(node1);
+  while (!anc1.count(node2) && node2 >= 0)
+    node2 = parentNode(node2);
+  return node2;
 }
 
 vguard<TreeNodeIndex> Tree::rerootedPreorderSort (TreeNodeIndex newRoot, TreeNodeIndex parentOfRoot) const {
@@ -654,17 +646,6 @@ vguard<TreeBranchLength> Tree::distanceFromRoot() const {
     dist[n] = p < 0 ? 0 : branchLength(n) + dist[p];
   }
   return dist;
-}
-
-vguard<vguard<TreeNodeIndex> > Tree::pathToRoot() const {
-  vguard<vguard<TreeNodeIndex> > path (nodes());
-  for (auto n : preorderSort()) {
-    const auto p = parentNode(n);
-    if (p >= 0)
-      path[n] = path[p];
-    path[n].push_back (n);
-  }
-  return path;
 }
 
 void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {
