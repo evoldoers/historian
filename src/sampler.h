@@ -103,7 +103,7 @@ struct Sampler {
     inline const LogProb lpStart() const { return cell(0,0,0); }
 
     inline bool inEnvelope (SeqIdx xpos, SeqIdx ypos) const {
-      return xpos == 0 || ypos == 0 || xpos == xSize || ypos == ySize
+      return xpos == 0 || ypos == 0 || xpos == xSize-1 || ypos == ySize-1
 	|| env.inRange (xEnvPos[xpos], yEnvPos[ypos]);
     }
     
