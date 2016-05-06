@@ -289,6 +289,7 @@ struct Sampler {
     History oldHistory, newHistory;
     LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
     bool nullified;
+    string comment;
     
     Move() { }
     Move (Type type, const History& history);
@@ -296,7 +297,7 @@ struct Sampler {
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped);
     void initRatio (const Sampler& sampler);
-    void nullify();
+    void nullify (const char* reason);
     bool accept (random_engine& generator) const;
 
     static const char* typeName (Type t);

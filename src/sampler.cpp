@@ -337,10 +337,11 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
   logHastingsRatio = (newLogLikelihood - oldLogLikelihood) - (logForwardProposal - logReverseProposal);
 }
 
-void Sampler::Move::nullify() {
+void Sampler::Move::nullify (const char* reason) {
   newHistory = oldHistory;
   logHastingsRatio = newLogLikelihood = oldLogLikelihood = logForwardProposal = logReverseProposal = 0;
   nullified = true;
+  comment = string("(") + reason + ")";
 }
 
 const char* Sampler::Move::typeName (Type t) {
@@ -375,9 +376,10 @@ bool Sampler::Move::accept (random_engine& generator) const {
     bernoulli_distribution distribution (exp (logHastingsRatio));
     a = distribution (generator);
   }
-  LogThisAt(3,setw(Move::typeNameWidth()) << typeName(type) << " move " << (a ? "ACCEPTED" : "REJECTED")
+  LogThisAt(3,setw(Move::typeNameWidth()) << typeName(type) << " move "
+	    << (a ? "ACCEPTED" : "rejected")
 	    << " with log-Hastings ratio " << setw(10) << logHastingsRatio
-	    << (nullified ? " (null move)" : "") << endl);
+	    << " " << comment << endl);
   return a;
 }
 
@@ -423,7 +425,7 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
 
   if (oldBranchPath == newBranchPath) {
     LogThisAt(6,"Alignments are identical; abandoning move" << endl);
-    nullify();
+    nullify("no change");
     return;
   }
 
@@ -535,7 +537,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
 
   if (newPath == oldAlign.path) {
     LogThisAt(6,"Alignments are identical; abandoning move" << endl);
-    nullify();
+    nullify("no change");
     return;
   }
   
@@ -552,7 +554,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
 
   const vector<TreeNodeIndex> contemps = contemporaneousNodes (history.tree, distanceFromRoot, node);
   if (contemps.empty()) {
-    nullify();
+    nullify("nowhere to regraft");
     return;
   }
   const TreeNodeIndex newSibling = random_element (contemps, generator);
@@ -595,6 +597,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
 
     initNewHistory (newTree, history.gapped);
 
+    comment = "(alignment unchanged)";
+    
   } else {
     // general case: we need to realign
     const AlignPath oldSibCladePath = Sampler::cladePath (oldAlign.path, oldTree, oldSibling, parent);
