@@ -59,6 +59,7 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
 
     } else if (arg == "-mcmc") {
       runMCMC = true;
+      useUPGMA = true;
       argvec.pop_front();
       return true;
 
@@ -325,6 +326,7 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       mcmcSamplesPerSeq = atoi (argvec[1].c_str());
       runMCMC = true;
+      useUPGMA = true;
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -333,6 +335,7 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       mcmcTraceFilename = argvec[1].c_str();
       runMCMC = true;
+      useUPGMA = true;
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -439,7 +442,7 @@ void Reconstructor::loadTree (Dataset& dataset) {
 }
 
 void Reconstructor::buildTree (Dataset& dataset) {
-  LogThisAt(1,"Estimating initial tree" << endl);
+  LogThisAt(1,"Estimating initial tree by " << (useUPGMA ? "UPGMA" : "neighbor-joining") << endl);
   auto dist = model.distanceMatrix (dataset.gappedGuide);
   if (useUPGMA)
     dataset.tree.buildByUPGMA (dataset.gappedGuide, dist);

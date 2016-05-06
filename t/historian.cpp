@@ -207,6 +207,7 @@ int main (int argc, char** argv) {
 
     recon.reconstructRoot = true;
     recon.runMCMC = true;
+    recon.useUPGMA = true;
     recon.accumulateSubstCounts = false;
     recon.accumulateIndelCounts = false;
 

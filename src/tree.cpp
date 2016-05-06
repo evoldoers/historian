@@ -1,3 +1,4 @@
+#include <cmath>
 #include "tree.h"
 #include "knhx.h"
 #include "logger.h"
@@ -170,6 +171,53 @@ void Tree::assertBinary() const {
   for (TreeNodeIndex node = 0; node < nodes(); ++node)
     if (!isLeaf(node))
       Assert (nChildren(node) == 2, "Tree is not binary: node %d has %s\nSubtree rooted at %d: %s\n", node, plural(nChildren(node),"child","children").c_str(), node, toString(node).c_str());
+}
+
+bool Tree::isUltrametric (double epsilon) const {
+  const auto dist = distanceFromRoot();
+  TreeBranchLength minDist = numeric_limits<double>::infinity();
+  for (TreeNodeIndex node = 0; node < nodes(); ++node)
+    if (isLeaf(node))
+      minDist = min (minDist, dist[node]);
+  for (TreeNodeIndex node = 0; node < nodes(); ++node)
+    if (isLeaf(node))
+      if (abs (dist[node] - minDist) / max (abs(dist[node]), abs(minDist)) >= epsilon)
+	return false;
+  return true;
+}
+
+string Tree::pathsToRoot() const {
+  ostringstream s;
+  s << "Distances from root:\n";
+  const auto path = pathToRoot();
+  const auto dist = distanceFromRoot();
+  for (TreeNodeIndex node = 0; node < nodes(); ++node)
+    if (isLeaf(node)) {
+      s << "Node #" << node << ": " << dist[node] << " Path ";
+      for (auto p : path[node]) {
+	if (p != root())
+	  s << " : " << branchLength(p) << " : ";
+	s << seqName(p) << " (#" << p << ")";
+      }
+      s << endl;
+    }
+    return s.str();
+}
+
+void Tree::assertUltrametric (double epsilon) const {
+  if (!isUltrametric(epsilon))
+    Abort ("Tree is not ultrametric\n%s", pathsToRoot().c_str());
+}
+
+bool Tree::isPostorderSorted() const {
+  for (TreeNodeIndex n = 0; n < root(); ++n)
+    if (parentNode(n) <= n)
+      return false;
+  return parentNode(root()) < 0;
+}
+
+void Tree::assertPostorderSorted() const {
+  Assert (isPostorderSorted(), "Tree nodes are not sorted in postorder");
 }
 
 TreeNodeIndex Tree::findNode (const string& name) const {
@@ -349,9 +397,11 @@ void Tree::buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<Tre
       dist.push_back (vguard<TreeBranchLength> (k + 1));
       dist[k][k] = 0;
       const TreeBranchLength d_ij = dist[min_i][min_j];
-      nodeHeight.push_back (max (nodeHeight[min_i], max (nodeHeight[min_j], (nodeHeight[min_i] + nodeHeight[min_j] + d_ij) / 2)));
-      const TreeBranchLength d_ik = max (nodeHeight[k] - nodeHeight[min_i], minBranchLength);
-      const TreeBranchLength d_jk = max (nodeHeight[k] - nodeHeight[min_j], minBranchLength);
+      nodeHeight.push_back (max (nodeHeight[min_i] + minBranchLength,
+				 max (nodeHeight[min_j] + minBranchLength,
+				      (nodeHeight[min_i] + nodeHeight[min_j] + d_ij) / 2)));
+      const TreeBranchLength d_ik = nodeHeight[k] - nodeHeight[min_i];
+      const TreeBranchLength d_jk = nodeHeight[k] - nodeHeight[min_j];
       for (TreeNodeIndex m = 0; m < k; ++m)
 	dist[m].push_back (dist[k][m] = (dist[min_i][m] + dist[min_j][m]) / 2);
       dist[min_i][k] = dist[k][min_i] = d_ik;
@@ -386,6 +436,8 @@ void Tree::buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<Tre
   const string s = toString();
   LogThisAt(5,"UPGMA tree: " << s << endl);
   parse (s);  // to ensure consistency (i.e. serializing & deserializing will not change node indices)
+
+  assertUltrametric();
 }
 
 void Tree::buildByUPGMA (const vguard<FastSeq>& seq, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
@@ -499,6 +551,23 @@ vguard<TreeNodeIndex> Tree::rerootedParent (TreeNodeIndex newRoot) const {
   return newParent;
 }
 
+vguard<TreeNodeIndex> Tree::preorderSort() const {
+  TreeNodeIndex r = -1;
+  for (TreeNodeIndex n = 0; n < nodes(); ++n)
+    if (parentNode(n) < 0) {
+      Assert (r < 0, "More than one root");
+      r = n;
+    }
+  Assert (r >= 0, "Couldn't find root");
+  return rerootedPreorderSort (r);
+}
+
+vguard<TreeNodeIndex> Tree::postorderSort() const {
+  auto s = preorderSort();
+  reverse (s.begin(), s.end());
+  return s;
+}
+
 TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const {
   const auto newParent = rerootedParent (parent < 0 ? node : parent);
   auto post = rerootedPreorderSort (node, parent);
@@ -524,27 +593,41 @@ TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const
   return closest[node];
 }
 
-void Tree::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
-  iter_swap (node.begin() + x, node.begin() + y);
-  for (auto& n : node) {
-    if (n.parent == x)
-      n.parent = y;
-    else if (n.parent == y)
-      n.parent = x;
-    for (TreeNodeIndex& c : n.child)
-      if (c == x)
-	c = y;
-      else if (c == y)
-	c = x;
+Tree Tree::reorderNodes (const vguard<TreeNodeIndex>& newOrder) const {
+  Tree newTree;
+  newTree.node.reserve (nodes());
+  vguard<TreeNodeIndex> old2new (nodes(), -1);
+  for (auto oldIdx : newOrder) {
+    old2new[oldIdx] = newTree.node.size();
+    newTree.node.push_back (node[oldIdx]);
   }
+  for (auto& n : newTree.node) {
+    if (n.parent >= 0)
+      n.parent = old2new[n.parent];
+    for (auto& c : n.child)
+      c = old2new[c];
+  }
+  return newTree;
 }
 
 vguard<TreeBranchLength> Tree::distanceFromRoot() const {
   vguard<TreeBranchLength> dist (nodes());
-  dist[root()] = 0;
-  for (TreeNodeIndex n = root() - 1; n >= 0; --n)
-    dist[n] = branchLength(n) + dist[parentNode(n)];
+  for (auto n : preorderSort()) {
+    const auto p = parentNode(n);
+    dist[n] = p < 0 ? 0 : branchLength(n) + dist[p];
+  }
   return dist;
+}
+
+vguard<vguard<TreeNodeIndex> > Tree::pathToRoot() const {
+  vguard<vguard<TreeNodeIndex> > path (nodes());
+  for (auto n : preorderSort()) {
+    const auto p = parentNode(n);
+    if (p >= 0)
+      path[n] = path[p];
+    path[n].push_back (n);
+  }
+  return path;
 }
 
 void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {

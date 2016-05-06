@@ -260,7 +260,7 @@ struct Sampler {
   struct History {
     vguard<FastSeq> gapped;
     Tree tree;
-    void swapNodes (TreeNodeIndex x, TreeNodeIndex y);
+    History reorder (const vguard<TreeNodeIndex>& newOrder) const;
   };
 
   // Sampler::Logger
@@ -282,6 +282,7 @@ struct Sampler {
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped);
     void initRatio (const Sampler& sampler);
+    void nullify();
     bool accept (random_engine& generator) const;
   };
 

@@ -26,10 +26,14 @@ LogProb SimpleTreePrior::treeLogLikelihood (const Tree& tree) const {
   return lp;
 }
 
-void Sampler::History::swapNodes (TreeNodeIndex x, TreeNodeIndex y) {
-  LogThisAt(6,"Swapping nodes #" << x << " and #" << y << " to maintain preorder sort" << endl);
-  tree.swapNodes (x, y);
-  iter_swap (gapped.begin() + x, gapped.begin() + y);
+Sampler::History Sampler::History::reorder (const vguard<TreeNodeIndex>& newOrder) const {
+  LogThisAt(6,"Reordering nodes to maintain preorder sort (" << to_string_join(newOrder) << ")" << endl);
+  History newHistory;
+  newHistory.tree = tree.reorderNodes (newOrder);
+  newHistory.gapped.reserve (gapped.size());
+  for (auto n : newOrder)
+    newHistory.gapped.push_back (gapped[n]);
+  return newHistory;
 }
 
 TreeNodeIndex Sampler::randomInternalNode (const Tree& tree, random_engine& generator) {
@@ -57,17 +61,22 @@ TreeNodeIndex Sampler::randomGrandchildNode (const Tree& tree, random_engine& ge
 }
 
 TreeNodeIndex Sampler::randomContemporaneousNode (const Tree& tree, const vguard<TreeBranchLength>& dist, TreeNodeIndex node, random_engine& generator) {
+  TreeNodeIndex contemp = -1;
   vguard<TreeNodeIndex> contemps;
   const TreeNodeIndex parent = tree.parentNode(node);
   Assert (parent >= 0, "Parent node not found");
+  Assert (tree.parentNode(parent) >= 0, "Grandparent node not found");
   const TreeBranchLength distParent = dist[parent];
   for (TreeNodeIndex n = 0; n < tree.root(); ++n) {
     const TreeNodeIndex p = tree.parentNode(n);
     if (p != parent && dist[p] < distParent && dist[n] > distParent)
       contemps.push_back (n);
   }
-  Assert (contemps.size() > 0, "No contemporaneous nodes found");
-  return random_element (contemps, generator);
+  if (contemps.size() > 0)
+    contemp = random_element (contemps, generator);
+  else
+    Warn ("No nodes contemporaneous with #%d were found", node);
+  return contemp;
 }
 
 vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
@@ -170,7 +179,7 @@ AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, Tree
     case Sampler::SiblingMatrix::IIW:
       ++nLeftIns;
     default:
-      Abort ("bad state");
+      Abort ("bad state: %d  (l,r,p)=(%d,%d,%d)", (int) state, lc, rc, pc);
       break;
     }
   }
@@ -289,6 +298,12 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
   logHastingsRatio = (newLogLikelihood - oldLogLikelihood) - (logForwardProposal - logReverseProposal);
 }
 
+void Sampler::Move::nullify() {
+  newHistory = oldHistory;
+  newLogLikelihood = oldLogLikelihood = logForwardProposal = logReverseProposal = 0;
+  logHastingsRatio = -numeric_limits<double>::infinity();
+}
+
 bool Sampler::Move::accept (random_engine& generator) const {
   bool a;
   if (logHastingsRatio > 0)
@@ -297,7 +312,7 @@ bool Sampler::Move::accept (random_engine& generator) const {
     bernoulli_distribution distribution (exp (logHastingsRatio));
     a = distribution (generator);
   }
-  LogThisAt(4,"Move " << (a ? "ACCEPTED" : "REJECTED") << " with log-Hastings ratio " << logHastingsRatio << endl);
+  LogThisAt(3,"Move " << (a ? "ACCEPTED" : "REJECTED") << " with log-Hastings ratio " << logHastingsRatio << endl);
   return a;
 }
 
@@ -458,6 +473,11 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   node = Sampler::randomGrandchildNode (history.tree, generator);
   newSibling = Sampler::randomContemporaneousNode (history.tree, distanceFromRoot, node, generator);
 
+  if (newSibling < 0) {
+    nullify();
+    return;
+  }
+
   parent = history.tree.parentNode (node);
   Assert (parent >= 0, "Parent node not found");
 
@@ -484,7 +504,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   newTree.setParent (oldSibling, oldGrandparent, oldGranParentDist + parentOldSibDist);
   newTree.setParent (newSibling, parent, parentNewSibDist);
   newTree.setParent (parent, newGrandparent, newGranParentDist);
-  
+
   const TreeNodeIndex nodeClosestLeaf = oldTree.closestLeaf (node, parent);
   const TreeNodeIndex oldSibClosestLeaf = oldTree.closestLeaf (oldSibling, parent);
   const TreeNodeIndex oldGranClosestLeaf = oldTree.closestLeaf (oldGrandparent, parent);
@@ -572,10 +592,13 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
 
   initNewHistory (newTree, newUngapped, newPath);
-  if (parent < newSibling)
-    newHistory.swapNodes (parent, newSibling);
-  else if (parent > newGrandparent)
-    newHistory.swapNodes (parent, newGrandparent);
+
+  // we need...
+  //  newGrandparent > parent
+  //  parent > newSibling
+  //  parent > node
+  if (parent < newSibling || parent > newGrandparent)
+    newHistory = newHistory.reorder (newHistory.tree.postorderSort());
 
   initRatio (sampler);
 }
@@ -1173,17 +1196,32 @@ void Sampler::addLogger (Logger& logger) {
 
 Sampler::History Sampler::run (const History& initialHistory, random_engine& generator, unsigned int nSamples) {
   History history (initialHistory);
+  const bool isUltrametric = history.tree.isUltrametric();
+  if (isUltrametric)
+    LogThisAt(3,"Initial tree is ultrametric" << endl);
+  else
+    LogThisAt(1,"WARNING: initial tree is not ultrametric" << endl);
 
   ProgressLog (plog, 2);
   plog.initProgress ("MCMC sampling run");
 
   for (unsigned int n = 0; n < nSamples; ++n) {
-
+    // print progress
     plog.logProgress (n / (double) (nSamples - 1), "step %u/%u", n + 1, nSamples);
 
+    // propose
     const Move move = proposeMove (history, generator);
+
+    // do some consistency checks
+    move.newHistory.tree.assertPostorderSorted();
+    if (isUltrametric)
+      move.newHistory.tree.assertUltrametric();
+
+    // accept/reject
     if (move.accept (generator))
       history = move.newHistory;
+
+    // log
     for (auto& logger : loggers)
       logger->logHistory (history);
   }

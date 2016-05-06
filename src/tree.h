@@ -20,7 +20,7 @@ struct TreeNode {
   TreeBranchLength d;
 };
 
-#define TREE_MIN_BRANCH_LEN 1e-6;
+#define TREE_MIN_BRANCH_LEN 1e-6
 struct Tree {
   vector<TreeNode> node;
 
@@ -47,14 +47,25 @@ struct Tree {
   bool isBinary() const;
   void assertBinary() const;
 
+  bool isUltrametric (double epsilon = 1e-4) const;
+  void assertUltrametric (double epsilon = 1e-4) const;
+  string pathsToRoot() const;
+
+  bool isPostorderSorted() const;
+  void assertPostorderSorted() const;
+
   vguard<TreeNodeIndex> rerootedChildren (TreeNodeIndex node, TreeNodeIndex parent) const;
   vguard<TreeNodeIndex> rerootedPreorderSort (TreeNodeIndex newRoot, TreeNodeIndex parentOfRoot = -1) const;
   vguard<TreeNodeIndex> rerootedParent (TreeNodeIndex newRoot) const;
 
-  void swapNodes (TreeNodeIndex x, TreeNodeIndex y);
+  vguard<TreeNodeIndex> preorderSort() const;
+  vguard<TreeNodeIndex> postorderSort() const;
+
+  Tree reorderNodes (const vguard<TreeNodeIndex>& newOrder) const;
   void setParent (TreeNodeIndex node, TreeNodeIndex parent, TreeBranchLength branchLength);  // WARNING! does not check for cycles, may leave tree in a non-preorder-sorted state
 
   vguard<TreeBranchLength> distanceFromRoot() const;
+  vguard<vguard<TreeNodeIndex> > pathToRoot() const;
   
   // I/O
   void parse (const string& nhx);
