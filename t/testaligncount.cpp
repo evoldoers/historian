@@ -26,7 +26,7 @@ int main (int argc, char **argv) {
   ifstream treeStream (argv[4]);
   Tree tree (JsonUtil::readStringFromStream (treeStream));
 
-  tree.reorder (gapped);
+  tree.reorderSeqs (gapped);
   
   //  logger.setVerbose (8);
   

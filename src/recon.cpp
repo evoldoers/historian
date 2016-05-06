@@ -796,7 +796,7 @@ void Reconstructor::loadRecon() {
     LogThisAt(1,"Loading reconstruction from " << fastaReconFilename << endl);
     dataset.gappedRecon = readFastSeqs (fastaReconFilename.c_str());
 
-    dataset.tree.reorder (dataset.gappedRecon);
+    dataset.tree.reorderSeqs (dataset.gappedRecon);
     dataset.reconstruction = Alignment (dataset.gappedRecon);
 
     dataset.gappedGuide = dataset.gappedRecon;
@@ -814,7 +814,7 @@ void Reconstructor::loadRecon() {
     dataset.tree = nex.tree;
     dataset.gappedRecon = nex.gapped;
 
-    dataset.tree.reorder (dataset.gappedRecon);
+    dataset.tree.reorderSeqs (dataset.gappedRecon);
     dataset.reconstruction = Alignment (dataset.gappedRecon);
 
     dataset.gappedGuide = dataset.gappedRecon;
@@ -835,7 +835,7 @@ void Reconstructor::loadRecon() {
       dataset.name = stockholmReconFilename + " alignment #" + to_string(++nStock);
       dataset.gappedRecon = stock.gapped;
       dataset.tree = stock.getTree();
-      dataset.tree.reorder (dataset.gappedRecon);
+      dataset.tree.reorderSeqs (dataset.gappedRecon);
       dataset.reconstruction = Alignment (dataset.gappedRecon);
       dataset.gappedGuide = dataset.gappedRecon;
     }

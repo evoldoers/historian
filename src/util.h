@@ -118,6 +118,26 @@ double random_double (Generator& generator) {
   return generator() / (((double) std::numeric_limits<typename Generator::result_type>::max()) + 1);
 }
 
+/* extract_keys */
+template<typename TK, typename TV>
+std::vector<TK> extract_keys(std::map<TK, TV> const& input_map) {
+  std::vector<TK> retval;
+  for (auto const& element : input_map) {
+    retval.push_back(element.first);
+  }
+  return retval;
+}
+
+/* extract_values */
+template<typename TK, typename TV>
+std::vector<TV> extract_values(std::map<TK, TV> const& input_map) {
+  std::vector<TV> retval;
+  for (auto const& element : input_map) {
+    retval.push_back(element.second);
+  }
+  return retval;
+}    
+
 /* random_element */
 template<class Iterator,class Generator>
 Iterator random_element (Iterator begin, Iterator end, Generator generator)

@@ -1,6 +1,10 @@
+#include <gsl/gsl_math.h>
 #include "sampler.h"
 #include "recon.h"
 #include "util.h"
+
+#define SAMPLER_EPSILON 1e-3
+#define SAMPLER_NEAR_EQ(X,Y) (gsl_fcmp (X, Y, SAMPLER_EPSILON) == 0)
 
 double SimpleTreePrior::coalescenceRate (int lineages) const {
   return (((double) lineages * (lineages-1)) / 2) / (double) populationSize;
@@ -34,6 +38,11 @@ Sampler::History Sampler::History::reorder (const vguard<TreeNodeIndex>& newOrde
   for (auto n : newOrder)
     newHistory.gapped.push_back (gapped[n]);
   return newHistory;
+}
+
+void Sampler::History::assertNamesMatch() const {
+  tree.assertAllNodesNamed();
+  tree.assertNodesMatchSeqs (gapped);
 }
 
 TreeNodeIndex Sampler::randomInternalNode (const Tree& tree, random_engine& generator) {
@@ -758,6 +767,11 @@ AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
     map<CellCoords,LogProb> srcLogProb;
     for (src.state = 0; src.state < (unsigned int) ProbModel::End; ++src.state)
       srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state) + e;
+
+    const double lpTot = log_sum_exp (extract_values (srcLogProb));
+    Assert (SAMPLER_NEAR_EQ (lpTot, cell(coords)), "Traceback total (%g) doesn't match stored value (%g) at cell %s", lpTot, cell(coords), coords.toString().c_str());
+    Assert (lpTot > -numeric_limits<double>::infinity(), "Traceback state has zero probability at cell %s", coords.toString().c_str());
+
     coords = random_key_log (srcLogProb, generator);
   }
   AlignPath path;
@@ -886,7 +900,7 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
 						lSrc(WXW) + wxw_imd,
 						lSrc(IDD) + idd_imd);
 
-	  dest(WWW) = dest(IIW) + imm_www;
+	  dest(WWW) = dest(IIW) + iiw_www;
 
 	  dest(WWX) = log_sum_exp (dest(IIX) + iix_wwx,
 				   dest(IMD) + imd_wwx);
@@ -974,6 +988,11 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
     map<CellCoords,LogProb> srcLogProb;
     for (src.state = 0; src.state < (unsigned int) EEE; ++src.state)
       srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state) + e;
+
+    const double lpTot = log_sum_exp (extract_values (srcLogProb));
+    Assert (SAMPLER_NEAR_EQ (lpTot, cell(coords)), "Traceback total (%g) doesn't match stored value (%g) at cell %s", lpTot, cell(coords), coords.toString().c_str());
+    Assert (lpTot > -numeric_limits<double>::infinity(), "Traceback state has zero probability at cell %s", coords.toString().c_str());
+
     coords = random_key_log (srcLogProb, generator);
   }
   AlignPath path;
@@ -1213,12 +1232,13 @@ void Sampler::addLogger (Logger& logger) {
 
 Sampler::History Sampler::run (const History& initialHistory, random_engine& generator, unsigned int nSamples) {
   History history (initialHistory);
+  history.assertNamesMatch();
   const bool isUltrametric = history.tree.isUltrametric();
   if (isUltrametric)
     LogThisAt(3,"Initial tree is ultrametric" << endl);
   else
     LogThisAt(1,"WARNING: initial tree is not ultrametric" << endl);
-
+  
   ProgressLog (plog, 2);
   plog.initProgress ("MCMC sampling run");
 
@@ -1230,6 +1250,7 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     const Move move = proposeMove (history, generator);
 
     // do some consistency checks
+    move.newHistory.assertNamesMatch();
     move.newHistory.tree.assertPostorderSorted();
     if (isUltrametric)
       move.newHistory.tree.assertUltrametric();

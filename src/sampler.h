@@ -34,6 +34,9 @@ struct Sampler {
       { return xpos == c.xpos ? ypos == c.ypos ? state < c.state : ypos < c.ypos : xpos < c.xpos; }
       bool operator== (const CellCoords& c) const
       { return xpos == c.xpos && ypos == c.ypos && state == c.state; }
+      string toString() const {
+	return string("(") + to_string(xpos) + "," + to_string(ypos) + "," + to_string(state) + ")";
+      }
     };
 
     struct XYCell {
@@ -87,6 +90,15 @@ struct Sampler {
 	: iter->second.lp[(unsigned int) state];
     }
 
+    inline LogProb cell (const CellCoords& coords) const {
+      if (coords.state == CellStates)
+	return coords.xpos == xSize - 1 && coords.ypos == ySize - 1 ? lpEnd : -numeric_limits<double>::infinity();
+      Assert (coords.xpos >= 0 && coords.xpos < xSize, "xpos out of range");
+      Assert (coords.ypos >= 0 && coords.ypos < ySize, "ypos out of range");
+      Assert (coords.state >= 0 && coords.state < CellStates, "State out of range");
+      return cell (coords.xpos, coords.ypos, coords.state);
+    }
+    
     inline LogProb& lpStart() { return cell(0,0,0); }
     inline const LogProb lpStart() const { return cell(0,0,0); }
 
@@ -261,6 +273,7 @@ struct Sampler {
     vguard<FastSeq> gapped;
     Tree tree;
     History reorder (const vguard<TreeNodeIndex>& newOrder) const;
+    void assertNamesMatch() const;
   };
 
   // Sampler::Logger

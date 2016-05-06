@@ -468,7 +468,43 @@ string Tree::pairParentName (const string& lChildName, double lTime, const strin
   return o.str();
 }
 
-void Tree::reorder (vguard<FastSeq>& seq) const {
+bool Tree::allNodesNamed() const {
+  for (auto& n : node)
+    if (n.name.empty())
+      return false;
+  return true;
+}
+
+void Tree::assertAllNodesNamed() const {
+  Assert (allNodesNamed(), "Tree has unnamed nodes");
+}
+  
+bool Tree::nodesMatchSeqs (const vguard<FastSeq>& seq) const {
+  if (seq.size() != nodes())
+    return false;
+  set<string> names;
+  for (size_t n = 0; n < seq.size(); ++n) {
+    if (seq[n].name != node[n].name)
+      return false;
+    if (names.count (seq[n].name))
+      return false;
+    names.insert (seq[n].name);
+  }
+  return true;
+}
+
+void Tree::assertNodesMatchSeqs (const vguard<FastSeq>& seq) const {
+  Assert (seq.size() == nodes(), "Number of sequences doesn't match number of nodes in tree");
+  set<string> names;
+  for (size_t n = 0; n < seq.size(); ++n) {
+    Assert (seq[n].name == node[n].name, "Name of sequence #%d (%s) does not match node #%d (%s)", n, seq[n].name.c_str(), n, node[n].name.c_str());
+    Assert (names.count (seq[n].name) == 0, "Duplicate sequence name %s", seq[n].name.c_str());
+    names.insert (seq[n].name);
+  }
+  Assert (nodesMatchSeqs(seq), "Node names and sequence names don't match");  // should be redundant after previous tests...
+}
+
+void Tree::reorderSeqs (vguard<FastSeq>& seq) const {
   Assert (seq.size() == nodes(), "Number of sequences doesn't match number of nodes in tree");
   map<string,size_t> name2seq;
   for (size_t n = 0; n < seq.size(); ++n) {
@@ -489,6 +525,8 @@ void Tree::reorder (vguard<FastSeq>& seq) const {
     swap (old2new[n], old2new[o]);
     swap (new2old[n], new2old[m]);
   }
+
+  assertNodesMatchSeqs (seq);
 }
 
 void Tree::assignInternalNodeNames (const char* prefix) {
@@ -508,7 +546,7 @@ void Tree::assignInternalNodeNames (const char* prefix) {
 }
 
 void Tree::assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix) {
-  reorder (seq);  // make sure that nodes match rows
+  reorderSeqs (seq);  // make sure that nodes match rows
   assignInternalNodeNames (prefix);
   for (size_t n = 0; n < nodes(); ++n)
     seq[n].name = seqName(n);
