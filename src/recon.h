@@ -45,7 +45,7 @@ public:
 
   struct Dataset {
     string name;
-
+    
     Tree tree;
     vguard<FastSeq> seqs, gappedGuide, gappedRecon, gappedAncestralRecon;
     ReconPostProbMap gappedAncestralReconPostProb;

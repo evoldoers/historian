@@ -118,7 +118,8 @@ ProgUsage::ProgUsage (int argc, char** argv)
     //    + "  -kmatchmax      Set kmer threshold to use all available memory (default)\n"
     + "  -kmatchoff      No kmer threshold, do full DP\n"
     + "\n"
-    + "  -upgma          Use UPGMA, not neighbor-joining, to estimate tree\n"
+    //    + "  -upgma          Use UPGMA to estimate tree (default)\n"
+    + "  -nj             Use neighbor-joining, not UPGMA, to estimate tree\n"
     + "\n"
     + "Model-fitting and event-counting options\n"
     + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
@@ -207,7 +208,6 @@ int main (int argc, char** argv) {
 
     recon.reconstructRoot = true;
     recon.runMCMC = true;
-    recon.useUPGMA = true;
     recon.accumulateSubstCounts = false;
     recon.accumulateIndelCounts = false;
 

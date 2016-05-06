@@ -25,7 +25,7 @@ Reconstructor::Reconstructor()
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     guideAlignTryAllPairs (true),
-    useUPGMA (false),
+    useUPGMA (true),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
@@ -261,6 +261,11 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
 
     } else if (arg == "-upgma") {
       useUPGMA = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-nj") {
+      useUPGMA = false;
       argvec.pop_front();
       return true;
 
@@ -685,8 +690,8 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	lpFinalFwd = forward.lpEnd;
 
       if (nodeProf.size()) {
-        const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
-        LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
+	const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
+	LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
 
 	if (node == dataset.tree.root())
 	  lpFinalTrace = lpTrace;
@@ -783,9 +788,7 @@ void Reconstructor::writeModel (ostream& out) const {
 void Reconstructor::loadRecon() {
   if (fastaReconFilename.size()) {
 
-    datasets.push_back (Dataset());
-    Dataset& dataset = datasets.back();
-
+    Dataset& dataset = newDataset();
     dataset.name = fastaReconFilename;
 
     loadTree (dataset);
@@ -891,6 +894,8 @@ void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) 
 void Reconstructor::sampleAll() {
   if (runMCMC)
     for (auto& dataset: datasets) {
+      if (!dataset.hasReconstruction())
+	reconstruct (dataset);
       SimpleTreePrior treePrior;
       Sampler sampler (model, treePrior, dataset.gappedGuide);
       HistoryLogger logger (*this, dataset.name);

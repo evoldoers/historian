@@ -79,6 +79,14 @@ TreeNodeIndex Sampler::randomContemporaneousNode (const Tree& tree, const vguard
   return contemp;
 }
 
+AlignRowIndex Sampler::guideRow (const Tree& tree, TreeNodeIndex node) const {
+  return guideRowByName.at (tree.nodeName (node));
+}
+
+GuideAlignmentEnvelope Sampler::makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2) const {
+  return GuideAlignmentEnvelope (guide.path, guideRow(tree,leaf1), guideRow(tree,leaf2), maxDistanceFromGuide);
+}
+
 vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
   LogThisAt(9,"Mapping sequence coordinates between node #" << row << " and closest leaf #" << guideRow << endl);
   vguard<SeqIdx> guidePos;
@@ -87,13 +95,13 @@ vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, A
   const AlignRowPath& rowPath = path.at(row);
   const AlignRowPath& guideRowPath = path.at(guideRow);
   SeqIdx pos = 0;
+  guidePos.push_back (0);
   for (AlignColIndex col = 0; col < cols; ++col) {
     if (guideRowPath[col])
       ++pos;
     if (rowPath[col])
-      guidePos.push_back (pos > 0 ? (pos - 1) : 0);
+      guidePos.push_back (pos);
   }
-  guidePos.push_back (pos > 0 ? (pos - 1) : 0);
   return guidePos;
 }
 
@@ -330,7 +338,7 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
   const TreeNodeIndex parentClosestLeaf = history.tree.closestLeaf (parent, node);
   const TreeNodeIndex nodeClosestLeaf = history.tree.closestLeaf (node, parent);
 
-  const GuideAlignmentEnvelope branchEnv (sampler.guide.path, parentClosestLeaf, nodeClosestLeaf, sampler.maxDistanceFromGuide);
+  const GuideAlignmentEnvelope branchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf);
 
   const Alignment oldAlign (history.gapped);
   const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
@@ -392,7 +400,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
   const vguard<SeqIdx> leftChildEnvPos = guideSeqPos (oldAlign.path, leftChild, leftChildClosestLeaf);
   const vguard<SeqIdx> rightChildEnvPos = guideSeqPos (oldAlign.path, rightChild, rightChildClosestLeaf);
 
-  const GuideAlignmentEnvelope siblingEnv (sampler.guide.path, leftChildClosestLeaf, rightChildClosestLeaf, sampler.maxDistanceFromGuide);
+  const GuideAlignmentEnvelope siblingEnv = sampler.makeGuide (history.tree, leftChildClosestLeaf, rightChildClosestLeaf);
 
   map<TreeNodeIndex,TreeNodeIndex> exclude;
   exclude[leftChild] = node;
@@ -430,7 +438,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
     const TreeNodeIndex nodeClosestLeaf = history.tree.closestLeaf (node, parent);
     const TreeNodeIndex parentClosestLeaf = history.tree.closestLeaf (parent, node);
 
-    const GuideAlignmentEnvelope branchEnv (sampler.guide.path, parentClosestLeaf, nodeClosestLeaf, sampler.maxDistanceFromGuide);
+    const GuideAlignmentEnvelope branchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf);
     const AlignPath& nodeSubtreePath = newPath;
     const vguard<SeqIdx> newNodeEnvPos = guideSeqPos (nodeSubtreePath, node, nodeClosestLeaf);
     const vguard<SeqIdx> oldNodeEnvPos = guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
@@ -532,8 +540,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   const vguard<SeqIdx> newSibEnvPos = guideSeqPos (oldAlign.path, newSibling, newSibClosestLeaf);
   const vguard<SeqIdx> newGranEnvPos = guideSeqPos (oldAlign.path, newGrandparent, newGranClosestLeaf);
 
-  const GuideAlignmentEnvelope newSibEnv (sampler.guide.path, nodeClosestLeaf, newSibClosestLeaf, sampler.maxDistanceFromGuide);
-  const GuideAlignmentEnvelope oldSibEnv (sampler.guide.path, nodeClosestLeaf, oldSibClosestLeaf, sampler.maxDistanceFromGuide);
+  const GuideAlignmentEnvelope newSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, newSibClosestLeaf);
+  const GuideAlignmentEnvelope oldSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, oldSibClosestLeaf);
 
   map<TreeNodeIndex,TreeNodeIndex> exclude;
   exclude[node] = parent;
@@ -561,8 +569,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
   const AlignPath newParentSubtreePath = alignPathMerge (mergeComponents);
 
-  const GuideAlignmentEnvelope newBranchEnv (sampler.guide.path, newGranClosestLeaf, newParentClosestLeaf, sampler.maxDistanceFromGuide);
-  const GuideAlignmentEnvelope oldBranchEnv (sampler.guide.path, oldGranClosestLeaf, oldParentClosestLeaf, sampler.maxDistanceFromGuide);
+  const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, newGranClosestLeaf, newParentClosestLeaf);
+  const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, oldGranClosestLeaf, oldParentClosestLeaf);
 
   const vguard<SeqIdx> newParentEnvPos = guideSeqPos (newParentSubtreePath, parent, newParentClosestLeaf);
   const vguard<SeqIdx> oldParentEnvPos = guideSeqPos (oldAlign.path, parent, oldParentClosestLeaf);
@@ -579,6 +587,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
   const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
+  // TODO: account for the fact that reverse move may have different number of contemps (since we don't count siblings as contemps)
   logForwardProposal = logPostNewSiblingPath + logPostNewBranchPath;
   logReverseProposal = logPostOldSiblingPath + logPostOldBranchPath;
 
@@ -1019,6 +1028,7 @@ void Sampler::SiblingMatrix::getColumn (const CellCoords& coords, bool& l, bool&
   case IMM: if (coords.xpos > 0 && coords.ypos > 0) p = l = r = true; break;
   case IMD: p = l = true; break;
   case IDM: p = r = true; break;
+  case IDD: p = true; break;
   case IIW: case IIX: if (coords.xpos > 0) l = true; break;
   case IMI: case IDI: if (coords.ypos > 0) r = true; break;
   default: break;
@@ -1176,7 +1186,13 @@ Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, cons
     moveRate (Move::TotalMoveTypes, 1.),
     guide (gappedGuide),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
-{ }
+{
+  for (AlignRowIndex r = 0; r < gappedGuide.size(); ++r) {
+    const string& name = gappedGuide[r].name;
+    Assert (guideRowByName.count(name) == 0, "Duplicate name %s in guide alignment", name.c_str());
+    guideRowByName[name] = r;
+  }
+}
 
 Sampler::Move Sampler::proposeMove (const History& oldHistory, random_engine& generator) const {
   const Move::Type type = (Move::Type) random_index (moveRate, generator);
@@ -1217,7 +1233,7 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     move.newHistory.tree.assertPostorderSorted();
     if (isUltrametric)
       move.newHistory.tree.assertUltrametric();
-
+    
     // accept/reject
     if (move.accept (generator))
       history = move.newHistory;

@@ -67,6 +67,14 @@ std::string to_string_join (const Container& c, const char* sep = " ") {
   return j.str();
 }
 
+/* transform_vector */
+template<class S,class T>
+std::vector<S> transform_vector (const std::vector<T>& v, S (op) (const T&)) {
+  std::vector<S> result;
+  std::transform (v.begin(), v.end(), back_inserter(result), op);
+  return result;
+}
+
 /* split */
 std::vector<std::string> split (const std::string& s, const char* splitChars = " \t\n");
 

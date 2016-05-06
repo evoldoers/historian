@@ -119,12 +119,15 @@ AlignSeqMap::AlignSeqMap (const vguard<AlignPath>& alignments)
     for (auto& row_path : align)
       rowPos[row_path.first] = 0;
     for (AlignColIndex col = 0; col < alignCols[nAlign]; ++col) {
+      bool allGaps = true;
       for (auto& row_path : align)
 	if (row_path.second[col]) {
 	  const SeqIdx pos = rowPos[row_path.first]++;
 	  alignColRowToPos[nAlign][col][row_path.first] = pos;
 	  rowPosAlignToCol[row_path.first][pos][nAlign] = col;
+	  allGaps = false;
 	}
+      Assert (!allGaps, "Column %d of alignment %d in AlignSeqMap is empty", col, nAlign);
     }
   }
 }
@@ -148,6 +151,7 @@ map<AlignSeqMap::AlignNum,AlignColIndex> AlignSeqMap::linkedColumns (AlignNum nA
 }
 
 AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
+  LogThisAt(8,"Merging alignments:\n" << to_string_join (transform_vector (alignments, alignPathString), "//\n"));
   const AlignSeqMap alignSeqMap (alignments);
   AlignPath a;
   for (auto& row_seqlen : alignSeqMap.seqLen)
