@@ -300,6 +300,7 @@ struct Sampler {
     bool accept (random_engine& generator) const;
 
     static const char* typeName (Type t);
+    static size_t typeNameWidth();
   };
 
   struct BranchAlignMove : Move {

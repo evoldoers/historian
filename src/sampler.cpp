@@ -361,6 +361,10 @@ const char* Sampler::Move::typeName (Type t) {
   return "Unknown";
 }
 
+size_t Sampler::Move::typeNameWidth() {
+  return 20;
+}
+
 bool Sampler::Move::accept (random_engine& generator) const {
   bool a;
   if (nullified)
@@ -371,7 +375,9 @@ bool Sampler::Move::accept (random_engine& generator) const {
     bernoulli_distribution distribution (exp (logHastingsRatio));
     a = distribution (generator);
   }
-  LogThisAt(3,typeName(type) << " move " << (a ? "ACCEPTED" : "REJECTED") << " with log-Hastings ratio " << logHastingsRatio << (nullified ? " (null move)" : "") << endl);
+  LogThisAt(3,setw(Move::typeNameWidth()) << typeName(type) << " move " << (a ? "ACCEPTED" : "REJECTED")
+	    << " with log-Hastings ratio " << setw(10) << logHastingsRatio
+	    << (nullified ? " (null move)" : "") << endl);
   return a;
 }
 
@@ -1410,7 +1416,7 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
 string Sampler::moveStats() const {
   ostringstream out;
   for (int t = 0; t < (int) Move::TotalMoveTypes; ++t)
-    out << setw(20) << Move::typeName ((Move::Type) t) << ": "
+    out << setw(Move::typeNameWidth()) << Move::typeName ((Move::Type) t) << ": "
 	<< setw(5) << movesProposed[t] << " moves, "
 	<< setw(5) << movesAccepted[t] << " accepted, "
 	<< setw(12) << (moveNanosecs[t] / 1e9) << " seconds, "
