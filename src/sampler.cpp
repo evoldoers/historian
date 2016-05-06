@@ -69,8 +69,7 @@ TreeNodeIndex Sampler::randomGrandchildNode (const Tree& tree, random_engine& ge
   return random_element (grandkids, generator);
 }
 
-TreeNodeIndex Sampler::randomContemporaneousNode (const Tree& tree, const vguard<TreeBranchLength>& dist, TreeNodeIndex node, random_engine& generator) {
-  TreeNodeIndex contemp = -1;
+vguard<TreeNodeIndex> Sampler::contemporaneousNodes (const Tree& tree, const vguard<TreeBranchLength>& dist, TreeNodeIndex node) {
   vguard<TreeNodeIndex> contemps;
   const TreeNodeIndex parent = tree.parentNode(node);
   Assert (parent >= 0, "Parent node not found");
@@ -81,11 +80,7 @@ TreeNodeIndex Sampler::randomContemporaneousNode (const Tree& tree, const vguard
     if (p != parent && dist[p] < distParent && dist[n] > distParent)
       contemps.push_back (n);
   }
-  if (contemps.size() > 0)
-    contemp = random_element (contemps, generator);
-  else
-    Warn ("No nodes contemporaneous with #%d were found", node);
-  return contemp;
+  return contemps;
 }
 
 AlignRowIndex Sampler::guideRow (const Tree& tree, TreeNodeIndex node) const {
@@ -138,8 +133,8 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
     switch (state) {
     case ProbModel::Match:
       while (nDel > 0) {
-	r1.push_back (false);
-	r2.push_back (true);
+	r1.push_back (true);
+	r2.push_back (false);
 	--nDel;
       }
     case ProbModel::Insert:
@@ -153,10 +148,12 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
     }
   }
   while (nDel > 0) {
-    r1.push_back (false);
-    r2.push_back (true);
+    r1.push_back (true);
+    r2.push_back (false);
     --nDel;
   }
+  Assert (alignPathResiduesInRow(r1) == alignPathResiduesInRow(row1)
+	  && alignPathResiduesInRow(r2) == alignPathResiduesInRow(row2), "Rows don't match");
   return p;
 }
 
@@ -207,6 +204,9 @@ AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, Tree
     pr.push_back (false);
     --nLeftIns;
   }
+  Assert (alignPathResiduesInRow(lr) == alignPathResiduesInRow(lRow)
+	  && alignPathResiduesInRow(rr) == alignPathResiduesInRow(rRow)
+	  && alignPathResiduesInRow(pr) == alignPathResiduesInRow(pRow), "Rows don't match");
   return p;
 }
 
@@ -489,12 +489,13 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   const vguard<TreeBranchLength>& distanceFromRoot = history.tree.distanceFromRoot();
 
   node = Sampler::randomGrandchildNode (history.tree, generator);
-  newSibling = Sampler::randomContemporaneousNode (history.tree, distanceFromRoot, node, generator);
 
-  if (newSibling < 0) {
+  const vector<TreeNodeIndex> contemps = contemporaneousNodes (history.tree, distanceFromRoot, node);
+  if (contemps.empty()) {
     nullify();
     return;
   }
+  const TreeNodeIndex newSibling = random_element (contemps, generator);
 
   parent = history.tree.parentNode (node);
   Assert (parent >= 0, "Parent node not found");
@@ -596,12 +597,13 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
   const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
-  // TODO: account for the fact that reverse move may have different number of contemps (since we don't count siblings as contemps)
-  logForwardProposal = logPostNewSiblingPath + logPostNewBranchPath;
-  logReverseProposal = logPostOldSiblingPath + logPostOldBranchPath;
+  const vector<TreeNodeIndex> newContemps = contemporaneousNodes (newTree, newTree.distanceFromRoot(), node);
 
-  LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
-  LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+  logForwardProposal = -log(contemps.size()) + logPostNewSiblingPath + logPostNewBranchPath;
+  logReverseProposal = -log(newContemps.size()) + logPostOldSiblingPath + logPostOldBranchPath;
+
+  LogThisAt(6,"log(Q_new) = " << setw(10) << -log(contemps.size()) << " (newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+  LogThisAt(6,"log(Q_old) = " << setw(10) << -log(newContemps.size()) << " (oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
   mergeComponents.push_back (newGranCladePath);
   mergeComponents.push_back (newBranchPath);
@@ -784,7 +786,28 @@ AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
 }
 
 LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const {
-  return logBranchPathLikelihood (probModel, path, xRow, yRow) - lpEnd;
+  const AlignColIndex cols = alignPathColumns (path);
+  LogProb lp = 0;
+  CellCoords c (0, 0, ProbModel::Start);
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    const bool dx = path.at(xRow)[col];
+    const bool dy = path.at(yRow)[col];
+    if (dx)
+      ++c.xpos;
+    if (dy)
+      ++c.ypos;
+    const ProbModel::State prevState = (ProbModel::State) c.state;
+    c.state = ProbModel::getState (dx, dy);
+    if (!inEnvelope (c.xpos, c.ypos))
+      return -numeric_limits<double>::infinity();
+    lp += lpTrans (prevState, (ProbModel::State) c.state) + lpEmit (c);
+    Assert (lp <= cell(c) * (1 - SAMPLER_EPSILON), "Positive posterior probability");
+    lp = min (lp, cell(c));  // mitigate precision errors
+  }
+  lp += lpTrans ((ProbModel::State) c.state, ProbModel::End);
+  Assert (lp <= lpEnd * (1 - SAMPLER_EPSILON), "Positive posterior probability");
+  lp = min (lp, lpEnd);
+  return lp - lpEnd;
 }
 
 LogProb Sampler::BranchMatrix::lpTrans (State src, State dest) const {
@@ -876,6 +899,7 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
   plog.initProgress ("Parent proposal matrix (%u*%u)", xSize, ySize);
 
   lpStart() = 0;
+  cell(0,0,WWW) = imm_www;
   for (SeqIdx xpos = 0; xpos < xSize; ++xpos) {
 
     plog.logProgress (xpos / (double) (xSize - 1), "row %d/%d", xpos + 1, xSize);
@@ -1006,15 +1030,29 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
 }
 
 LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const {
-  LogProb lp = 0;
-  State state = SSS;
   const AlignColIndex cols = alignPathColumns (lrpPath);
+  LogProb lp = 0;
+  CellCoords c (0, 0, SSS);
   for (AlignColIndex col = 0; col < cols; ++col) {
-    const State nextState = getState (state, lrpPath.at(lRow)[col], lrpPath.at(rRow)[col], lrpPath.at(pRow)[col]);
-    lp += lpTransElim (state, nextState);
-    state = nextState;
+    const bool dl = lrpPath.at(lRow)[col];
+    const bool dr = lrpPath.at(rRow)[col];
+    const bool dp = lrpPath.at(pRow)[col];
+    if (dl)
+      ++c.xpos;
+    if (dr)
+      ++c.ypos;
+    const State prevState = (State) c.state;
+    c.state = getState (prevState, dl, dr, dp);
+    if (!inEnvelope (c.xpos, c.ypos))
+      return -numeric_limits<double>::infinity();
+    lp += lpTransElim (prevState, (State) c.state) + lpEmit (c);
+    Assert (lp <= cell(c) * (1 - SAMPLER_EPSILON), "Positive posterior probability");
+    lp = min (lp, cell(c));  // mitigate precision errors
   }
-  return lp;
+  lp += lpTransElim ((State) c.state, EEE);
+  Assert (lp <= lpEnd * (1 - SAMPLER_EPSILON), "Positive posterior probability");
+  lp = min (lp, lpEnd);
+  return lp - lpEnd;
 }
 
 LogProb Sampler::SiblingMatrix::lpEmit (const CellCoords& coords) const {

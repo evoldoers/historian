@@ -619,7 +619,6 @@ TreeNodeIndex Tree::closestLeaf (TreeNodeIndex node, TreeNodeIndex parent) const
     } else {
       closest[n] = -1;
       for (auto c : rerootedChildren(n,newParent[n])) {
-	//	LogThisAt(9,"node=" << node << " parent=" << parent << " n=" << n << " newParent[n]=" << newParent[n] << " c=" << c << " closest[c]=" << closest[c] << " dist[c]=" << dist[c] << " branch(n,c)=" << branchLength(n,c) << endl);
 	const TreeBranchLength d = dist[c] + branchLength(n,c);
 	if (closest[n] < 0 || d < dist[n]) {
 	  closest[n] = closest[c];

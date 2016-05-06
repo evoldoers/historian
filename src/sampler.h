@@ -339,7 +339,8 @@ struct Sampler {
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomChildNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomGrandchildNode (const Tree& tree, random_engine& generator);
-  static TreeNodeIndex randomContemporaneousNode (const Tree& tree, const vguard<TreeBranchLength>& distanceFromRoot, TreeNodeIndex node, random_engine& generator);
+
+  static vguard<TreeNodeIndex> contemporaneousNodes (const Tree& tree, const vguard<TreeBranchLength>& distanceFromRoot, TreeNodeIndex node);
 
   AlignRowIndex guideRow (const Tree& tree, TreeNodeIndex node) const;
   GuideAlignmentEnvelope makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2) const;
