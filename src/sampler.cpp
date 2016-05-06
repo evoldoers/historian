@@ -178,6 +178,7 @@ AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, Tree
       break;
     case Sampler::SiblingMatrix::IIW:
       ++nLeftIns;
+      break;
     default:
       Abort ("bad state: %d  (l,r,p)=(%d,%d,%d)", (int) state, lc, rc, pc);
       break;
