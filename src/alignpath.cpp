@@ -197,7 +197,7 @@ AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
 
   const AlignRowIndex rows = a.size();
   const AlignColIndex cols = alignPathColumns (a);  // this will also test if alignment is flush
-  LogThisAt(2,"Merged " << alignments.size() << " alignments into a single alignment with " << rows << " rows and " << cols << " columns" << endl);
+  LogThisAt(7,"Merged " << alignments.size() << " alignments into a single alignment with " << rows << " rows and " << cols << " columns" << endl);
 
   return a;
 }
