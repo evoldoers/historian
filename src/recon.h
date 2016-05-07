@@ -93,10 +93,12 @@ public:
   void loadCounts();
 
   void reconstructAll();
+  void predictAllAncestors();
   void countAll();
   void sampleAll();
 
   void reconstruct (Dataset& dataset);
+  void predictAncestors (Dataset& dataset);
   void count (Dataset& dataset);
   void fit();
 

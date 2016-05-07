@@ -197,7 +197,8 @@ int main (int argc, char** argv) {
 
       recon.reconstructAll();
       recon.sampleAll();
-
+      recon.predictAllAncestors();
+      
       recon.writeRecon (cout);
     };
 

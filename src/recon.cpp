@@ -49,6 +49,25 @@ Reconstructor::Reconstructor()
     guideFile (NULL)
 { }
 
+bool Reconstructor::parseAncSeqArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-ancseq") {
+      predictAncestralSequence = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-ancprob") {
+      reportAncestralSequenceProbability = true;
+      predictAncestralSequence = true;
+      argvec.pop_front();
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
@@ -57,15 +76,15 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-mcmc") {
-      runMCMC = true;
-      useUPGMA = true;
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-ancprob") {
       reportAncestralSequenceProbability = true;
       predictAncestralSequence = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-mcmc") {
+      runMCMC = true;
+      useUPGMA = true;
       argvec.pop_front();
       return true;
 
@@ -93,28 +112,6 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       minDotSubPostProb = atof (argvec[1].c_str());
       useSeparateSubPosteriorsForDot = true;
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-saveguide") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      guideSaveFilename = argvec[1];
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-output") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      const string format = toupper (argvec[1]);
-      if (format == "NEXUS")
-	outputFormat = NexusFormat;
-      else if (format == "FASTA")
-	outputFormat = FastaFormat;
-      else if (format == "STOCKHOLM")
-	outputFormat = StockholmFormat;
-      else
-	Fail ("Unrecognized format: %s", argvec[1].c_str());
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -191,6 +188,28 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
     } else if (arg == "-stockholm") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       stockholmGuideFilenames.push_back (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-saveguide") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      guideSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-output") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const string format = toupper (argvec[1]);
+      if (format == "NEXUS")
+	outputFormat = NexusFormat;
+      else if (format == "FASTA")
+	outputFormat = FastaFormat;
+      else if (format == "STOCKHOLM")
+	outputFormat = StockholmFormat;
+      else
+	Fail ("Unrecognized format: %s", argvec[1].c_str());
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -716,18 +735,6 @@ void Reconstructor::reconstruct (Dataset& dataset) {
   if (reconstructRoot) {
     dataset.reconstruction = makeAlignment (dataset, path, dataset.tree.root());
     dataset.gappedRecon = dataset.reconstruction.gapped();
-
-    if (predictAncestralSequence) {
-      AlignColSumProduct colSumProd (model, dataset.tree, dataset.gappedRecon);
-      while (!colSumProd.alignmentDone()) {
-	colSumProd.fillUp();
-	colSumProd.fillDown();
-	colSumProd.appendAncestralReconstructedColumn (dataset.gappedAncestralRecon);
-	if (reportAncestralSequenceProbability)
-	  colSumProd.appendAncestralPostProbColumn (dataset.gappedAncestralReconPostProb);
-	colSumProd.nextColumn();
-      }
-    }
   }
 
   if (accumulateSubstCounts)
@@ -737,6 +744,25 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 
   if (sumProd)
     delete sumProd;
+}
+
+void Reconstructor::predictAncestors (Dataset& dataset) {
+  if (predictAncestralSequence) {
+    AlignColSumProduct colSumProd (model, dataset.tree, dataset.gappedRecon);
+    while (!colSumProd.alignmentDone()) {
+      colSumProd.fillUp();
+      colSumProd.fillDown();
+      colSumProd.appendAncestralReconstructedColumn (dataset.gappedAncestralRecon);
+      if (reportAncestralSequenceProbability)
+	colSumProd.appendAncestralPostProbColumn (dataset.gappedAncestralReconPostProb);
+      colSumProd.nextColumn();
+    }
+  }
+}
+
+void Reconstructor::predictAllAncestors() {
+  for (auto& ds : datasets)
+    predictAncestors (ds);
 }
 
 void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, const string& name, ostream& out, bool isReconstruction, const ReconPostProbMap* postProb) const {
