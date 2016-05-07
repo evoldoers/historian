@@ -189,6 +189,7 @@ int main (int argc, char** argv) {
 	     || recon.parseProfileArgs (argvec)
 	     || recon.parseDiagEnvArgs (argvec)
 	     || recon.parseSamplerArgs (argvec)
+	     || recon.parseAncSeqArgs (argvec)
 	     || usage.parseUnknown())
 	{ }
 
@@ -217,9 +218,10 @@ int main (int argc, char** argv) {
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
-	   || recon.parseSamplerArgs (argvec)
 	   || recon.parseProfileArgs (argvec)
 	   || recon.parseDiagEnvArgs (argvec)
+	   || recon.parseSamplerArgs (argvec)
+	   || recon.parseAncSeqArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
@@ -241,10 +243,10 @@ int main (int argc, char** argv) {
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
-	   || recon.parseCountArgs (argvec)
-	   || recon.parseSumArgs (argvec)
 	   || recon.parseProfileArgs (argvec)
 	   || recon.parseDiagEnvArgs (argvec)
+	   || recon.parseCountArgs (argvec)
+	   || recon.parseSumArgs (argvec)
 	   || usage.parseUnknown())
       { }
 
@@ -281,12 +283,12 @@ int main (int argc, char** argv) {
     usage.unlimitImplicitSwitches = true;
     
     while (logger.parseLogArgs (argvec)
-	   || recon.parseFitArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
-	   || recon.parseCountArgs (argvec)
-	   || recon.parseSumArgs (argvec)
 	   || recon.parseProfileArgs (argvec)
 	   || recon.parseDiagEnvArgs (argvec)
+	   || recon.parseCountArgs (argvec)
+	   || recon.parseSumArgs (argvec)
+	   || recon.parseFitArgs (argvec)
 	   || usage.parseUnknown())
       { }
 

@@ -71,18 +71,7 @@ bool Reconstructor::parseAncSeqArgs (deque<string>& argvec) {
 bool Reconstructor::parseReconArgs (deque<string>& argvec) {
   if (argvec.size()) {
     const string& arg = argvec[0];
-    if (arg == "-ancseq") {
-      predictAncestralSequence = true;
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-ancprob") {
-      reportAncestralSequenceProbability = true;
-      predictAncestralSequence = true;
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-mcmc") {
+    if (arg == "-mcmc") {
       runMCMC = true;
       useUPGMA = true;
       argvec.pop_front();
@@ -929,7 +918,6 @@ void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) 
 
 void Reconstructor::sampleAll() {
   if (runMCMC) {
-    Assert (!predictAncestralSequence, "Can't predict ancestral sequence with MCMC");
     for (auto& dataset: datasets) {
       if (!dataset.hasReconstruction())
 	reconstruct (dataset);

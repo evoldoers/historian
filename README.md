@@ -28,9 +28,12 @@ Commands can be abbreviated to single letters, like so:
   historian f -counts counts.json &gt;model.json
 (etc.)
 
+If a command is omitted, 'reconstruct' is assumed.
+
 OPTIONS
 
-Reconstruction file I/O options:
+Reconstruction file I/O options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   -auto &lt;file&gt;    Auto-detect file format and guess its purpose
   -model &lt;file&gt;   Specify substitution & indel model (JSON)
   -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
@@ -44,8 +47,8 @@ Reconstruction file I/O options:
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
 
-Reconstruction algorithm options:
-
+Reconstruction algorithm options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The reconstruction algorithm iterates through the guide tree in postorder,
 aligning each sibling pair and reconstructing a profile of their parent.
 The dynamic programming is constrained to a band around a guide alignment,
@@ -57,14 +60,21 @@ sensitivity vs performance.
 
   -band &lt;n&gt;       Size of band around guide alignment (default 10)
   -noband         Unlimit band, ignore guide alignment
-  -minpost &lt;p&gt;    Posterior prob. threshold for profile states (default .01)
-  -states &lt;n&gt;     Limit max number of states per profile
+
+  -profminpost &lt;P&gt;, -profsamples &lt;N&gt;, -profmaxstates &lt;S&gt;
+                  Specify minimum posterior prob. (P) for retaining DP states
+                   in profile (default .01), or sample N states randomly;
+                   either way, limit profile to at most S states
 
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
   -ancprob        Report posterior probabilities for ancestral residues
 
-Guide alignment & tree estimation options:
+  -mcmc           Run MCMC sampler after reconstruction
+  -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
+  -trace &lt;file&gt;   Specify MCMC trace filename (default is stdout)
 
+Guide alignment & tree estimation options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The guide aligner builds a maximal spanning tree of pairwise alignments.
 It can be accelerated in two ways: (1) by using a sparse random forest
 instead of a fully connected all-vs-all pairwise comparison; and (2) by
@@ -83,10 +93,10 @@ memory threshold can be set with -kmatchmb). It can be disabled with
   -kmatchmb &lt;M&gt;   Set kmer threshold to use M megabytes of memory
   -kmatchoff      No kmer threshold, do full DP
 
-  -upgma          Use UPGMA, not neighbor-joining, to estimate tree
+  -nj             Use neighbor-joining, not UPGMA, to estimate tree
 
-Model-fitting and event-counting options:
-
+Model-fitting and event-counting options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 By default, the reconstruction algorithm will interpret any supplied alignment
 as a guide alignment, i.e. a hint, even if it contains a full ancestral sequence
 reconstruction. To insist that the alignment be interpreted as a reconstruction,
@@ -101,7 +111,8 @@ precede it with -recon, -nexusrecon or -stockrecon (depending on the format).
   -fixsubrates    Do not estimate substitution rates or initial composition
   -fixgaprates    Do not estimate indel rates or length distributions
 
-General options:
+General options
+~~~~~~~~~~~~~~~
   -verbose, -vv, -vvv, -v4, -v5, etc.
                   Various levels of logging (-nocolor for monochrome)
   -V, --version   Print GNU-style version info

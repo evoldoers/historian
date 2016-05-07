@@ -72,6 +72,7 @@ public:
   Reconstructor();
 
   bool parseReconArgs (deque<string>& argvec);
+  bool parseAncSeqArgs (deque<string>& argvec);
   bool parseDiagEnvArgs (deque<string>& argvec);
   bool parseProfileArgs (deque<string>& argvec);
   bool parseSamplerArgs (deque<string>& argvec);
