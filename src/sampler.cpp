@@ -315,6 +315,12 @@ vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogPr
 Sampler::Move::Move (Type type, const History& history)
   : type (type),
     nullified (false),
+    newLogLikelihood (0),
+    oldLogLikelihood (0),
+    logForwardProposal (0),
+    logReverseProposal (0),
+    logJacobian (0),
+    logAcceptProb (-numeric_limits<double>::infinity()),
     oldHistory (history)
 { }
 
@@ -332,15 +338,16 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
   oldLogLikelihood = sampler.logLikelihood (oldHistory, "_old");
   newLogLikelihood = sampler.logLikelihood (newHistory, "_new");
 
-  LogThisAt(5,"log(L_old) = " << oldLogLikelihood << ", log(L_new) = " << newLogLikelihood << ", log(Q_fwd) = " << logForwardProposal << ", log(Q_rev) = " << logReverseProposal << endl);
+  const LogProb logHastingsRatio = logReverseProposal - logForwardProposal + logJacobian;
+  LogThisAt(5,"log(L_old) = " << oldLogLikelihood << ", log(L_new) = " << newLogLikelihood << ", log(HastingsRatio) = " << logHastingsRatio << endl);
 
-  logHastingsRatio = (newLogLikelihood - oldLogLikelihood) - (logForwardProposal - logReverseProposal);
+  logAcceptProb = logHastingsRatio + newLogLikelihood - oldLogLikelihood;
 }
 
 void Sampler::Move::nullify (const char* reason) {
   newHistory = oldHistory;
   newLogLikelihood = oldLogLikelihood = -numeric_limits<double>::infinity();
-  logHastingsRatio = logForwardProposal = logReverseProposal = 0;
+  logAcceptProb = logJacobian = logForwardProposal = logReverseProposal = 0;
   nullified = true;
   comment = string("(") + reason + ")";
 }
@@ -371,15 +378,15 @@ bool Sampler::Move::accept (random_engine& generator) const {
   bool a;
   if (nullified)
     a = false;
-  else if (logHastingsRatio >= 0)
+  else if (logAcceptProb >= 0)
     a = true;
   else {
-    bernoulli_distribution distribution (exp (logHastingsRatio));
+    bernoulli_distribution distribution (exp (logAcceptProb));
     a = distribution (generator);
   }
   LogThisAt(3,setw(Move::typeNameWidth()) << typeName(type) << " move "
 	    << (nullified ? "bypassed" : (a ? "ACCEPTED" : "rejected"))
-	    << " with log-Hastings ratio " << setw(10) << logHastingsRatio
+	    << " with log(P_accept) = " << setw(10) << logAcceptProb
 	    << " " << comment << endl);
   return a;
 }
@@ -528,8 +535,8 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
     logForwardProposal += logPostNewBranchPath;
     logReverseProposal += logPostOldBranchPath;
 
-    LogThisAt(6,"log(Q_new) = " << setw(10) << logPostNewSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostNewBranchPath << " (parent:node) = " << logForwardProposal << endl);
-    LogThisAt(6,"log(Q_old) = " << setw(10) << logPostOldSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostOldBranchPath << " (parent:node) = " << logReverseProposal << endl);
+    LogThisAt(6,"log(Q_fwd) = " << setw(10) << logPostNewSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostNewBranchPath << " (parent:node) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_rev) = " << setw(10) << logPostOldSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostOldBranchPath << " (parent:node) = " << logReverseProposal << endl);
 
     mergeComponents.push_back (pCladePath);
     mergeComponents.push_back (newBranchPath);
@@ -676,8 +683,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
     logForwardProposal = -log(contemps.size()) + logPostNewSiblingPath + logPostNewBranchPath;
     logReverseProposal = -log(newContemps.size()) + logPostOldSiblingPath + logPostOldBranchPath;
 
-    LogThisAt(6,"log(Q_new) = " << setw(10) << -log(contemps.size()) << " (newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
-    LogThisAt(6,"log(Q_old) = " << setw(10) << -log(newContemps.size()) << " (oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+    LogThisAt(6,"log(Q_fwd) = " << setw(10) << -log(contemps.size()) << " (newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_rev) = " << setw(10) << -log(newContemps.size()) << " (oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
     mergeComponents.push_back (oldSibCladePath);
     mergeComponents.push_back (oldGranSibPath);
@@ -714,36 +721,39 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& 
 
   const TreeBranchLength lChildDist = history.tree.branchLength(leftChild);
   const TreeBranchLength rChildDist = history.tree.branchLength(rightChild);
-  const TreeBranchLength minChildDist = max (0., (double) min (lChildDist, rChildDist) - Tree::minBranchLength);
+  const TreeBranchLength minChildDist = min (lChildDist, rChildDist);
 
   Tree newTree = history.tree;
 
   if (parent < 0) {
-    const double lambda = sampler.treePrior.coalescenceRate (2);
-    exponential_distribution<TreeBranchLength> distribution (lambda);
-    const TreeBranchLength coalescenceTime = distribution (generator);
-
-    newTree.node[leftChild].d = (lChildDist - minChildDist) + coalescenceTime;
-    newTree.node[rightChild].d = (rChildDist - minChildDist) + coalescenceTime;
+    const double maxLogMultiplier = log(2);
+    uniform_real_distribution<double> distribution (-maxLogMultiplier, maxLogMultiplier);
+    const double logMultiplier = distribution (generator);
+    const double multiplier = exp (logMultiplier);
+    const double newMinChildDist = minChildDist * multiplier;
     
-    logForwardProposal = log(lambda) - lambda * coalescenceTime;
-    logReverseProposal = log(lambda) - lambda * minChildDist;
+    newTree.node[leftChild].d = lChildDist - minChildDist + newMinChildDist;
+    newTree.node[rightChild].d = rChildDist - minChildDist + newMinChildDist;
 
-    LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << coalescenceTime << " (previously " << minChildDist << ")" << endl);
+    logForwardProposal = 0;
+    logReverseProposal = 0;
+    logJacobian = logMultiplier;
+
+    LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << newMinChildDist << " (previously " << minChildDist << ", multiplier " << multiplier << ")" << endl);
 
   } else {
-    const TreeBranchLength pDist = max (0., (double) history.tree.branchLength(node) - Tree::minBranchLength);
+    const TreeBranchLength pDist = max (0., history.tree.branchLength(node));
     const TreeBranchLength pDistRange = pDist + minChildDist;
 
     uniform_real_distribution<TreeBranchLength> distribution (0, pDistRange);
     const TreeBranchLength pDistNew = distribution (generator);
     const TreeBranchLength cDistNew = pDistRange - pDistNew;
 
-    newTree.node[node].d = pDistNew + Tree::minBranchLength;
+    newTree.node[node].d = pDistNew;
     newTree.node[leftChild].d = (lChildDist - minChildDist) + cDistNew;
     newTree.node[rightChild].d = (rChildDist - minChildDist) + cDistNew;
 
-    logForwardProposal = logReverseProposal = 0;
+    logForwardProposal = logReverseProposal = logJacobian = 0;
 
     LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << cDistNew << " (previously " << minChildDist << ", maximum " << pDist << ")" << endl);
   }
@@ -755,22 +765,25 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& 
 Sampler::RescaleMove::RescaleMove (const History& history, const Sampler& sampler, random_engine& generator)
   : Move (Rescale, history)
 {
-  LogThisAt(4,"Proposing node-rescale move" << endl);
+  LogThisAt(4,"Proposing rescale move" << endl);
 
   const auto dist = history.tree.distanceFromRoot();
   const TreeBranchLength oldTreeHeight = *max_element (dist.begin(), dist.end());
 
-  const double lambda = sampler.treePrior.coalescenceRate(2) / 2;
-  exponential_distribution<TreeBranchLength> distribution (lambda);
-  const TreeBranchLength newTreeHeight = distribution (generator);
+  const double maxLogMultiplier = log(2);
+  uniform_real_distribution<double> distribution (-maxLogMultiplier, maxLogMultiplier);
+  const double logMultiplier = distribution (generator);
+  const double multiplier = exp (logMultiplier);
+  const TreeBranchLength newTreeHeight = oldTreeHeight * multiplier;
 
-  LogThisAt(6,"Sampled tree height: " << newTreeHeight << " (previously " << oldTreeHeight << ")" << endl);
+  LogThisAt(6,"Sampled tree height: " << newTreeHeight << " (previously " << oldTreeHeight << ", multiplier " << multiplier << ")" << endl);
 
   Tree newTree = history.tree;
   for (auto& node : newTree.node)
-    node.d *= newTreeHeight / oldTreeHeight;
+    node.d *= multiplier;
 
   logForwardProposal = logReverseProposal = 0;
+  logJacobian = logMultiplier;
 
   initNewHistory (newTree, oldHistory.gapped);
   initRatio (sampler);

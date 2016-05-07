@@ -287,7 +287,7 @@ struct Sampler {
     Type type;
     TreeNodeIndex node, parent, leftChild, rightChild, oldGrandparent, newGrandparent, oldSibling, newSibling;  // no single type of move uses all of these
     History oldHistory, newHistory;
-    LogProb logForwardProposal, logReverseProposal, oldLogLikelihood, newLogLikelihood, logHastingsRatio;
+    LogProb logForwardProposal, logReverseProposal, logJacobian, oldLogLikelihood, newLogLikelihood, logAcceptProb;
     bool nullified;
     string comment;
     
