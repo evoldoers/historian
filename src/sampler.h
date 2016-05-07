@@ -289,10 +289,10 @@ struct Sampler {
     History oldHistory, newHistory;
     LogProb logForwardProposal, logReverseProposal, logJacobian, oldLogLikelihood, newLogLikelihood, logAcceptProb;
     bool nullified;
-    string comment;
+    string samplerName, comment;
     
     Move() { }
-    Move (Type type, const History& history);
+    Move (Type type, const History& history, const string& samplerName);
     
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped);
@@ -333,18 +333,28 @@ struct Sampler {
   const Alignment guide;
   map<string,AlignRowIndex> guideRowByName;
   int maxDistanceFromGuide;
-  History bestHistory;
+
+  string name;
+  History history, bestHistory;
   LogProb bestLogLikelihood;
+  bool isUltrametric;
   
   // Sampler constructor
   Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide);
 
-  // Sampler methods
+  // Sampler setup methods
   void addLogger (Logger& logger);
+  void initialize (const History& initialHistory, const string& name);
+
+  // Sampler sampling methods
   LogProb logLikelihood (const History& history, const char* prefix = "") const;
   Move proposeMove (const History& oldHistory, random_engine& generator) const;
-  History run (const History& initialHistory, random_engine& generator, unsigned int nSamples = 1);
 
+  void sample (random_engine& generator);
+  
+  static void run (vguard<Sampler>& samplers, random_engine& generator, unsigned int nSamples = 1);
+
+  // Sampler summary methods
   string moveStats() const;
   
   // Sampler helpers

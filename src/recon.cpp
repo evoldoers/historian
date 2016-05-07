@@ -918,24 +918,38 @@ void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) 
 
 void Reconstructor::sampleAll() {
   if (runMCMC) {
+    SimpleTreePrior treePrior;
+    vguard<Sampler> samplers;
+    vguard<HistoryLogger*> loggers;
+    size_t totalNodes = 0;
     for (auto& dataset: datasets) {
       if (!dataset.hasReconstruction())
 	reconstruct (dataset);
       dataset.tree.assignInternalNodeNames (dataset.gappedRecon);
-      SimpleTreePrior treePrior;
-      Sampler sampler (model, treePrior, dataset.gappedGuide);
-      HistoryLogger logger (*this, dataset.name);
-      sampler.addLogger (logger);
+      samplers.push_back (Sampler (model, treePrior, dataset.gappedGuide));
+      loggers.push_back (new HistoryLogger (*this, dataset.name));
+      Sampler& sampler = samplers.back();
+      sampler.addLogger (*loggers.back());
       Sampler::History history;
       history.tree = dataset.tree;
       history.gapped = dataset.gappedRecon;
-      sampler.run (history, generator, mcmcSamplesPerSeq * dataset.tree.nodes());
+      sampler.initialize (history, dataset.name);
+      totalNodes += history.tree.nodes();
+    }
+    
+    Sampler::run (samplers, generator, mcmcSamplesPerSeq * totalNodes);
 
+    for (size_t n = 0; n < datasets.size(); ++n) {
+      Dataset& dataset = datasets[n];
+      Sampler& sampler = samplers[n];
       dataset.tree = sampler.bestHistory.tree;
       dataset.gappedRecon = sampler.bestHistory.gapped;
       dataset.reconstruction = Alignment (dataset.gappedRecon);
       dataset.clearPrep();
     }
+
+    for (HistoryLogger* logger: loggers)
+      delete logger;
   }
 }
 

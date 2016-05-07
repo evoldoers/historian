@@ -66,7 +66,7 @@ public:
     void clearPrep();
     bool hasReconstruction() const { return !gappedRecon.empty(); }
   };
-  list<Dataset> datasets;
+  vguard<Dataset> datasets;
   EventCounts priorCounts, dataCounts, dataPlusPriorCounts;
   
   Reconstructor();

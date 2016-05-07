@@ -312,7 +312,7 @@ vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogPr
   return ins;
 }
 
-Sampler::Move::Move (Type type, const History& history)
+Sampler::Move::Move (Type type, const History& history, const string& samplerName)
   : type (type),
     nullified (false),
     newLogLikelihood (0),
@@ -321,7 +321,8 @@ Sampler::Move::Move (Type type, const History& history)
     logReverseProposal (0),
     logJacobian (0),
     logAcceptProb (-numeric_limits<double>::infinity()),
-    oldHistory (history)
+    oldHistory (history),
+    samplerName (samplerName)
 { }
 
 void Sampler::Move::initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path) {
@@ -385,7 +386,8 @@ bool Sampler::Move::accept (random_engine& generator) const {
     bernoulli_distribution distribution (exp (logAcceptProb));
     a = distribution (generator);
   }
-  LogThisAt(3,setw(Move::typeNameWidth()) << typeName(type) << " move "
+  LogThisAt(3,setw(30) << left << samplerName << right << " "
+	    << setw(Move::typeNameWidth()) << typeName(type) << " move "
 	    << (nullified ? "bypassed" : (a ? "ACCEPTED" : "rejected"))
 	    << " with log(P_accept) = " << setw(10) << logAcceptProb
 	    << " " << comment << endl);
@@ -393,7 +395,7 @@ bool Sampler::Move::accept (random_engine& generator) const {
 }
 
 Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (BranchAlign, history)
+  : Move (BranchAlign, history, sampler.name)
 {
   node = Sampler::randomChildNode (history.tree, generator);
   parent = history.tree.parentNode (node);
@@ -449,7 +451,7 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
 }
 
 Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (NodeAlign, history)
+  : Move (NodeAlign, history, sampler.name)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
 
@@ -555,7 +557,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
 }
 
 Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (PruneAndRegraft, history)
+  : Move (PruneAndRegraft, history, sampler.name)
 {
   const vguard<TreeBranchLength>& distanceFromRoot = history.tree.distanceFromRoot();
 
@@ -710,7 +712,7 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
 }
 
 Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (NodeHeight, history)
+  : Move (NodeHeight, history, sampler.name)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
   Assert (history.tree.nChildren(node) == 2, "Tree is not binary");
@@ -764,7 +766,7 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& 
 }
 
 Sampler::RescaleMove::RescaleMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (Rescale, history)
+  : Move (Rescale, history, sampler.name)
 {
   LogThisAt(4,"Proposing rescale move" << endl);
 
@@ -1387,25 +1389,22 @@ void Sampler::addLogger (Logger& logger) {
   loggers.push_back (&logger);
 }
 
-Sampler::History Sampler::run (const History& initialHistory, random_engine& generator, unsigned int nSamples) {
-  History history (initialHistory);
+void Sampler::initialize (const History& initialHistory, const string& samplerName) {
+  name = samplerName;
+  history = initialHistory;
   history.assertNamesMatch();
-  const bool isUltrametric = history.tree.isUltrametric();
+
+  isUltrametric = history.tree.isUltrametric();
   if (isUltrametric)
     LogThisAt(3,"Initial tree is ultrametric" << endl);
   else
     LogThisAt(1,"WARNING: initial tree is not ultrametric" << endl);
   
-  ProgressLog (plog, 2);
-  plog.initProgress ("MCMC sampling run");
-
   bestHistory = history;
   bestLogLikelihood = logLikelihood (history, "initial");
-  
-  for (unsigned int n = 0; n < nSamples; ++n) {
-    // print progress
-    plog.logProgress (n / (double) (nSamples - 1), "step %u/%u", n + 1, nSamples);
+}
 
+void Sampler::sample (random_engine& generator) {
     // propose
     const std::chrono::system_clock::time_point before = std::chrono::system_clock::now();
     const Move move = proposeMove (history, generator);
@@ -1433,13 +1432,33 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     if (move.newLogLikelihood > bestLogLikelihood) {
       bestHistory = move.newHistory;
       bestLogLikelihood = move.newLogLikelihood;
-      LogThisAt(2,"New best log-likelihood: " << bestLogLikelihood << endl);
+      LogThisAt(2,"New best log-likelihood: " << bestLogLikelihood << " (" << name << ")" << endl);
     }
+}
+
+void Sampler::run (vguard<Sampler>& samplers, random_engine& generator, unsigned int nSamples) {
+  ProgressLog (plog, 2);
+  plog.initProgress ("MCMC sampling run");
+
+  vguard<double> nodes;
+  for (const auto& sampler: samplers)
+    nodes.push_back (sampler.history.tree.nodes());
+  
+  for (unsigned int n = 0; n < nSamples; ++n) {
+    // print progress
+    plog.logProgress (n / (double) (nSamples - 1), "step %u/%u", n + 1, nSamples);
+
+    // select a sampler, weighted by # of nodes
+    const size_t nSampler = random_index (nodes, generator);
+    LogThisAt(4,"Sampling dataset #" << nSampler+1 << ": " << samplers[nSampler].name << endl);
+    
+    // sample
+    samplers[nSampler].sample (generator);
   }
 
-  LogThisAt(1,moveStats());
-
-  return history;
+  // log stats
+  for (size_t nSampler = 0; nSampler < samplers.size(); ++nSampler)
+    LogThisAt(1,"Dataset #" << nSampler+1 << ":\n" << samplers[nSampler].moveStats());
 }
 
 string Sampler::moveStats() const {
