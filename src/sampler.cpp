@@ -1402,8 +1402,8 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     // do some consistency checks
     move.newHistory.assertNamesMatch();
     move.newHistory.tree.assertPostorderSorted();
-    if (isUltrametric)
-      move.newHistory.tree.assertUltrametric();
+    if (isUltrametric && !move.newHistory.tree.isUltrametric())
+      Warn ("Move generated a non-ultrametric tree");
     
     // accept/reject
     if (move.accept (generator)) {
