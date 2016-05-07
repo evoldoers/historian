@@ -377,7 +377,7 @@ bool Sampler::Move::accept (random_engine& generator) const {
     a = distribution (generator);
   }
   LogThisAt(3,setw(Move::typeNameWidth()) << typeName(type) << " move "
-	    << (a ? "ACCEPTED" : "rejected")
+	    << (nullified ? "bypassed" : (a ? "ACCEPTED" : "rejected"))
 	    << " with log-Hastings ratio " << setw(10) << logHastingsRatio
 	    << " " << comment << endl);
   return a;

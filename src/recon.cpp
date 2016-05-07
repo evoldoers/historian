@@ -896,6 +896,7 @@ void Reconstructor::sampleAll() {
     for (auto& dataset: datasets) {
       if (!dataset.hasReconstruction())
 	reconstruct (dataset);
+      dataset.tree.assignInternalNodeNames (dataset.gappedRecon);
       SimpleTreePrior treePrior;
       Sampler sampler (model, treePrior, dataset.gappedGuide);
       HistoryLogger logger (*this, dataset.name);

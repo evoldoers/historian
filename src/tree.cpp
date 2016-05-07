@@ -507,8 +507,6 @@ void Tree::reorderSeqs (vguard<FastSeq>& seq) const {
     swap (old2new[n], old2new[o]);
     swap (new2old[n], new2old[m]);
   }
-
-  assertNodesMatchSeqs (seq);
 }
 
 void Tree::assignInternalNodeNames (const char* prefix) {

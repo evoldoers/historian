@@ -99,10 +99,11 @@ struct Tree {
   bool allNodesNamed() const;  // true if all nodes have nonempty names
   void assertAllNodesNamed() const;
   
-  bool nodesMatchSeqs (const vguard<FastSeq>& seq) const;  // true if seq[n].name == seqName(n) uniquely
+  void reorderSeqs (vguard<FastSeq>& seq) const;  // reorders seq so that seq[n].name == seqName(n)
+
+  bool nodesMatchSeqs (const vguard<FastSeq>& seq) const;  // true if seq[n].name == nodeName(n)
   void assertNodesMatchSeqs (const vguard<FastSeq>& seq) const;
 
-  void reorderSeqs (vguard<FastSeq>& seq) const;  // reorders seq so that nodesMatchSeqs(seq) == true
   void assignInternalNodeNames (const char* prefix = DefaultNodeNamePrefix);
   void assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix = DefaultNodeNamePrefix);
 
