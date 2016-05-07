@@ -338,10 +338,11 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
   oldLogLikelihood = sampler.logLikelihood (oldHistory, "_old");
   newLogLikelihood = sampler.logLikelihood (newHistory, "_new");
 
+  const LogProb logOddsRatio = newLogLikelihood - oldLogLikelihood;
   const LogProb logHastingsRatio = logReverseProposal - logForwardProposal + logJacobian;
-  LogThisAt(5,"log(L_old) = " << oldLogLikelihood << ", log(L_new) = " << newLogLikelihood << ", log(HastingsRatio) = " << logHastingsRatio << endl);
+  logAcceptProb = logOddsRatio + logHastingsRatio;
 
-  logAcceptProb = logHastingsRatio + newLogLikelihood - oldLogLikelihood;
+  LogThisAt(5,"log(L_new/L_old) = " << logOddsRatio << ", log(Q_rev/Q_fwd) = " << logHastingsRatio << ", log(P_accept) = " << logAcceptProb << endl);
 }
 
 void Sampler::Move::nullify (const char* reason) {
