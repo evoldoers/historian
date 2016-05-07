@@ -339,7 +339,8 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
 
 void Sampler::Move::nullify (const char* reason) {
   newHistory = oldHistory;
-  logHastingsRatio = newLogLikelihood = oldLogLikelihood = logForwardProposal = logReverseProposal = 0;
+  newLogLikelihood = oldLogLikelihood = -numeric_limits<double>::infinity();
+  logHastingsRatio = logForwardProposal = logReverseProposal = 0;
   nullified = true;
   comment = string("(") + reason + ")";
 }
@@ -1384,6 +1385,9 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
   ProgressLog (plog, 2);
   plog.initProgress ("MCMC sampling run");
 
+  bestHistory = history;
+  bestLogLikelihood = logLikelihood (history, "initial");
+  
   for (unsigned int n = 0; n < nSamples; ++n) {
     // print progress
     plog.logProgress (n / (double) (nSamples - 1), "step %u/%u", n + 1, nSamples);
@@ -1394,7 +1398,7 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     const std::chrono::system_clock::time_point after = std::chrono::system_clock::now();
     moveNanosecs[move.type] += std::chrono::duration_cast<std::chrono::nanoseconds> (after - before).count();
     ++movesProposed[move.type];
-    
+
     // do some consistency checks
     move.newHistory.assertNamesMatch();
     move.newHistory.tree.assertPostorderSorted();
@@ -1410,6 +1414,13 @@ Sampler::History Sampler::run (const History& initialHistory, random_engine& gen
     // log
     for (auto& logger : loggers)
       logger->logHistory (history);
+
+    // keep track of best history
+    if (move.newLogLikelihood > bestLogLikelihood) {
+      bestHistory = move.newHistory;
+      bestLogLikelihood = move.newLogLikelihood;
+      LogThisAt(2,"New best log-likelihood: " << bestLogLikelihood << endl);
+    }
   }
 
   LogThisAt(1,moveStats());

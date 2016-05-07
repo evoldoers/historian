@@ -333,7 +333,9 @@ struct Sampler {
   const Alignment guide;
   map<string,AlignRowIndex> guideRowByName;
   int maxDistanceFromGuide;
-
+  History bestHistory;
+  LogProb bestLogLikelihood;
+  
   // Sampler constructor
   Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide);
 

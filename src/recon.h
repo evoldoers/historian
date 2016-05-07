@@ -63,6 +63,7 @@ public:
 
     void initGuide (const vguard<FastSeq>& gapped);
     void prepareRecon (Reconstructor& recon);
+    void clearPrep();
     bool hasReconstruction() const { return !gappedRecon.empty(); }
   };
   list<Dataset> datasets;

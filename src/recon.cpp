@@ -560,6 +560,16 @@ Reconstructor::Dataset& Reconstructor::newDataset() {
   return datasets.back();
 }
 
+void Reconstructor::Dataset::clearPrep() {
+  seqIndex.clear();
+  nodeToSeqIndex.clear();
+  rowName.clear();
+
+  guide.clear();
+  closestLeaf.clear();
+  closestLeafDistance.clear();
+}
+
 void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
   tree.validateBranchLengths();
 
@@ -892,7 +902,8 @@ void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) 
 }
 
 void Reconstructor::sampleAll() {
-  if (runMCMC)
+  if (runMCMC) {
+    Assert (!predictAncestralSequence, "Can't predict ancestral sequence with MCMC");
     for (auto& dataset: datasets) {
       if (!dataset.hasReconstruction())
 	reconstruct (dataset);
@@ -905,7 +916,13 @@ void Reconstructor::sampleAll() {
       history.tree = dataset.tree;
       history.gapped = dataset.gappedRecon;
       sampler.run (history, generator, mcmcSamplesPerSeq * dataset.tree.nodes());
+
+      dataset.tree = sampler.bestHistory.tree;
+      dataset.gappedRecon = sampler.bestHistory.gapped;
+      dataset.reconstruction = Alignment (dataset.gappedRecon);
+      dataset.clearPrep();
     }
+  }
 }
 
 void Reconstructor::reconstructAll() {

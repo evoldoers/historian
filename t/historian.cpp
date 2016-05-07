@@ -196,9 +196,9 @@ int main (int argc, char** argv) {
       recon.loadSeqs();
 
       recon.reconstructAll();
-      recon.writeRecon (cout);
-
       recon.sampleAll();
+
+      recon.writeRecon (cout);
     };
 
   if (command == "reconstruct" || command == "recon" || command == "r") {
@@ -227,7 +227,8 @@ int main (int argc, char** argv) {
     recon.loadRecon();
 
     recon.sampleAll();
-    
+    recon.writeRecon (cout);
+
   } else if (command == "count" || command == "c") {
 
     recon.reconstructRoot = false;
