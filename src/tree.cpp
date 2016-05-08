@@ -160,6 +160,16 @@ TreeNodeIndex Tree::getSibling (TreeNodeIndex node) const {
   return getChild(parent,0) == node ? getChild(parent,1) : getChild(parent,0);
 }
 
+vguard<TreeNodeIndex> Tree::getSiblings (TreeNodeIndex n) const {
+  vguard<TreeNodeIndex> sibs;
+  const TreeNodeIndex parent = parentNode(n);
+  if (parent >= 0)
+    for (auto s: node[parent].child)
+      if (s != n)
+	sibs.push_back (s);
+  return sibs;
+}
+
 bool Tree::isBinary() const {
   for (TreeNodeIndex node = 0; node < nodes(); ++node)
     if (!isLeaf(node) && nChildren(node) != 2)
@@ -646,7 +656,7 @@ vguard<TreeBranchLength> Tree::distanceFromRoot() const {
   return dist;
 }
 
-void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {
+void Tree::detach (TreeNodeIndex n) {
   if (node[n].parent >= 0) {
     vguard<TreeNodeIndex>& oldChild = node[node[n].parent].child;
     vguard<TreeNodeIndex> newChild;
@@ -655,6 +665,10 @@ void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {
 	newChild.push_back (c);
     oldChild.swap (newChild);
   }
+}
+
+void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {
+  detach (n);
   node[n].parent = p;
   node[n].d = d;
   if (p >= 0)

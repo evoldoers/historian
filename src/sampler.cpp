@@ -644,14 +644,19 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
     exclude[oldSibling] = parent;
     exclude[oldGrandparent] = parent;
     exclude[newSibling] = newGrandparent;
-    exclude[newGrandparent] = newSibling;
     const auto pwms = sampler.getConditionalPWMs (history, exclude);
 
     const PosWeightMatrix& nodeSeq = pwms.at (node);
     const PosWeightMatrix& oldSibSeq = pwms.at (oldSibling);
     const PosWeightMatrix& oldGranSeq = pwms.at (oldGrandparent);
     const PosWeightMatrix& newSibSeq = pwms.at (newSibling);
-    const PosWeightMatrix& newGranSeq = pwms.at (newGrandparent);
+
+    History ngHistory (history);
+    ngHistory.tree.detach (parent);
+    map<TreeNodeIndex,TreeNodeIndex> ngExclude;
+    ngExclude[newGrandparent] = newSibling;
+    const auto ngPwms = sampler.getConditionalPWMs (ngHistory, ngExclude);
+    const PosWeightMatrix& newGranSeq = ngPwms.at (newGrandparent);
 
     const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
     const AlignPath newSiblingPath = newSibMatrix.sample (generator);

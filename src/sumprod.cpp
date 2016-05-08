@@ -295,12 +295,16 @@ void SumProduct::fillDown() {
     for (++iter; iter != ungappedRows.rend(); ++iter) {
       const TreeNodeIndex r = *iter;
       const TreeNodeIndex rp = tree.parentNode(r);
-      const TreeNodeIndex rs = tree.getSibling(r);
-      const bool sibGap = isGap(rs);
+      const vguard<TreeNodeIndex> rsibs = tree.getSiblings(r);
       for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
 	LogProb logGj = -numeric_limits<double>::infinity();
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	  log_accum_exp (logGj, logG[rp][i] + branchLogSubProb[r][i][j] + logE[rs][i]);
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	  LogProb lp = logG[rp][i] + branchLogSubProb[r][i][j];
+	  for (auto rs: rsibs)
+	    if (!isGap(rs))
+	      lp += logE[rs][i];
+	  log_accum_exp (logGj, lp);
+	}
 	logG[r][j] = logGj;
       }
     }

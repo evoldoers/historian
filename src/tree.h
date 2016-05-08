@@ -41,6 +41,7 @@ struct Tree {
   size_t nChildren (TreeNodeIndex node) const;
   TreeNodeIndex getChild (TreeNodeIndex node, size_t childNum) const;
   TreeNodeIndex getSibling (TreeNodeIndex node) const;
+  vguard<TreeNodeIndex> getSiblings (TreeNodeIndex node) const;
 
   set<TreeNodeIndex> nodeAndAncestors (TreeNodeIndex node) const;
   set<TreeNodeIndex> nodeAndDescendants (TreeNodeIndex node) const;
@@ -65,6 +66,7 @@ struct Tree {
   vguard<TreeNodeIndex> postorderSort() const;
 
   Tree reorderNodes (const vguard<TreeNodeIndex>& newOrder) const;
+  void detach (TreeNodeIndex node);
   void setParent (TreeNodeIndex node, TreeNodeIndex parent, TreeBranchLength branchLength);  // WARNING! does not check for cycles, may leave tree in a non-preorder-sorted state
 
   vguard<TreeBranchLength> distanceFromRoot() const;
