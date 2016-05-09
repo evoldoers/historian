@@ -325,8 +325,11 @@ void SumProduct::fillDown() {
 
 vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   vguard<LogProb> lpp (model.alphabetSize());
+  LogProb norm = -numeric_limits<double>::infinity();
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    lpp[i] = logF[node][i] + logG[node][i] - colLogLike;
+    log_accum_exp (norm, lpp[i] = logF[node][i] + logG[node][i]);
+  for (auto& lp: lpp)
+    lp -= norm;
   return lpp;
 }
 
@@ -346,8 +349,8 @@ vguard<LogProb> SumProduct::logNodeExcludedPostProb (AlignRowIndex node, AlignRo
     lpp[i] += parent == exclude ? logInsProb[i] : logG[node][i];
     log_accum_exp (norm, lpp[i]);
   }
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    lpp[i] -= norm;
+  for (auto& lp: lpp)
+    lp -= norm;
   return lpp;
 }
 

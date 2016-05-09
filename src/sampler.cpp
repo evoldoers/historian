@@ -664,22 +664,22 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     const GuideAlignmentEnvelope oldSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, oldSibClosestLeaf);
 
     map<TreeNodeIndex,TreeNodeIndex> exclude;
-    exclude[node] = parent;
+    exclude[node] = -1;
     exclude[oldSibling] = parent;
     exclude[oldGrandparent] = parent;
     exclude[newSibling] = newGrandparent;
     exclude[newGrandparent] = newSibling;
 
-    Tree detachedParentTree = oldTree;
-    detachedParentTree.detach (parent);
-    const auto pwms = sampler.getConditionalPWMs (detachedParentTree, history.gapped, exclude, sampler.allNodes(detachedParentTree), sampler.nodesAndAncestors(detachedParentTree,oldGrandparent,newGrandparent));
+    Tree detachedTree = oldTree;
+    detachedTree.detach (node);
+    const auto pwms = sampler.getConditionalPWMs (detachedTree, history.gapped, exclude, sampler.allNodes(history.tree), sampler.nodesAndAncestors(history.tree,oldGrandparent,newGrandparent));
 
     const PosWeightMatrix& nodeSeq = pwms.at (node);
     const PosWeightMatrix& oldSibSeq = pwms.at (oldSibling);
     const PosWeightMatrix& oldGranSeq = pwms.at (oldGrandparent);
     const PosWeightMatrix& newSibSeq = pwms.at (newSibling);
     const PosWeightMatrix& newGranSeq = pwms.at (newGrandparent);
-
+    
     const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
     const AlignPath newSiblingPath = newSibMatrix.sample (generator);
     LogThisAt(6,"Proposed (parent:node:newSibling) alignment:" << endl << alignPathString(newSiblingPath));
