@@ -57,7 +57,7 @@ public:
   vguard<gsl_matrix_complex*> branchEigenSubCount;
 
   vguard<char> gappedCol;
-  vguard<AlignRowIndex> ungappedRows, roots;
+  vguard<AlignRowIndex> ungappedRows;
 
   // F_n(x_n): variable->function, tip->root messages
   // E_n(x_p): function->variable, tip->root messages
@@ -70,7 +70,6 @@ public:
   ~SumProduct();
 
   void initColumn (const map<AlignRowIndex,char>& seq);
-  void assertUniqueRoot() const;
   
   inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gappedCol[row]); }
   inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gappedCol[row]); }
