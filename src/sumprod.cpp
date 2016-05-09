@@ -261,11 +261,15 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
 }
 
 AlignRowIndex SumProduct::columnRoot() const {
-  Require (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
-  Require (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
+  assertSingleRoot();
   return roots.front();
 }
 
+void SumProduct::assertSingleRoot() const {
+  Require (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
+  Require (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
+}
+  
 void SumProduct::fillUp() {
   LogThisAt(8,"Sending tip-to-root messages, column " << join(gappedCol,"") << endl);
   colLogLike = 0;
@@ -324,12 +328,10 @@ void SumProduct::fillDown() {
 }
 
 vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
+  assertSingleRoot();
   vguard<LogProb> lpp (model.alphabetSize());
-  LogProb norm = -numeric_limits<double>::infinity();
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    log_accum_exp (norm, lpp[i] = logF[node][i] + logG[node][i]);
-  for (auto& lp: lpp)
-    lp -= norm;
+    lpp[i] = logF[node][i] + logG[node][i] - colLogLike;
   return lpp;
 }
 
@@ -355,6 +357,7 @@ vguard<LogProb> SumProduct::logNodeExcludedPostProb (AlignRowIndex node, AlignRo
 }
 
 LogProb SumProduct::logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const {
+  assertSingleRoot();
   const TreeNodeIndex parent = tree.parentNode(node);
   const TreeNodeIndex sibling = tree.getSibling(node);
   return logG[parent][parentState] + branchLogSubProb[node][parentState][nodeState] + logF[node][nodeState] + logE[sibling][parentState] - colLogLike;

@@ -60,6 +60,9 @@ struct SumProductStorage {
 };
 
 class SumProduct : private SumProductStorage {
+private:
+  void assertSingleRoot() const;
+  
 public:
   const RateModel& model;
   const Tree& tree;
