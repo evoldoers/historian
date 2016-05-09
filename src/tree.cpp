@@ -544,10 +544,10 @@ void Tree::assignInternalNodeNames (vguard<FastSeq>& seq, const char* prefix) {
 
 set<TreeNodeIndex> Tree::nodeAndAncestors (TreeNodeIndex node) const {
   set<TreeNodeIndex> a;
-  do {
+  while (node >= 0) {
     a.insert (node);
     node = parentNode(node);
-  } while (node >= 0);
+  } 
   return a;
 }
 

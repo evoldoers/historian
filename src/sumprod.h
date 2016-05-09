@@ -43,14 +43,23 @@ private:
   EigenModel& operator= (const EigenModel&) = delete;
 };
 
-class SumProduct {
-private:
+struct SumProductStorage {
   // F_n(x_n): variable->function, tip->root messages
   // E_n(x_p): function->variable, tip->root messages
   // G_n(x_n): function->variable, root->tip messages
   // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
   vguard<vguard<LogProb> > logE, logF, logG;
 
+  vguard<char> gappedCol;
+  vguard<AlignRowIndex> ungappedRows, roots;
+
+  LogProb colLogLike;  // marginal likelihood, all unobserved states summed out
+
+  SumProductStorage (size_t nodes, size_t alphabetSize);
+  SumProductStorage() { }
+};
+
+class SumProduct : private SumProductStorage {
 public:
   const RateModel& model;
   const Tree& tree;
@@ -62,17 +71,14 @@ public:
 
   EigenModel eigen;
   vguard<gsl_matrix_complex*> branchEigenSubCount;
-
-  vguard<char> gappedCol;
-  vguard<AlignRowIndex> ungappedRows, roots;
-
-  LogProb colLogLike;  // marginal likelihood, all unobserved states summed out
   
   SumProduct (const RateModel& model, const Tree& tree);
   ~SumProduct();
 
   void initColumn (const map<AlignRowIndex,char>& seq);
   AlignRowIndex columnRoot() const;
+
+  inline LogProb columnLogLikelihood() const { return colLogLike; }
   
   inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gappedCol[row]); }
   inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gappedCol[row]); }

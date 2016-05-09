@@ -200,19 +200,23 @@ vguard<vguard<double> > EigenModel::getSubCounts (const vguard<vguard<gsl_comple
   return counts;
 }
 
+SumProductStorage::SumProductStorage (size_t nodes, size_t alphabetSize)
+  : gappedCol (nodes),
+    logE (nodes, vguard<LogProb> (alphabetSize)),
+    logF (nodes, vguard<LogProb> (alphabetSize)),
+    logG (nodes, vguard<LogProb> (alphabetSize))
+{ }
+
 SumProduct::SumProduct (const RateModel& model, const Tree& tree)
-  : model (model),
+  : SumProductStorage (tree.nodes(), model.alphabetSize()),
+    model (model),
     tree (tree),
     preorder (tree.preorderSort()),
     postorder (tree.postorderSort()),
-    gappedCol (tree.nodes()),
     eigen (model),
     logInsProb (log_gsl_vector (model.insProb)),
     branchLogSubProb (tree.nodes()),
-    branchEigenSubCount (tree.nodes()),
-    logE (tree.nodes(), vguard<LogProb> (model.alphabetSize())),
-    logF (tree.nodes(), vguard<LogProb> (model.alphabetSize())),
-    logG (tree.nodes(), vguard<LogProb> (model.alphabetSize()))
+    branchEigenSubCount (tree.nodes())
 {
   for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r) {
     ProbModel pm (model, tree.branchLength(r));

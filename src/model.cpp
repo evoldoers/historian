@@ -677,7 +677,7 @@ void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tr
     colSumProd.fillUp();
     colSumProd.fillDown();
     colSumProd.accumulateEigenCounts (c.rootCount, c.eigenCount);
-    c.indelCounts.lp += colSumProd.colLogLike;
+    c.indelCounts.lp += colSumProd.columnLogLikelihood();
     colSumProd.nextColumn();
   }
 

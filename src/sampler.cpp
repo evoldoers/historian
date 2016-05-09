@@ -236,9 +236,33 @@ bool Sampler::subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex
   return true;
 }
 
-map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const History& history, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const {
+set<TreeNodeIndex> Sampler::allNodes (const Tree& tree) {
+  const auto nvec = tree.preorderSort();
+  return set<TreeNodeIndex> (nvec.begin(), nvec.end());
+}
+
+set<TreeNodeIndex> Sampler::allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node) {
+  set<TreeNodeIndex> n = allNodes (tree), a = tree.nodeAndAncestors (node);
+  for (auto anc: a)
+    n.erase (anc);
+  return n;
+}
+
+set<TreeNodeIndex> Sampler::nodeAndAncestors (const Tree& tree, TreeNodeIndex node) {
+  return tree.nodeAndAncestors (node);
+}
+
+set<TreeNodeIndex> Sampler::nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2) {
+  set<TreeNodeIndex> a = tree.nodeAndAncestors (node1), n2 = tree.nodeAndAncestors (node1);
+  a.insert (n2.begin(), n2.end());
+  return a;
+}
+
+map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
-  AlignColSumProduct colSumProd (model, history.tree, history.gapped);
+  AlignColSumProduct colSumProd (model, tree, gapped);
+  colSumProd.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
+  colSumProd.postorder = vguard<TreeNodeIndex> (fillUpNodes.begin(), fillUpNodes.end());
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
     colSumProd.fillDown();
@@ -266,7 +290,7 @@ LogProb Sampler::logLikelihood (const History& history, const char* suffix) cons
   LogProb lpSub = 0;
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
-    lpSub += colSumProd.colLogLike;
+    lpSub += colSumProd.columnLogLikelihood();
     colSumProd.nextColumn();
   }
   const LogProb lp = lpTree + lpRoot + lpGaps + lpSub;
@@ -312,11 +336,11 @@ vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogPr
   return ins;
 }
 
-Sampler::Move::Move (Type type, const History& history, const string& samplerName)
+Sampler::Move::Move (Type type, const History& history, LogProb oldLogLikelihood, const string& samplerName)
   : type (type),
     nullified (false),
     newLogLikelihood (0),
-    oldLogLikelihood (0),
+    oldLogLikelihood (oldLogLikelihood),
     logForwardProposal (0),
     logReverseProposal (0),
     logJacobian (0),
@@ -336,7 +360,6 @@ void Sampler::Move::initNewHistory (const Tree& tree, const vguard<FastSeq>& gap
 }
 
 void Sampler::Move::initRatio (const Sampler& sampler) {
-  oldLogLikelihood = sampler.logLikelihood (oldHistory, "_old");
   newLogLikelihood = sampler.logLikelihood (newHistory, "_new");
 
   const LogProb logOddsRatio = newLogLikelihood - oldLogLikelihood;
@@ -348,7 +371,7 @@ void Sampler::Move::initRatio (const Sampler& sampler) {
 
 void Sampler::Move::nullify (const char* reason) {
   newHistory = oldHistory;
-  newLogLikelihood = oldLogLikelihood = -numeric_limits<double>::infinity();
+  newLogLikelihood = oldLogLikelihood;
   logAcceptProb = logJacobian = logForwardProposal = logReverseProposal = 0;
   nullified = true;
   comment = string("(") + reason + ")";
@@ -394,8 +417,8 @@ bool Sampler::Move::accept (random_engine& generator) const {
   return a;
 }
 
-Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (BranchAlign, history, sampler.name)
+Sampler::BranchAlignMove::BranchAlignMove (const History& history, LogProb oldLogLikelihood, const Sampler& sampler, random_engine& generator)
+  : Move (BranchAlign, history, oldLogLikelihood, sampler.name)
 {
   node = Sampler::randomChildNode (history.tree, generator);
   parent = history.tree.parentNode (node);
@@ -419,7 +442,8 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
   map<TreeNodeIndex,TreeNodeIndex> exclude;
   exclude[node] = parent;
   exclude[parent] = node;
-  const auto pwms = sampler.getConditionalPWMs (history, exclude);
+
+  const auto pwms = sampler.getConditionalPWMs (history.tree, history.gapped, exclude, sampler.allExceptNodeAndAncestors(history.tree,parent), sampler.nodeAndAncestors(history.tree,parent));
   const PosWeightMatrix& pSeq = pwms.at (parent);
   const PosWeightMatrix& nSeq = pwms.at (node);
 
@@ -450,8 +474,8 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, const Sampler
   initRatio (sampler);
 }
 
-Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (NodeAlign, history, sampler.name)
+Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLikelihood, const Sampler& sampler, random_engine& generator)
+  : Move (NodeAlign, history, oldLogLikelihood, sampler.name)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
 
@@ -485,7 +509,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
     exclude[node] = parent;
     exclude[parent] = node;
   }
-  const auto pwms = sampler.getConditionalPWMs (history, exclude);
+  const auto pwms = sampler.getConditionalPWMs (history.tree, history.gapped, exclude, sampler.allExceptNodeAndAncestors(history.tree,parent>=0?parent:node), parent >= 0 ? sampler.nodeAndAncestors(history.tree,parent) : set<TreeNodeIndex>());
   const PosWeightMatrix& lSeq = pwms.at (leftChild);
   const PosWeightMatrix& rSeq = pwms.at (rightChild);
 
@@ -556,8 +580,8 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, const Sampler& sa
   initRatio (sampler);
 }
 
-Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (PruneAndRegraft, history, sampler.name)
+Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogProb oldLogLikelihood, const Sampler& sampler, random_engine& generator)
+  : Move (PruneAndRegraft, history, oldLogLikelihood, sampler.name)
 {
   const vguard<TreeBranchLength>& distanceFromRoot = history.tree.distanceFromRoot();
 
@@ -644,19 +668,17 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
     exclude[oldSibling] = parent;
     exclude[oldGrandparent] = parent;
     exclude[newSibling] = newGrandparent;
-    const auto pwms = sampler.getConditionalPWMs (history, exclude);
+    exclude[newGrandparent] = newSibling;
+
+    Tree detachedParentTree = oldTree;
+    detachedParentTree.detach (parent);
+    const auto pwms = sampler.getConditionalPWMs (detachedParentTree, history.gapped, exclude, sampler.allNodes(detachedParentTree), sampler.nodesAndAncestors(detachedParentTree,oldGrandparent,newGrandparent));
 
     const PosWeightMatrix& nodeSeq = pwms.at (node);
     const PosWeightMatrix& oldSibSeq = pwms.at (oldSibling);
     const PosWeightMatrix& oldGranSeq = pwms.at (oldGrandparent);
     const PosWeightMatrix& newSibSeq = pwms.at (newSibling);
-
-    History ngHistory (history);
-    ngHistory.tree.detach (parent);
-    map<TreeNodeIndex,TreeNodeIndex> ngExclude;
-    ngExclude[newGrandparent] = newSibling;
-    const auto ngPwms = sampler.getConditionalPWMs (ngHistory, ngExclude);
-    const PosWeightMatrix& newGranSeq = ngPwms.at (newGrandparent);
+    const PosWeightMatrix& newGranSeq = pwms.at (newGrandparent);
 
     const SiblingMatrix newSibMatrix (sampler.model, nodeSeq, newSibSeq, parentNodeDist, parentNewSibDist, newSibEnv, nodeEnvPos, newSibEnvPos, node, newSibling, parent);
     const AlignPath newSiblingPath = newSibMatrix.sample (generator);
@@ -691,8 +713,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
     logForwardProposal = -log(contemps.size()) + logPostNewSiblingPath + logPostNewBranchPath;
     logReverseProposal = -log(newContemps.size()) + logPostOldSiblingPath + logPostOldBranchPath;
 
-    LogThisAt(6,"log(Q_fwd) = " << setw(10) << -log(contemps.size()) << " (newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
-    LogThisAt(6,"log(Q_rev) = " << setw(10) << -log(newContemps.size()) << " (oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+    LogThisAt(6,"log(Q_fwd) = " << setw(10) << -log(contemps.size()) << " (#newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_rev) = " << setw(10) << -log(newContemps.size()) << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
     mergeComponents.push_back (oldSibCladePath);
     mergeComponents.push_back (oldGranSibPath);
@@ -716,8 +738,8 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, const
   initRatio (sampler);
 }
 
-Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (NodeHeight, history, sampler.name)
+Sampler::NodeHeightMove::NodeHeightMove (const History& history, LogProb oldLogLikelihood, const Sampler& sampler, random_engine& generator)
+  : Move (NodeHeight, history, oldLogLikelihood, sampler.name)
 {
   node = Sampler::randomInternalNode (history.tree, generator);
   Assert (history.tree.nChildren(node) == 2, "Tree is not binary");
@@ -770,8 +792,8 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, const Sampler& 
   initRatio (sampler);
 }
 
-Sampler::RescaleMove::RescaleMove (const History& history, const Sampler& sampler, random_engine& generator)
-  : Move (Rescale, history, sampler.name)
+Sampler::RescaleMove::RescaleMove (const History& history, LogProb oldLogLikelihood, const Sampler& sampler, random_engine& generator)
+  : Move (Rescale, history, oldLogLikelihood, sampler.name)
 {
   LogThisAt(4,"Proposing rescale move" << endl);
 
@@ -1376,14 +1398,14 @@ Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, cons
   }
 }
 
-Sampler::Move Sampler::proposeMove (const History& oldHistory, random_engine& generator) const {
+Sampler::Move Sampler::proposeMove (const History& oldHistory, LogProb oldLogLikelihood, random_engine& generator) const {
   const Move::Type type = (Move::Type) random_index (moveRate, generator);
   switch (type) {
-  case Move::BranchAlign: return BranchAlignMove (oldHistory, *this, generator);
-  case Move::NodeAlign: return NodeAlignMove (oldHistory, *this, generator);
-  case Move::PruneAndRegraft: return PruneAndRegraftMove (oldHistory, *this, generator);
-  case Move::NodeHeight: return NodeHeightMove (oldHistory, *this, generator);
-  case Move::Rescale: return RescaleMove (oldHistory, *this, generator);
+  case Move::BranchAlign: return BranchAlignMove (oldHistory, oldLogLikelihood, *this, generator);
+  case Move::NodeAlign: return NodeAlignMove (oldHistory, oldLogLikelihood, *this, generator);
+  case Move::PruneAndRegraft: return PruneAndRegraftMove (oldHistory, oldLogLikelihood, *this, generator);
+  case Move::NodeHeight: return NodeHeightMove (oldHistory, oldLogLikelihood, *this, generator);
+  case Move::Rescale: return RescaleMove (oldHistory, oldLogLikelihood, *this, generator);
   default: break;
   }
   Abort ("Unknown move type");
@@ -1396,23 +1418,23 @@ void Sampler::addLogger (Logger& logger) {
 
 void Sampler::initialize (const History& initialHistory, const string& samplerName) {
   name = samplerName;
-  history = initialHistory;
-  history.assertNamesMatch();
+  currentHistory = initialHistory;
+  currentHistory.assertNamesMatch();
 
-  isUltrametric = history.tree.isUltrametric();
+  isUltrametric = currentHistory.tree.isUltrametric();
   if (isUltrametric)
     LogThisAt(3,"Initial tree is ultrametric" << endl);
   else
     LogThisAt(1,"WARNING: initial tree is not ultrametric" << endl);
   
-  bestHistory = history;
-  bestLogLikelihood = logLikelihood (history, "initial");
+  bestHistory = currentHistory;
+  currentLogLikelihood = bestLogLikelihood = logLikelihood (currentHistory, "initial");
 }
 
 void Sampler::sample (random_engine& generator) {
     // propose
     const std::chrono::system_clock::time_point before = std::chrono::system_clock::now();
-    const Move move = proposeMove (history, generator);
+    const Move move = proposeMove (currentHistory, currentLogLikelihood, generator);
     const std::chrono::system_clock::time_point after = std::chrono::system_clock::now();
     moveNanosecs[move.type] += std::chrono::duration_cast<std::chrono::nanoseconds> (after - before).count();
     ++movesProposed[move.type];
@@ -1425,13 +1447,14 @@ void Sampler::sample (random_engine& generator) {
     
     // accept/reject
     if (move.accept (generator)) {
-      history = move.newHistory;
+      currentHistory = move.newHistory;
+      currentLogLikelihood = move.newLogLikelihood;
       ++movesAccepted[move.type];
     }
 
     // log
     for (auto& logger : loggers)
-      logger->logHistory (history);
+      logger->logHistory (currentHistory);
 
     // keep track of best history
     if (move.newLogLikelihood > bestLogLikelihood) {
@@ -1447,7 +1470,7 @@ void Sampler::run (vguard<Sampler>& samplers, random_engine& generator, unsigned
 
   vguard<double> nodes;
   for (const auto& sampler: samplers)
-    nodes.push_back (sampler.history.tree.nodes());
+    nodes.push_back (sampler.currentHistory.tree.nodes());
   
   for (unsigned int n = 0; n < nSamples; ++n) {
     // print progress

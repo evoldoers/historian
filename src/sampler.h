@@ -292,7 +292,7 @@ struct Sampler {
     string samplerName, comment;
     
     Move() { }
-    Move (Type type, const History& history, const string& samplerName);
+    Move (Type type, const History& history, LogProb logLikelihood, const string& samplerName);
     
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& ungapped, const AlignPath& path);
     void initNewHistory (const Tree& tree, const vguard<FastSeq>& gapped);
@@ -305,23 +305,23 @@ struct Sampler {
   };
 
   struct BranchAlignMove : Move {
-    BranchAlignMove (const History&, const Sampler&, random_engine&);
+    BranchAlignMove (const History&, LogProb, const Sampler&, random_engine&);
   };
 
   struct NodeAlignMove : Move {
-    NodeAlignMove (const History&, const Sampler&, random_engine&);
+    NodeAlignMove (const History&, LogProb, const Sampler&, random_engine&);
   };
 
   struct PruneAndRegraftMove : Move {
-    PruneAndRegraftMove (const History&, const Sampler&, random_engine&);
+    PruneAndRegraftMove (const History&, LogProb, const Sampler&, random_engine&);
   };
 
   struct NodeHeightMove : Move {
-    NodeHeightMove (const History&, const Sampler&, random_engine&);
+    NodeHeightMove (const History&, LogProb, const Sampler&, random_engine&);
   };
 
   struct RescaleMove : Move {
-    RescaleMove (const History&, const Sampler&, random_engine&);
+    RescaleMove (const History&, LogProb, const Sampler&, random_engine&);
   };
 
   // Sampler member variables
@@ -335,8 +335,8 @@ struct Sampler {
   int maxDistanceFromGuide;
 
   string name;
-  History history, bestHistory;
-  LogProb bestLogLikelihood;
+  History currentHistory, bestHistory;
+  LogProb currentLogLikelihood, bestLogLikelihood;
   bool isUltrametric;
   
   // Sampler constructor
@@ -348,7 +348,7 @@ struct Sampler {
 
   // Sampler sampling methods
   LogProb logLikelihood (const History& history, const char* prefix = "") const;
-  Move proposeMove (const History& oldHistory, random_engine& generator) const;
+  Move proposeMove (const History& oldHistory, LogProb oldLogLikelihood, random_engine& generator) const;
 
   void sample (random_engine& generator);
   
@@ -369,7 +369,13 @@ struct Sampler {
   AlignRowIndex guideRow (const Tree& tree, TreeNodeIndex node) const;
   GuideAlignmentEnvelope makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2) const;
   static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
-  map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const History& history, const map<TreeNodeIndex,TreeNodeIndex>& exclude) const;
+
+  static set<TreeNodeIndex> allNodes (const Tree& tree);
+  static set<TreeNodeIndex> allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node);
+  static set<TreeNodeIndex> nodeAndAncestors (const Tree& tree, TreeNodeIndex node);
+  static set<TreeNodeIndex> nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2);
+
+  map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const;
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude = -1);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
