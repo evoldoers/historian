@@ -34,15 +34,15 @@ int main (int argc, char **argv) {
 
     cout << "Column #" << sp.col << endl;
     for (auto node : sp.ungappedRows)
-      if (node != sp.root()) {
+      if (node != sp.columnRoot()) {
 	const TreeNodeIndex parent = tree.parentNode(node);
 	for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
 	  for (AlphTok b = 0; b < rates.alphabetSize(); ++b)
 	    cout << "P( " << tree.seqName(parent) << " = " << rates.alphabet[a] << " , " << tree.seqName(node) << " = " << rates.alphabet[b] << " ) = " << exp (sp.logBranchPostProb (node, a, b)) << endl;
       }
-    vguard<LogProb> lnpp = sp.logNodePostProb (sp.root());
+    vguard<LogProb> lnpp = sp.logNodePostProb (sp.columnRoot());
     for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
-      cout << "P( " << tree.seqName(sp.root()) << " = " << rates.alphabet[a] << " ) = " << exp (lnpp[a]) << endl;
+      cout << "P( " << tree.seqName(sp.columnRoot()) << " = " << rates.alphabet[a] << " ) = " << exp (lnpp[a]) << endl;
     cout << endl;
     
     sp.nextColumn();

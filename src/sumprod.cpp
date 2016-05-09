@@ -233,7 +233,7 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
   ungappedRows.clear();
   gappedCol = vguard<char> (tree.nodes(), Alignment::gapChar);
   vguard<int> ungappedKids (tree.nodes(), 0);
-  vguard<TreeNodeIndex> roots;
+  roots.clear();
   map<size_t,SeqIdx> pos;
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
     if (seq.find(r) != seq.end()) {
@@ -254,62 +254,68 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
       else
 	++ungappedKids[rp];
     }
+}
+
+AlignRowIndex SumProduct::columnRoot() const {
   Require (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
   Require (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
+  return roots.front();
 }
 
 void SumProduct::fillUp() {
   LogThisAt(8,"Sending tip-to-root messages, column " << join(gappedCol,"") << endl);
-  colLogLike = -numeric_limits<double>::infinity();
-  for (auto r : ungappedRows) {
-    if (isWild(r))
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	LogProb logFi = 0;
-	for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
-	  logFi += logE[tree.getChild(r,nc)][i];
-	logF[r][i] = logFi;
+  colLogLike = 0;
+  for (auto r : postorder)
+    if (!isGap(r)) {
+      if (isWild(r))
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	  LogProb logFi = 0;
+	  for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
+	    logFi += logE[tree.getChild(r,nc)][i];
+	  logF[r][i] = logFi;
+	}
+      else {
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  logF[r][i] = -numeric_limits<double>::infinity();
+	logF[r][model.tokenize(gappedCol[r])] = 0;
       }
-    else {
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	logF[r][i] = -numeric_limits<double>::infinity();
-      logF[r][model.tokenize(gappedCol[r])] = 0;
-    }
 
-    if (r == root())
-      colLogLike = logInnerProduct (logF[r], logInsProb);
-    else {
       const TreeNodeIndex rp = tree.parentNode(r);
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	LogProb logEi = -numeric_limits<double>::infinity();
-	for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-	  log_accum_exp (logEi, branchLogSubProb[r][i][j] + logF[r][j]);
-	logE[r][i] = logEi;
-      }
+      if (rp < 0 || isGap(rp))
+	colLogLike += logInnerProduct (logF[r], logInsProb);
+      else
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	  LogProb logEi = -numeric_limits<double>::infinity();
+	  for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+	    log_accum_exp (logEi, branchLogSubProb[r][i][j] + logF[r][j]);
+	  logE[r][i] = logEi;
+	}
     }
-  }
 }
 
 void SumProduct::fillDown() {
   LogThisAt(8,"Sending root-to-tip messages, column " << join(gappedCol,"") << endl);
   if (!columnEmpty()) {
-    vector<AlignRowIndex>::const_reverse_iterator iter = ungappedRows.rbegin();
-    logG[*iter] = logInsProb;
-    for (++iter; iter != ungappedRows.rend(); ++iter) {
-      const TreeNodeIndex r = *iter;
-      const TreeNodeIndex rp = tree.parentNode(r);
-      const vguard<TreeNodeIndex> rsibs = tree.getSiblings(r);
-      for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-	LogProb logGj = -numeric_limits<double>::infinity();
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	  LogProb lp = logG[rp][i] + branchLogSubProb[r][i][j];
-	  for (auto rs: rsibs)
-	    if (!isGap(rs))
-	      lp += logE[rs][i];
-	  log_accum_exp (logGj, lp);
+    for (auto r: preorder)
+      if (!isGap(r)) {
+	const TreeNodeIndex rp = tree.parentNode(r);
+	if (rp < 0 || isGap(rp))
+	  logG[r] = logInsProb;
+	else {
+	  const vguard<TreeNodeIndex> rsibs = tree.getSiblings(r);
+	  for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+	    LogProb logGj = -numeric_limits<double>::infinity();
+	    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	      LogProb lp = logG[rp][i] + branchLogSubProb[r][i][j];
+	      for (auto rs: rsibs)
+		if (!isGap(rs))
+		  lp += logE[rs][i];
+	      log_accum_exp (logGj, lp);
+	    }
+	    logG[r][j] = logGj;
+	  }
 	}
-	logG[r][j] = logGj;
       }
-    }
   }
 }
 
@@ -353,16 +359,18 @@ AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
 }
 
 void SumProduct::accumulateRootCounts (vguard<double>& rootCounts, double weight) const {
+  const auto rootNode = columnRoot();
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    rootCounts[i] += weight * exp (logInsProb[i] + logF[root()][i] - colLogLike);
+    rootCounts[i] += weight * exp (logInsProb[i] + logF[rootNode][i] - colLogLike);
 }
 
 void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight) const {
   LogThisAt(8,"Accumulating substitution counts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts, weight);
 
+  const auto rootNode = columnRoot();
   for (auto node : ungappedRows)
-    if (node != root()) {
+    if (node != rootNode) {
       LogThisAt(9,"Accumulating substitution counts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
       gsl_matrix* submat = eigen.getSubProbMatrix (tree.branchLength(node));
@@ -377,12 +385,13 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
   LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts, weight);
 
+  const auto rootNode = columnRoot();
   const int A = model.alphabetSize();
   vguard<double> U (A), D (A);
   vguard<gsl_complex> Ubasis (A), Dbasis (A);
   vguard<LogProb> logD (A);
   for (auto node : ungappedRows)
-    if (node != root()) {
+    if (node != rootNode) {
       LogThisAt(9,"Accumulating eigencounts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
       const TreeNodeIndex sibling = tree.getSibling(node);

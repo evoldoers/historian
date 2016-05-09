@@ -44,11 +44,18 @@ private:
 };
 
 class SumProduct {
+private:
+  // F_n(x_n): variable->function, tip->root messages
+  // E_n(x_p): function->variable, tip->root messages
+  // G_n(x_n): function->variable, root->tip messages
+  // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
+  vguard<vguard<LogProb> > logE, logF, logG;
+
 public:
   const RateModel& model;
   const Tree& tree;
 
-  vguard<TreeNodeIndex> preorder, postorder;
+  vguard<TreeNodeIndex> preorder, postorder;  // modify these to visit only subsets of nodes. postorder for fillUp(), preorder for fillDown()
   
   vguard<LogProb> logInsProb;
   vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][parentState][nodeState]
@@ -57,28 +64,23 @@ public:
   vguard<gsl_matrix_complex*> branchEigenSubCount;
 
   vguard<char> gappedCol;
-  vguard<AlignRowIndex> ungappedRows;
+  vguard<AlignRowIndex> ungappedRows, roots;
 
-  // F_n(x_n): variable->function, tip->root messages
-  // E_n(x_p): function->variable, tip->root messages
-  // G_n(x_n): function->variable, root->tip messages
-  // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
-  vguard<vguard<LogProb> > logE, logF, logG;
   LogProb colLogLike;  // marginal likelihood, all unobserved states summed out
   
   SumProduct (const RateModel& model, const Tree& tree);
   ~SumProduct();
 
   void initColumn (const map<AlignRowIndex,char>& seq);
+  AlignRowIndex columnRoot() const;
   
   inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gappedCol[row]); }
   inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gappedCol[row]); }
   inline bool columnEmpty() const { return ungappedRows.empty(); }
-  inline AlignRowIndex root() const { return ungappedRows.back(); }
 
   void fillUp();  // E, F
   void fillDown();  // G
-
+  
   vguard<LogProb> logNodePostProb (AlignRowIndex node) const;
   vguard<LogProb> logNodeExcludedPostProb (AlignRowIndex node, AlignRowIndex exclude) const;
   LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
