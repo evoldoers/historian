@@ -203,6 +203,8 @@ vguard<vguard<double> > EigenModel::getSubCounts (const vguard<vguard<gsl_comple
 SumProduct::SumProduct (const RateModel& model, const Tree& tree)
   : model (model),
     tree (tree),
+    preorder (tree.preorderSort()),
+    postorder (tree.postorderSort()),
     gappedCol (tree.nodes()),
     eigen (model),
     logInsProb (log_gsl_vector (model.insProb)),
@@ -231,7 +233,7 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
   ungappedRows.clear();
   gappedCol = vguard<char> (tree.nodes(), Alignment::gapChar);
   vguard<int> ungappedKids (tree.nodes(), 0);
-  vguard<TreeNodeIndex> roots;
+  roots.clear();
   map<size_t,SeqIdx> pos;
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
     if (seq.find(r) != seq.end()) {
@@ -252,6 +254,10 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
       else
 	++ungappedKids[rp];
     }
+  assertUniqueRoot();
+}
+
+void SumProduct::assertUniqueRoot() const {
   Require (roots.size(), "No root node in column %s tree %s", join(gappedCol,"").c_str(), tree.toString().c_str());
   Require (roots.size() == 1, "Multiple root nodes (%s) in column %s tree %s", to_string_join(roots,",").c_str(), join(gappedCol,"").c_str(), tree.toString().c_str());
 }
