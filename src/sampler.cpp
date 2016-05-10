@@ -1486,7 +1486,7 @@ void Sampler::run (vguard<Sampler>& samplers, random_engine& generator, unsigned
 
   // log stats
   for (size_t nSampler = 0; nSampler < samplers.size(); ++nSampler)
-    LogThisAt(1,"Dataset #" << nSampler+1 << ":\n" << samplers[nSampler].moveStats());
+    LogThisAt(1,"Dataset #" << nSampler+1 << " (" << samplers[nSampler].name << "):\n" << samplers[nSampler].moveStats());
 }
 
 string Sampler::moveStats() const {
