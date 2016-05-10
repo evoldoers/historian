@@ -9,7 +9,7 @@ using namespace std;
 
 /* uncomment to disable lookup table */
 /*
-#define LOGSUMEXP_DEBUG
+#define LOG_SUM_EXP_SLOW
 */
 
 /* uncomment to catch NaN errors */
@@ -21,6 +21,9 @@ using namespace std;
 #define LOG_SUM_EXP_LOOKUP_PRECISION .0001
 
 #define LOG_SUM_EXP_LOOKUP_ENTRIES (((int) (LOG_SUM_EXP_LOOKUP_MAX / LOG_SUM_EXP_LOOKUP_PRECISION)) + 1)
+
+/* comment to disable interpolation */
+#define LOG_SUM_EXP_INTERPOLATE
 
 typedef double LogProb;
 
@@ -36,24 +39,26 @@ extern LogSumExpLookupTable logSumExpLookupTable;
 
 inline double log_sum_exp_unary (double x) {
   /* returns log(1 + exp(-x)) for nonnegative x */
-#ifdef LOGSUMEXP_DEBUG
+#ifdef LOG_SUM_EXP_SLOW
   return log_sum_exp_unary_slow(x);
-#else /* LOGSUMEXP_DEBUG */
-  int n;
-  double dx, f0, f1, df;
+#else /* LOG_SUM_EXP_SLOW */
   if (x >= LOG_SUM_EXP_LOOKUP_MAX || std::isnan(x) || std::isinf(x))
     return 0;
   if (x < 0) {  /* really dumb approximation for x < 0. Should never be encountered, so issue a warning */
     cerr << "Called log_sum_exp_unary(x) for negative x = " << x << endl;
     return -x;
   }
-  n = (int) (x / LOG_SUM_EXP_LOOKUP_PRECISION);
-  dx = x - (n * LOG_SUM_EXP_LOOKUP_PRECISION);
-  f0 = logSumExpLookupTable.lookup[n];
-  f1 = logSumExpLookupTable.lookup[n+1];
-  df = f1 - f0;
+  const int n = (int) (x / LOG_SUM_EXP_LOOKUP_PRECISION);
+  const double f0 = logSumExpLookupTable.lookup[n];
+#ifdef LOG_SUM_EXP_INTERPOLATE
+  const double dx = x - (n * LOG_SUM_EXP_LOOKUP_PRECISION);
+  const double f1 = logSumExpLookupTable.lookup[n+1];
+  const double df = f1 - f0;
   return f0 + df * (dx / LOG_SUM_EXP_LOOKUP_PRECISION);
-#endif /* LOGSUMEXP_DEBUG */
+#else /* LOG_SUM_EXP_INTERPOLATE */
+  return f0;
+#endif /* LOG_SUM_EXP_INTERPOLATE */
+#endif /* LOG_SUM_EXP_SLOW */
 }
 
 inline double log_sum_exp (double a, double b) {
@@ -86,7 +91,7 @@ inline double log_sum_exp (double a, double b, double c, double d) {
 
 inline void log_accum_exp (double& a, double b) {
   a = log_sum_exp (a, b);
-}  
+}
 
 inline double log_sum_exp (double a, double b, double c, double d, double e) {
     return log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (a, b), c), d), e);
