@@ -81,6 +81,7 @@ public:
   void initColumn (const map<AlignRowIndex,char>& seq);
   AlignRowIndex columnRoot() const;
 
+  inline const vguard<AlignRowIndex>& ungappedRowIndices() const { return ungappedRows; }
   inline LogProb columnLogLikelihood() const { return colLogLike; }
   
   inline bool isGap (AlignRowIndex row) const { return Alignment::isGap (gappedCol[row]); }

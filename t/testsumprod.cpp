@@ -33,7 +33,7 @@ int main (int argc, char **argv) {
     sp.fillDown();
 
     cout << "Column #" << sp.col << endl;
-    for (auto node : sp.ungappedRows)
+    for (auto node : sp.ungappedRowIndices())
       if (node != sp.columnRoot()) {
 	const TreeNodeIndex parent = tree.parentNode(node);
 	for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
