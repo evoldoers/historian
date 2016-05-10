@@ -253,7 +253,7 @@ set<TreeNodeIndex> Sampler::nodeAndAncestors (const Tree& tree, TreeNodeIndex no
 }
 
 set<TreeNodeIndex> Sampler::nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2) {
-  set<TreeNodeIndex> a = tree.nodeAndAncestors (node1), n2 = tree.nodeAndAncestors (node1);
+  set<TreeNodeIndex> a = tree.nodeAndAncestors (node1), n2 = tree.nodeAndAncestors (node2);
   a.insert (n2.begin(), n2.end());
   return a;
 }

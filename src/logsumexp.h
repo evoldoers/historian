@@ -110,8 +110,10 @@ double log_sum_exp_slow (double a, double b, double c, double d);
 
 void log_accum_exp_slow (double& a, double b);
 
-std::vector<LogProb> log_gsl_vector (gsl_vector* v);
-std::vector<double> gsl_vector_to_stl (gsl_vector* v);
+vector<LogProb> log_vector (const vector<double>& v);
+
+vector<LogProb> log_gsl_vector (gsl_vector* v);
+vector<double> gsl_vector_to_stl (gsl_vector* v);
 
 inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>& v2) {
   LogProb lip = -numeric_limits<double>::infinity();

@@ -590,14 +590,16 @@ vguard<TreeNodeIndex> Tree::rerootedParent (TreeNodeIndex newRoot) const {
 }
 
 vguard<TreeNodeIndex> Tree::preorderSort() const {
-  TreeNodeIndex r = -1;
+  vguard<TreeNodeIndex> roots, s;
   for (TreeNodeIndex n = 0; n < nodes(); ++n)
-    if (parentNode(n) < 0) {
-      Assert (r < 0, "More than one root");
-      r = n;
-    }
-  Assert (r >= 0, "Couldn't find root");
-  return rerootedPreorderSort (r);
+    if (parentNode(n) < 0)
+      roots.push_back (n);
+  Assert (roots.size(), "Couldn't find root");
+  for (auto r: roots) {
+    const auto rs = rerootedPreorderSort (r);
+    s.insert (s.end(), rs.begin(), rs.end());
+  }
+  return s;
 }
 
 vguard<TreeNodeIndex> Tree::postorderSort() const {
@@ -664,6 +666,7 @@ void Tree::detach (TreeNodeIndex n) {
       if (c != n)
 	newChild.push_back (c);
     oldChild.swap (newChild);
+    node[n].parent = -1;
   }
 }
 

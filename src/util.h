@@ -75,6 +75,13 @@ std::vector<S> transform_vector (const std::vector<T>& v, S (op) (const T&)) {
   return result;
 }
 
+template<class S,class T>
+std::vector<S> transform_vector (const std::vector<T>& v, S (op) (T)) {
+  std::vector<S> result;
+  std::transform (v.begin(), v.end(), back_inserter(result), op);
+  return result;
+}
+
 /* split */
 std::vector<std::string> split (const std::string& s, const char* splitChars = " \t\n");
 

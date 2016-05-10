@@ -50,15 +50,19 @@ void log_accum_exp_slow (double& a, double b) {
   a = log_sum_exp_slow (a, b);
 }
 
-std::vector<LogProb> log_gsl_vector (gsl_vector* v) {
-  std::vector<LogProb> l (v->size);
+vector<LogProb> log_vector (const vector<double>& v) {
+  return transform_vector<double,double> (v, log);
+}
+
+vector<LogProb> log_gsl_vector (gsl_vector* v) {
+  vector<LogProb> l (v->size);
   for (size_t i = 0; i < v->size; ++i)
     l[i] = log (gsl_vector_get (v, i));
   return l;
 }
 
-std::vector<double> gsl_vector_to_stl (gsl_vector* v) {
-  std::vector<double> stlv (v->size);
+vector<double> gsl_vector_to_stl (gsl_vector* v) {
+  vector<double> stlv (v->size);
   for (size_t i = 0; i < v->size; ++i)
     stlv[i] = gsl_vector_get (v, i);
   return stlv;

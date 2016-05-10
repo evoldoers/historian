@@ -48,8 +48,9 @@ struct SumProductStorage {
   // E_n(x_p): function->variable, tip->root messages
   // G_n(x_n): function->variable, root->tip messages
   // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
-  vguard<vguard<LogProb> > logE, logF, logG;
-
+  vguard<vguard<double> > E, F, G;
+  vguard<LogProb> logE, logF, logG;  // logs of rescaling factors, used to prevent underflow
+  
   vguard<char> gappedCol;
   vguard<AlignRowIndex> ungappedRows, roots;
 
@@ -69,8 +70,8 @@ public:
 
   vguard<TreeNodeIndex> preorder, postorder;  // modify these to visit only subsets of nodes. postorder for fillUp(), preorder for fillDown()
   
-  vguard<LogProb> logInsProb;
-  vguard<vguard<vguard<LogProb> > > branchLogSubProb;  // branchLogSubProb[node][parentState][nodeState]
+  vguard<double> insProb;
+  vguard<vguard<vguard<double> > > branchSubProb;  // branchSubProb[node][parentState][nodeState]
 
   EigenModel eigen;
   vguard<gsl_matrix_complex*> branchEigenSubCount;
@@ -92,7 +93,7 @@ public:
   void fillDown();  // G
   
   vguard<LogProb> logNodePostProb (AlignRowIndex node) const;
-  vguard<LogProb> logNodeExcludedPostProb (AlignRowIndex node, AlignRowIndex exclude) const;
+  vguard<LogProb> logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude) const;
   LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
   AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
 
