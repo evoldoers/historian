@@ -649,13 +649,18 @@ Tree Tree::reorderNodes (const vguard<TreeNodeIndex>& newOrder) const {
   return newTree;
 }
 
-vguard<TreeBranchLength> Tree::distanceFromRoot() const {
+vguard<TreeBranchLength> Tree::distanceFrom (TreeNodeIndex node) const {
   vguard<TreeBranchLength> dist (nodes());
-  for (auto n : preorderSort()) {
-    const auto p = parentNode(n);
-    dist[n] = p < 0 ? 0 : branchLength(n) + dist[p];
+  const vguard<TreeNodeIndex> parent = rerootedParent (node);
+  for (auto n : rerootedPreorderSort(node)) {
+    const auto p = parent[n];
+    dist[n] = p < 0 ? 0 : branchLength(p,n) + dist[p];
   }
   return dist;
+}
+
+vguard<TreeBranchLength> Tree::distanceFromRoot() const {
+  return distanceFrom (root());
 }
 
 void Tree::detach (TreeNodeIndex n) {

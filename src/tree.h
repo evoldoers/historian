@@ -69,6 +69,7 @@ struct Tree {
   void detach (TreeNodeIndex node);
   void setParent (TreeNodeIndex node, TreeNodeIndex parent, TreeBranchLength branchLength);  // WARNING! does not check for cycles, may leave tree in a non-preorder-sorted state
 
+  vguard<TreeBranchLength> distanceFrom (TreeNodeIndex node) const;
   vguard<TreeBranchLength> distanceFromRoot() const;
   
   // I/O

@@ -222,15 +222,19 @@ const T& random_key_log (const std::map<T,double>& logWeight, Generator& generat
 /* index sort
    http://stackoverflow.com/questions/10580982/c-sort-keeping-track-of-indices
  */
+template <typename S, typename T>
+void sortIndices (std::vector<S>& indices, std::vector<T> const& values) {
+    std::sort(
+        begin(indices), end(indices),
+        [&](S a, S b) { return values[a] < values[b]; }
+    );
+}
+
 template <typename T>
 std::vector<size_t> orderedIndices (std::vector<T> const& values) {
     std::vector<size_t> indices(values.size());
     std::iota(begin(indices), end(indices), static_cast<size_t>(0));
-
-    std::sort(
-        begin(indices), end(indices),
-        [&](size_t a, size_t b) { return values[a] < values[b]; }
-    );
+    sortIndices (indices, values);
     return indices;
 }
 

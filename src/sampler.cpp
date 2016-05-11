@@ -80,6 +80,8 @@ vguard<TreeNodeIndex> Sampler::contemporaneousNodes (const Tree& tree, const vgu
     if (p != parent && dist[p] < distParent && dist[n] > distParent)
       contemps.push_back (n);
   }
+  const auto ndist = tree.distanceFrom (node);
+  sortIndices (contemps, ndist);
   return contemps;
 }
 
