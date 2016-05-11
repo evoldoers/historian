@@ -43,8 +43,11 @@ endif
 PREFIX = /usr/local
 
 # other flags
+ifneq (,$(findstring debug,$(MAKECMDGOALS)))
 CPPFLAGS = -DUSE_VECTOR_GUARDS -std=c++11 -g $(GSLFLAGS) $(BOOSTFLAGS)
-# CPPFLAGS = -std=c++11 -O3 $(GSLFLAGS) $(BOOSTFLAGS)
+else
+CPPFLAGS = -std=c++11 -O3 $(GSLFLAGS) $(BOOSTFLAGS)
+endif
 LIBFLAGS = -lstdc++ -lz $(GSLLIBS) $(BOOSTLIBS)
 
 CPPFILES = $(wildcard src/*.cpp)
@@ -67,6 +70,8 @@ SH = /bin/sh
 MAIN = historian
 
 all: $(MAIN)
+
+debug: $(MAIN)
 
 $(MAIN): bin/$(MAIN)
 
@@ -229,4 +234,3 @@ src/amino.cpp: data/prot1.json
 
 data/%.json: data/%.hsm
 	perl/xrate2json.pl $< >$@
-
