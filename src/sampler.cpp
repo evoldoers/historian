@@ -85,6 +85,19 @@ vguard<TreeNodeIndex> Sampler::contemporaneousNodes (const Tree& tree, const vgu
   return contemps;
 }
 
+vguard<double> Sampler::nodeListWeights (size_t n) {
+  vguard<double> w (n);
+  double norm = 0, wi = 1, mul = 1.5;
+  for (size_t i = 0; i < n; ++i) {
+    w[i] = wi;
+    norm += wi;
+    wi /= mul;
+  }
+  for (auto& weight: w)
+    weight /= norm;
+  return w;
+}
+
 AlignRowIndex Sampler::guideRow (const Tree& tree, TreeNodeIndex node) const {
   return guideRowByName.at (tree.nodeName (node));
 }
@@ -594,7 +607,9 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     nullify("nowhere to regraft");
     return;
   }
-  const TreeNodeIndex newSibling = random_element (contemps, generator);
+  const vguard<double> contempWeights = sampler.nodeListWeights (contemps.size());
+  const size_t contempIndex = random_index (contempWeights, generator);
+  const TreeNodeIndex newSibling = contemps[contempIndex];
 
   parent = history.tree.parentNode (node);
   Assert (parent >= 0, "Parent node not found");
@@ -624,15 +639,25 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
   newTree.setParent (newSibling, parent, parentNewSibDist);
   newTree.setParent (parent, newGrandparent, newGranParentDist);
 
-  const vector<TreeNodeIndex> newContemps = contemporaneousNodes (newTree, newTree.distanceFromRoot(), node);
+  const vector<TreeNodeIndex> revContemps = contemporaneousNodes (newTree, newTree.distanceFromRoot(), node);
+  const vguard<double> revContempWeights = sampler.nodeListWeights (revContemps.size());
+  const size_t revContempIndex = find (revContemps.begin(), revContemps.end(), oldSibling) - revContemps.begin();
+  if (revContempIndex >= revContemps.size()) {
+    Warn ("Couldn't invert move");
+    nullify("couldn't invert move");
+    return;
+  }
+
+  const LogProb logFwdSibSelect = log(contempWeights[contempIndex]);
+  const LogProb logRevSibSelect = log(revContempWeights[revContempIndex]);
 
   // optimize special case that (oldSibling,parent,oldGrandparent,newGrandparent,newSibling) form a sub-alignment with no gaps
   const vguard<TreeNodeIndex> subpathNodes = { oldSibling, parent, oldGrandparent, newGrandparent, newSibling };
   if (Sampler::subpathUngapped (oldAlign.path, subpathNodes)) {
-    logForwardProposal = -log(contemps.size());
-    logReverseProposal = -log(newContemps.size());
-
     initNewHistory (newTree, history.gapped);
+
+    logForwardProposal = logFwdSibSelect;
+    logReverseProposal = logRevSibSelect;
 
     comment = "(alignment unchanged)";
     
@@ -712,11 +737,11 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
     const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
-    logForwardProposal = -log(contemps.size()) + logPostNewSiblingPath + logPostNewBranchPath;
-    logReverseProposal = -log(newContemps.size()) + logPostOldSiblingPath + logPostOldBranchPath;
+    logForwardProposal = logFwdSibSelect + logPostNewSiblingPath + logPostNewBranchPath;
+    logReverseProposal = logRevSibSelect + logPostOldSiblingPath + logPostOldBranchPath;
 
-    LogThisAt(6,"log(Q_fwd) = " << setw(10) << -log(contemps.size()) << " (#newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
-    LogThisAt(6,"log(Q_rev) = " << setw(10) << -log(newContemps.size()) << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
+    LogThisAt(6,"log(Q_fwd) = " << setw(10) << logFwdSibSelect << " (#newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
+    LogThisAt(6,"log(Q_rev) = " << setw(10) << logRevSibSelect << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
     mergeComponents.push_back (oldSibCladePath);
     mergeComponents.push_back (oldGranSibPath);
@@ -824,7 +849,7 @@ Sampler::RescaleMove::RescaleMove (const History& history, LogProb oldLogLikelih
 Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
     model (model),
-    probModel (model, dist),
+    probModel (model, max (Tree::minBranchLength, dist)),
     logProbModel (probModel),
     xRow (x),
     yRow (y),
@@ -982,8 +1007,8 @@ void Sampler::BranchMatrix::getColumn (const CellCoords& coords, bool& x, bool& 
 Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
   : SparseDPMatrix (env, lEnvPos, rEnvPos),
     model (model),
-    lProbModel (model, plDist),
-    rProbModel (model, prDist),
+    lProbModel (model, max (Tree::minBranchLength, plDist)),
+    rProbModel (model, max (Tree::minBranchLength, prDist)),
     lLogProbModel (lProbModel),
     rLogProbModel (rProbModel),
     logRoot (log_gsl_vector (model.insProb)),
