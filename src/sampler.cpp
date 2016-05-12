@@ -275,7 +275,7 @@ set<TreeNodeIndex> Sampler::nodesAndAncestors (const Tree& tree, TreeNodeIndex n
 
 map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
-  AlignColSumProduct colSumProd (model, tree, gapped);
+  AlignColSumProduct colSumProd (eigen, tree, gapped);
   colSumProd.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
   colSumProd.postorder = vguard<TreeNodeIndex> (fillUpNodes.begin(), fillUpNodes.end());
   while (!colSumProd.alignmentDone()) {
@@ -297,11 +297,11 @@ LogProb Sampler::logLikelihood (const History& history, const char* suffix) cons
   LogProb lpGaps = 0;
   for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
     const TreeNodeIndex parent = history.tree.parentNode (node);
-    const ProbModel probModel (model, history.tree.branchLength (node));
+    const ProbModel probModel (eigen, history.tree.branchLength (node));
     const AlignPath path = pairPath (align.path, parent, node);
     lpGaps += logBranchPathLikelihood (probModel, path, parent, node);
   }
-  AlignColSumProduct colSumProd (model, history.tree, history.gapped);
+  AlignColSumProduct colSumProd (eigen, history.tree, history.gapped);
   LogProb lpSub = 0;
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
@@ -850,7 +850,7 @@ Sampler::BranchMatrix::BranchMatrix (const EigenModel& eigen, const PosWeightMat
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
     eigen (eigen),
     model (eigen.model),
-    probModel (model, max (Tree::minBranchLength, dist)),
+    probModel (eigen, max (Tree::minBranchLength, dist)),
     logProbModel (probModel),
     xRow (x),
     yRow (y),
@@ -1009,8 +1009,8 @@ Sampler::SiblingMatrix::SiblingMatrix (const EigenModel& eigen, const PosWeightM
   : SparseDPMatrix (env, lEnvPos, rEnvPos),
     eigen (eigen),
     model (eigen.model),
-    lProbModel (model, max (Tree::minBranchLength, plDist)),
-    rProbModel (model, max (Tree::minBranchLength, prDist)),
+    lProbModel (eigen, max (Tree::minBranchLength, plDist)),
+    rProbModel (eigen, max (Tree::minBranchLength, prDist)),
     lLogProbModel (lProbModel),
     rLogProbModel (rProbModel),
     logRoot (log_gsl_vector (model.insProb)),
