@@ -794,19 +794,20 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
 Sampler::NodeHeightMove::NodeHeightMove (const History& history, LogProb oldLogLikelihood, const Sampler& sampler, random_engine& generator)
   : Move (NodeHeight, history, oldLogLikelihood, sampler.name)
 {
-  node = Sampler::randomInternalNode (history.tree, generator);
-  Assert (history.tree.nChildren(node) == 2, "Tree is not binary");
-  leftChild = history.tree.getChild (node, 0);
-  rightChild = history.tree.getChild (node, 1);
-  parent = history.tree.parentNode (node);
-
-  LogThisAt(4,"Proposing node-height move at...\n        node #" << node << ": " << history.tree.seqName(node) << "\n  left-child #" << leftChild << ": " << history.tree.seqName(leftChild) << "\n right-child #" << rightChild << ": " << history.tree.seqName(rightChild) << (parent >= 0 ? (string("\n      parent #") + to_string(parent) + ": " + history.tree.seqName(parent)) : string()) << endl);
-
-  const TreeBranchLength lChildDist = history.tree.branchLength(leftChild);
-  const TreeBranchLength rChildDist = history.tree.branchLength(rightChild);
-  const TreeBranchLength minChildDist = min (lChildDist, rChildDist);
-
   Tree newTree = history.tree;
+  logForwardProposal = logReverseProposal = logJacobian = 0;
+
+  node = Sampler::randomInternalNode (newTree, generator);
+  Assert (newTree.nChildren(node) == 2, "Tree is not binary");
+  leftChild = newTree.getChild (node, 0);
+  rightChild = newTree.getChild (node, 1);
+  parent = newTree.parentNode (node);
+
+  LogThisAt(4,"Proposing node-height move at...\n        node #" << node << ": " << newTree.seqName(node) << "\n  left-child #" << leftChild << ": " << newTree.seqName(leftChild) << "\n right-child #" << rightChild << ": " << newTree.seqName(rightChild) << (parent >= 0 ? (string("\n      parent #") + to_string(parent) + ": " + newTree.seqName(parent)) : string()) << endl);
+
+  const TreeBranchLength lChildDist = newTree.branchLength(leftChild);
+  const TreeBranchLength rChildDist = newTree.branchLength(rightChild);
+  const TreeBranchLength minChildDist = min (lChildDist, rChildDist);
 
   if (parent < 0) {
     const double maxLogMultiplier = log(2);
@@ -818,14 +819,12 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, LogProb oldLogL
     newTree.node[leftChild].d = lChildDist - minChildDist + newMinChildDist;
     newTree.node[rightChild].d = rChildDist - minChildDist + newMinChildDist;
 
-    logForwardProposal = 0;
-    logReverseProposal = 0;
-    logJacobian = logMultiplier;
+    logJacobian += logMultiplier;
 
     LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << newMinChildDist << " (previously " << minChildDist << ", multiplier " << multiplier << ")" << endl);
 
   } else {
-    const TreeBranchLength pDist = max (0., history.tree.branchLength(node));
+    const TreeBranchLength pDist = max (0., newTree.branchLength(node));
     const TreeBranchLength pDistRange = pDist + minChildDist;
 
     uniform_real_distribution<TreeBranchLength> distribution (0, pDistRange);
@@ -835,8 +834,6 @@ Sampler::NodeHeightMove::NodeHeightMove (const History& history, LogProb oldLogL
     newTree.node[node].d = pDistNew;
     newTree.node[leftChild].d = (lChildDist - minChildDist) + cDistNew;
     newTree.node[rightChild].d = (rChildDist - minChildDist) + cDistNew;
-
-    logForwardProposal = logReverseProposal = logJacobian = 0;
 
     LogThisAt(6,"Sampled coalescence time of #" << leftChild << " and #" << rightChild << ": " << cDistNew << " (previously " << minChildDist << ", maximum " << pDist << ")" << endl);
   }
@@ -1491,6 +1488,13 @@ void Sampler::initialize (const History& initialHistory, const string& samplerNa
   
   bestHistory = currentHistory;
   currentLogLikelihood = bestLogLikelihood = logLikelihood (currentHistory, "initial");
+
+  // set move rates more-or-less arbitrarily
+  moveRate[Move::BranchAlign] = 1;
+  moveRate[Move::NodeAlign] = 1;
+  moveRate[Move::PruneAndRegraft] = 1;
+  moveRate[Move::NodeHeight] = 2;
+  moveRate[Move::Rescale] = 2;
 }
 
 void Sampler::sample (random_engine& generator) {
