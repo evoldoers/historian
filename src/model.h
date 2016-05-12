@@ -51,6 +51,37 @@ struct RateModel : AlphabetOwner {
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
 };
 
+class EigenModel {
+public:
+  const RateModel& model;
+
+  gsl_vector_complex *eval;
+  gsl_matrix_complex *evec;  // right eigenvectors
+  gsl_matrix_complex *evecInv;  // left eigenvectors
+
+  EigenModel (const RateModel& model);
+  ~EigenModel();
+
+  gsl_matrix_complex* eigenSubCount (double t) const;
+  double getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
+  void accumSubCounts (vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
+
+  double getSubProb (double t, AlphTok i, AlphTok j) const;
+  gsl_matrix* getSubProbMatrix (double t) const;
+  gsl_matrix_complex* getRateMatrix() const;
+  gsl_matrix_complex* evecInv_evec() const;
+
+  vguard<vguard<double> > getSubCounts (const vguard<vguard<gsl_complex> >& eigenCounts) const;
+  
+private:
+  vguard<gsl_complex> ev, ev_t, exp_ev_t;
+  void compute_exp_ev_t (double t);
+  double getSubProbInner (double t, AlphTok i, AlphTok j) const;
+  
+  EigenModel (const EigenModel&) = delete;
+  EigenModel& operator= (const EigenModel&) = delete;
+};
+
 class ProbModel : public AlphabetOwner {
 public:
   typedef enum { Start = 0,

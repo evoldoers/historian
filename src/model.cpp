@@ -1,6 +1,8 @@
 #include <math.h>
 
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_eigen.h>
+#include <gsl/gsl_permutation.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_min.h>
@@ -15,6 +17,18 @@
 #include "alignpath.h"
 #include "logger.h"
 #include "sumprod.h"
+
+#define EIGENMODEL_EPSILON 1e-6
+#define EIGENMODEL_NEAR_EQ(X,Y) (gsl_fcmp (X, Y, EIGENMODEL_EPSILON) == 0)
+#define EIGENMODEL_NEAR_EQ_COMPLEX(X,Y) (EIGENMODEL_NEAR_EQ(GSL_REAL(X),GSL_REAL(Y)) && EIGENMODEL_NEAR_EQ(GSL_IMAG(X),GSL_IMAG(Y)))
+#define EIGENMODEL_NEAR_REAL(X) (abs(GSL_IMAG(X)) < EIGENMODEL_EPSILON)
+
+string tempComplexMatrixToString (gsl_matrix_complex* mx);
+string complexMatrixToString (const gsl_matrix_complex* mx);
+string complexVectorToString (const gsl_vector_complex* v);
+
+string complexMatrixToString (const vguard<vguard<gsl_complex> >& mx);
+string complexVectorToString (const vector<gsl_complex>& v);
 
 struct DistanceMatrixParams {
   const map<pair<AlphTok,AlphTok>,int>& pairCount;
@@ -449,7 +463,6 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   return t;
 }
 
-
 void AlphabetOwner::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) const {
   const string ind (indent, ' ');
   out << ind << "{" << endl;
@@ -832,4 +845,235 @@ double EventCounts::expectedLogLikelihood (const RateModel& model) const {
 
 double IndelCounts::decayWaitTime (double decayRate, double timeInterval) {
   return 1 / decayRate - timeInterval / (exp (decayRate*timeInterval) - 1);
+}
+
+
+EigenModel::EigenModel (const RateModel& model)
+  : model (model),
+    eval (gsl_vector_complex_alloc (model.alphabetSize())),
+    evec (gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize())),
+    evecInv (gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize())),
+    ev (model.alphabetSize()),
+    ev_t (model.alphabetSize()),
+    exp_ev_t (model.alphabetSize())
+{
+  gsl_matrix *R = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
+  gsl_matrix_memcpy (R, model.subRate);
+  
+  gsl_eigen_nonsymmv_workspace *workspace = gsl_eigen_nonsymmv_alloc (model.alphabetSize());
+  CheckGsl (gsl_eigen_nonsymmv (R, eval, evec, workspace));
+  gsl_eigen_nonsymmv_free (workspace);
+  gsl_matrix_free (R);
+
+  gsl_matrix_complex *LU = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+  gsl_permutation *perm = gsl_permutation_alloc (model.alphabetSize());
+  int permSig = 0;
+  gsl_matrix_complex_memcpy (LU, evec);
+  CheckGsl (gsl_linalg_complex_LU_decomp (LU, perm, &permSig));
+  CheckGsl (gsl_linalg_complex_LU_invert (LU, perm, evecInv));
+  gsl_matrix_complex_free (LU);
+  gsl_permutation_free (perm);
+
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    ev[i] = gsl_vector_complex_get (eval, i);
+
+  LogThisAt(8,"Eigenvalues:" << complexVectorToString(ev) << endl
+	    << "Right eigenvector matrix, V:" << endl << complexMatrixToString(evec)
+	    << "Left eigenvector matrix, V^{-1}:" << endl << complexMatrixToString(evecInv)
+	    << "Product V^{-1} * V:" << endl << tempComplexMatrixToString (evecInv_evec())
+	    << "Reconstituted rate matrix:" << endl << tempComplexMatrixToString (getRateMatrix()));
+}
+
+EigenModel::~EigenModel() {
+  gsl_vector_complex_free (eval);
+  gsl_matrix_complex_free (evec);
+  gsl_matrix_complex_free (evecInv);
+}
+
+void EigenModel::compute_exp_ev_t (double t) {
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+    ev_t[i] = gsl_complex_mul_real (ev[i], t);
+    exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
+  }
+  LogThisAt(9,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
+}
+
+gsl_matrix_complex* EigenModel::getRateMatrix() const {
+  gsl_matrix_complex* r = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex rij = gsl_complex_rect (0, 0);
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+	rij = gsl_complex_add
+	  (rij,
+	   gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
+					     gsl_matrix_complex_get (evecInv, k, j)),
+			    ev[k]));
+      gsl_matrix_complex_set (r, i, j, rij);
+    }
+  return r;
+}
+
+gsl_matrix_complex* EigenModel::evecInv_evec() const {
+  gsl_matrix_complex* e = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex eij = gsl_complex_rect (0, 0);
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+	eij = gsl_complex_add
+	  (eij,
+	   gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
+			    gsl_matrix_complex_get (evecInv, k, j)));
+      gsl_matrix_complex_set (e, i, j, eij);
+    }
+  return e;
+}
+
+double EigenModel::getSubProb (double t, AlphTok i, AlphTok j) const {
+  ((EigenModel&) *this).compute_exp_ev_t (t);
+  return getSubProbInner (t, i, j);
+}
+
+double EigenModel::getSubProbInner (double t, AlphTok i, AlphTok j) const {
+  gsl_complex p = gsl_complex_rect (0, 0);
+  for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+    p = gsl_complex_add
+      (p,
+       gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
+					 gsl_matrix_complex_get (evecInv, k, j)),
+			exp_ev_t[k]));
+  Assert (EIGENMODEL_NEAR_REAL(p), "Probability has imaginary part: p=(%g,%g)", GSL_REAL(p), GSL_IMAG(p));
+  return min (1., max (0., GSL_REAL(p)));
+}
+
+gsl_matrix* EigenModel::getSubProbMatrix (double t) const {
+  gsl_matrix* sub = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
+  ((EigenModel&) *this).compute_exp_ev_t (t);
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+      gsl_matrix_set (sub, i, j, getSubProbInner (t, i, j));
+  return sub;
+}
+
+double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
+  const double p_ab = gsl_matrix_get (sub, a, b);
+  const double r_ij = gsl_matrix_get (model.subRate, i, j);
+  gsl_complex c_ij = gsl_complex_rect (0, 0);
+  for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+    gsl_complex c_ijk = gsl_complex_rect (0, 0);
+    for (AlphTok l = 0; l < model.alphabetSize(); ++l)
+      c_ijk = gsl_complex_add
+	(c_ijk,
+	 gsl_complex_mul
+	 (gsl_complex_mul
+	  (gsl_matrix_complex_get (evec, j, l),
+	   gsl_matrix_complex_get (evecInv, l, b)),
+	  gsl_matrix_complex_get (eSubCount, k, l)));
+    c_ij = gsl_complex_add (c_ij,
+			    gsl_complex_mul
+			    (gsl_complex_mul
+			     (gsl_matrix_complex_get (evec, a, k),
+			      gsl_matrix_complex_get (evecInv, k, i)),
+			     c_ijk));
+  }
+  Assert (EIGENMODEL_NEAR_REAL(c_ij), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c_ij), GSL_IMAG(c_ij));
+  return max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) / p_ab);
+}
+
+void EigenModel::accumSubCounts (vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+      count[i][j] += getSubCount (a, b, i, j, sub, eSubCount) * weight;
+}
+
+gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
+  gsl_matrix_complex* esub = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+  ((EigenModel&) *this).compute_exp_ev_t (t);
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      const bool ev_eq = i == j || EIGENMODEL_NEAR_EQ_COMPLEX (ev[i], ev[j]);
+      gsl_matrix_complex_set
+	(esub, i, j,
+	 ev_eq
+	 ? gsl_complex_mul_real (exp_ev_t[i], t)
+	 : gsl_complex_div (gsl_complex_sub (exp_ev_t[i], exp_ev_t[j]),
+			    gsl_complex_sub (ev[i], ev[j])));
+    }
+
+  LogThisAt(8,endl << "Eigensubstitution matrix at time t=" << t << ":" << endl << complexMatrixToString(esub));
+
+  return esub;
+}
+
+vguard<vguard<double> > EigenModel::getSubCounts (const vguard<vguard<gsl_complex> >& eigenCounts) const {
+  LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
+  vguard<vguard<double> > counts (model.alphabetSize(), vguard<double> (model.alphabetSize(), 0));
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+      gsl_complex c = gsl_complex_rect (0, 0);
+      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+	gsl_complex ck = gsl_complex_rect (0, 0);
+	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
+	  ck = gsl_complex_add
+	    (ck,
+	     gsl_complex_mul (eigenCounts[k][l],
+			      gsl_matrix_complex_get (evec, j, l)));
+	c = gsl_complex_add
+	  (c,
+	   gsl_complex_mul (gsl_matrix_complex_get (evecInv, k, i),
+			    ck));
+      }
+      counts[i][j] = GSL_REAL(c) * (i == j ? 1 : gsl_matrix_get (model.subRate, i, j));
+    }
+  return counts;
+}
+
+string tempComplexMatrixToString (gsl_matrix_complex* mx) {
+  const string s = complexMatrixToString (mx);
+  gsl_matrix_complex_free (mx);
+  return s;
+}
+
+string complexMatrixToString (const gsl_matrix_complex* mx) {
+  ostringstream s;
+  for (size_t i = 0; i < mx->size1; ++i) {
+    for (size_t j = 0; j < mx->size2; ++j) {
+      const gsl_complex c = gsl_matrix_complex_get (mx, i, j);
+      s << " (" << GSL_REAL(c) << "," << GSL_IMAG(c) << ")";
+    }
+    s << endl;
+  }
+  return s.str();
+}
+
+string complexMatrixToString (const vguard<vguard<gsl_complex> >& mx) {
+  ostringstream s;
+  for (size_t i = 0; i < mx.size(); ++i) {
+    for (size_t j = 0; j < mx[i].size(); ++j) {
+      const gsl_complex& c = mx[i][j];
+      s << " (" << GSL_REAL(c) << "," << GSL_IMAG(c) << ")";
+    }
+    s << endl;
+  }
+  return s.str();
+}
+
+string complexVectorToString (const gsl_vector_complex* v) {
+  ostringstream s;
+  for (size_t i = 0; i < v->size; ++i) {
+    const gsl_complex c = gsl_vector_complex_get (v, i);
+      s << " (" << GSL_REAL(c) << "," << GSL_IMAG(c) << ")";
+  }
+  s << endl;
+  return s.str();
+}
+
+string complexVectorToString (const vector<gsl_complex>& v) {
+  ostringstream s;
+  for (size_t i = 0; i < v.size(); ++i) {
+    const gsl_complex c = v[i];
+      s << " (" << GSL_REAL(c) << "," << GSL_IMAG(c) << ")";
+  }
+  s << endl;
+  return s.str();
 }
