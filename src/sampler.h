@@ -331,6 +331,7 @@ struct Sampler {
   list<Logger*> loggers;
   vguard<double> moveRate, moveNanosecs;
   vguard<int> movesProposed, movesAccepted;
+  bool useFixedGuide;
   const Alignment guide;
   map<string,AlignRowIndex> guideRowByName;
   int maxDistanceFromGuide;
@@ -369,8 +370,10 @@ struct Sampler {
   static vguard<double> nodeListWeights (size_t n);  // returns normalized distribution over [0..n-1]
   
   AlignRowIndex guideRow (const Tree& tree, TreeNodeIndex node) const;
-  GuideAlignmentEnvelope makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2) const;
-  static vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
+  GuideAlignmentEnvelope makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2, const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2) const;
+
+  vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex fixedGuideRow) const;
+  vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex variableGuideRow, AlignRowIndex fixedGuideRow) const;
 
   static set<TreeNodeIndex> allNodes (const Tree& tree);
   static set<TreeNodeIndex> allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node);

@@ -43,6 +43,7 @@ Reconstructor::Reconstructor()
     maxEMIterations (DefaultMaxEMIterations),
     minEMImprovement (DefaultMinEMImprovement),
     runMCMC (false),
+    fixGuideMCMC (false),
     mcmcSamplesPerSeq (DefaultMCMCSamplesPerSeq),
     mcmcTraceFiles (0),
     outputFormat (StockholmFormat),
@@ -341,6 +342,13 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       runMCMC = true;
       useUPGMA = true;
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-fixguide") {
+      fixGuideMCMC = true;
+      runMCMC = true;
+      useUPGMA = true;
       argvec.pop_front();
       return true;
 
@@ -931,6 +939,7 @@ void Reconstructor::sampleAll() {
       loggers.push_back (new HistoryLogger (*this, dataset.name));
       Sampler& sampler = samplers.back();
       sampler.addLogger (*loggers.back());
+      sampler.useFixedGuide = fixGuideMCMC;
       Sampler::History history;
       history.tree = dataset.tree;
       history.gapped = dataset.gappedRecon;

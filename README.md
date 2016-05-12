@@ -77,6 +77,7 @@ MCMC sampling allows for additional accuracy in historical reconstruction.
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
   -trace &lt;file&gt;   Specify MCMC trace filename (default is stdout)
+  -fixguide       Fix guide alignment during MCMC
 
 Guide alignment & tree estimation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

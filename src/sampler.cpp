@@ -102,13 +102,18 @@ AlignRowIndex Sampler::guideRow (const Tree& tree, TreeNodeIndex node) const {
   return guideRowByName.at (tree.nodeName (node));
 }
 
-GuideAlignmentEnvelope Sampler::makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2) const {
-  return GuideAlignmentEnvelope (guide.path, guideRow(tree,leaf1), guideRow(tree,leaf2), maxDistanceFromGuide);
+GuideAlignmentEnvelope Sampler::makeGuide (const Tree& tree, TreeNodeIndex leaf1, TreeNodeIndex leaf2, const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2) const {
+  return GuideAlignmentEnvelope (useFixedGuide ? guide.path : path, useFixedGuide ? guideRow(tree,leaf1) : node1, useFixedGuide ? guideRow(tree,leaf2) : node2, maxDistanceFromGuide);
 }
 
-vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
-  LogThisAt(9,"Mapping sequence coordinates between node #" << row << " and closest leaf #" << guideRow << endl);
+vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex fixedGuideRow) const {
+  return guideSeqPos (path, row, row, fixedGuideRow);
+}
+
+vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex variableGuideRow, AlignRowIndex fixedGuideRow) const {
   vguard<SeqIdx> guidePos;
+  const AlignRowIndex guideRow = useFixedGuide ? fixedGuideRow : variableGuideRow;
+  LogThisAt(9,"Mapping sequence coordinates between node #" << row << " and guide row #" << guideRow << endl);
   const auto cols = alignPathColumns (path);
   guidePos.reserve (cols);
   const AlignRowPath& rowPath = path.at(row);
@@ -444,14 +449,15 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, LogProb oldLo
   const TreeNodeIndex parentClosestLeaf = history.tree.closestLeaf (parent, node);
   const TreeNodeIndex nodeClosestLeaf = history.tree.closestLeaf (node, parent);
 
-  const GuideAlignmentEnvelope branchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf);
-
   const Alignment oldAlign (history.gapped);
+  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
+  const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf, oldBranchPath, parent, node);
+
   const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
   const AlignPath nCladePath = Sampler::cladePath (oldAlign.path, history.tree, node, parent);
   
-  const vguard<SeqIdx> parentEnvPos = guideSeqPos (oldAlign.path, parent, parentClosestLeaf);
-  const vguard<SeqIdx> nodeEnvPos = guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
+  const vguard<SeqIdx> parentEnvPos = sampler.guideSeqPos (oldAlign.path, parent, parentClosestLeaf);
+  const vguard<SeqIdx> nodeEnvPos = sampler.guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
 
   map<TreeNodeIndex,TreeNodeIndex> exclude;
   exclude[node] = parent;
@@ -461,17 +467,22 @@ Sampler::BranchAlignMove::BranchAlignMove (const History& history, LogProb oldLo
   const PosWeightMatrix& pSeq = pwms.at (parent);
   const PosWeightMatrix& nSeq = pwms.at (node);
 
-  const BranchMatrix branchMatrix (sampler.model, pSeq, nSeq, dist, branchEnv, parentEnvPos, nodeEnvPos, parent, node);
-
-  const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
-  const AlignPath newBranchPath = branchMatrix.sample (generator);
+  const BranchMatrix newBranchMatrix (sampler.model, pSeq, nSeq, dist, newBranchEnv, parentEnvPos, nodeEnvPos, parent, node);
+  const AlignPath newBranchPath = newBranchMatrix.sample (generator);
 
   LogThisAt(6,"Proposed (parent:node) alignment:" << endl << alignPathString(newBranchPath));
-  const LogProb logPostNewBranchPath = branchMatrix.logPostProb (newBranchPath);
+  const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
   LogThisAt(6,"Previous (parent:node) alignment:" << endl << alignPathString(oldBranchPath));
-  const LogProb logPostOldBranchPath = branchMatrix.logPostProb (oldBranchPath);
-
+  const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf, newBranchPath, parent, node);
+  const BranchMatrix* oldBranchMatrix =
+    sampler.useFixedGuide
+    ? &newBranchMatrix
+    : new BranchMatrix (sampler.model, pSeq, nSeq, dist, oldBranchEnv, parentEnvPos, nodeEnvPos, parent, node);
+  const LogProb logPostOldBranchPath = oldBranchMatrix->logPostProb (oldBranchPath);
+  if (!sampler.useFixedGuide)
+    delete oldBranchMatrix;
+  
   if (oldBranchPath == newBranchPath) {
     LogThisAt(6,"Alignments are identical; abandoning move" << endl);
     nullify("no change");
@@ -508,13 +519,15 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
   const TreeNodeIndex rightChildClosestLeaf = history.tree.closestLeaf (rightChild, node);
 
   const Alignment oldAlign (history.gapped);
+  const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, leftChild, rightChild, node);
+
   const AlignPath lCladePath = Sampler::cladePath (oldAlign.path, history.tree, leftChild, node);
   const AlignPath rCladePath = Sampler::cladePath (oldAlign.path, history.tree, rightChild, node);
 
-  const vguard<SeqIdx> leftChildEnvPos = guideSeqPos (oldAlign.path, leftChild, leftChildClosestLeaf);
-  const vguard<SeqIdx> rightChildEnvPos = guideSeqPos (oldAlign.path, rightChild, rightChildClosestLeaf);
+  const vguard<SeqIdx> leftChildEnvPos = sampler.guideSeqPos (oldAlign.path, leftChild, leftChildClosestLeaf);
+  const vguard<SeqIdx> rightChildEnvPos = sampler.guideSeqPos (oldAlign.path, rightChild, rightChildClosestLeaf);
 
-  const GuideAlignmentEnvelope siblingEnv = sampler.makeGuide (history.tree, leftChildClosestLeaf, rightChildClosestLeaf);
+  const GuideAlignmentEnvelope newSiblingEnv = sampler.makeGuide (history.tree, leftChildClosestLeaf, rightChildClosestLeaf, oldSiblingPath, leftChild, rightChild);
 
   map<TreeNodeIndex,TreeNodeIndex> exclude;
   exclude[leftChild] = node;
@@ -527,14 +540,18 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
   const PosWeightMatrix& lSeq = pwms.at (leftChild);
   const PosWeightMatrix& rSeq = pwms.at (rightChild);
 
-  const SiblingMatrix sibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, siblingEnv, leftChildEnvPos, rightChildEnvPos, leftChild, rightChild, node);
-  const AlignPath newSiblingPath = sibMatrix.sample (generator);
+  const SiblingMatrix newSibMatrix (sampler.model, lSeq, rSeq, lDist, rDist, newSiblingEnv, leftChildEnvPos, rightChildEnvPos, leftChild, rightChild, node);
+  const AlignPath newSiblingPath = newSibMatrix.sample (generator);
   LogThisAt(6,"Proposed (node:left:right) alignment:" << endl << alignPathString(newSiblingPath));
-  const LogProb logPostNewSiblingPath = sibMatrix.logPostProb (newSiblingPath);
+  const LogProb logPostNewSiblingPath = newSibMatrix.logPostProb (newSiblingPath);
 
-  const AlignPath oldSiblingPath = Sampler::triplePath (oldAlign.path, leftChild, rightChild, node);
   LogThisAt(6,"Previous (node:left:right) alignment:" << endl << alignPathString(oldSiblingPath));
-  const LogProb logPostOldSiblingPath = sibMatrix.logPostProb (oldSiblingPath);
+  const GuideAlignmentEnvelope oldSiblingEnv = sampler.makeGuide (history.tree, leftChildClosestLeaf, rightChildClosestLeaf, newSiblingPath, leftChild, rightChild);
+  const SiblingMatrix* oldSibMatrix =
+    sampler.useFixedGuide
+    ? &newSibMatrix
+    : new SiblingMatrix (sampler.model, lSeq, rSeq, lDist, rDist, oldSiblingEnv, leftChildEnvPos, rightChildEnvPos, leftChild, rightChild, node);
+  const LogProb logPostOldSiblingPath = oldSibMatrix->logPostProb (oldSiblingPath);
 
   logForwardProposal = logPostNewSiblingPath;
   logReverseProposal = logPostOldSiblingPath;
@@ -551,24 +568,30 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
 
     const TreeNodeIndex nodeClosestLeaf = history.tree.closestLeaf (node, parent);
     const TreeNodeIndex parentClosestLeaf = history.tree.closestLeaf (parent, node);
-
-    const GuideAlignmentEnvelope branchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf);
+    const TreeNodeIndex nodeClosestChild = lDist < rDist ? leftChild : rightChild;
+    
+    const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf, oldAlign.path, parent, nodeClosestChild);
     const AlignPath& nodeSubtreePath = newPath;
-    const vguard<SeqIdx> newNodeEnvPos = guideSeqPos (nodeSubtreePath, node, nodeClosestLeaf);
-    const vguard<SeqIdx> oldNodeEnvPos = guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
+    const vguard<SeqIdx> newNodeEnvPos = sampler.guideSeqPos (nodeSubtreePath, node, nodeClosestChild, nodeClosestLeaf);
+    const vguard<SeqIdx> oldNodeEnvPos = sampler.guideSeqPos (oldAlign.path, node, nodeClosestChild, nodeClosestLeaf);
 
     const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
-    const vguard<SeqIdx> parentEnvPos = guideSeqPos (oldAlign.path, parent, parentClosestLeaf);
+    const vguard<SeqIdx> parentEnvPos = sampler.guideSeqPos (oldAlign.path, parent, parentClosestLeaf);
 
-    const PosWeightMatrix newNodeSeq = sibMatrix.parentSeq (newSiblingPath);
-    const BranchMatrix newBranchMatrix (sampler.model, pSeq, newNodeSeq, pDist, branchEnv, parentEnvPos, newNodeEnvPos, parent, node);
+    const PosWeightMatrix newNodeSeq = newSibMatrix.parentSeq (newSiblingPath);
+    const BranchMatrix newBranchMatrix (sampler.model, pSeq, newNodeSeq, pDist, newBranchEnv, parentEnvPos, newNodeEnvPos, parent, node);
 
     const AlignPath newBranchPath = newBranchMatrix.sample (generator);
     LogThisAt(6,"Proposed (parent:node) alignment:" << endl << alignPathString(newBranchPath));
     const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
-    const PosWeightMatrix& oldNodeSeq = sibMatrix.parentSeq (oldSiblingPath);
-    const BranchMatrix oldBranchMatrix (sampler.model, pSeq, oldNodeSeq, pDist, branchEnv, parentEnvPos, oldNodeEnvPos, parent, node);
+    mergeComponents.push_back (pCladePath);
+    mergeComponents.push_back (newBranchPath);
+    newPath = alignPathMerge (mergeComponents);
+
+    const PosWeightMatrix& oldNodeSeq = oldSibMatrix->parentSeq (oldSiblingPath);
+    const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf, newPath, parent, nodeClosestChild);
+    const BranchMatrix oldBranchMatrix (sampler.model, pSeq, oldNodeSeq, pDist, oldBranchEnv, parentEnvPos, oldNodeEnvPos, parent, node);
     const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
     LogThisAt(6,"Previous (parent:node) alignment:" << endl << alignPathString(oldBranchPath));
     const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
@@ -578,11 +601,10 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
 
     LogThisAt(6,"log(Q_fwd) = " << setw(10) << logPostNewSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostNewBranchPath << " (parent:node) = " << logForwardProposal << endl);
     LogThisAt(6,"log(Q_rev) = " << setw(10) << logPostOldSiblingPath << " (node:leftChild:rightChild) + " << setw(10) << logPostOldBranchPath << " (parent:node) = " << logReverseProposal << endl);
-
-    mergeComponents.push_back (pCladePath);
-    mergeComponents.push_back (newBranchPath);
-    newPath = alignPathMerge (mergeComponents);
   }
+
+  if (!sampler.useFixedGuide)
+    delete oldSibMatrix;
 
   if (newPath == oldAlign.path) {
     LogThisAt(6,"Alignments are identical; abandoning move" << endl);
@@ -680,14 +702,16 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     const TreeNodeIndex oldParentClosestLeaf = oldTree.closestLeaf (parent, oldGrandparent);
     const TreeNodeIndex newParentClosestLeaf = newTree.closestLeaf (parent, newGrandparent);
 
-    const vguard<SeqIdx> nodeEnvPos = guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
-    const vguard<SeqIdx> oldSibEnvPos = guideSeqPos (oldAlign.path, oldSibling, oldSibClosestLeaf);
-    const vguard<SeqIdx> oldGranEnvPos = guideSeqPos (oldAlign.path, oldGrandparent, oldGranClosestLeaf);
-    const vguard<SeqIdx> newSibEnvPos = guideSeqPos (oldAlign.path, newSibling, newSibClosestLeaf);
-    const vguard<SeqIdx> newGranEnvPos = guideSeqPos (oldAlign.path, newGrandparent, newGranClosestLeaf);
+    const TreeNodeIndex oldParentClosestChild = parentNodeDist < parentOldSibDist ? node : oldSibling;
+    const TreeNodeIndex newParentClosestChild = parentNodeDist < parentNewSibDist ? node : newSibling;
 
-    const GuideAlignmentEnvelope newSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, newSibClosestLeaf);
-    const GuideAlignmentEnvelope oldSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, oldSibClosestLeaf);
+    const vguard<SeqIdx> nodeEnvPos = sampler.guideSeqPos (oldAlign.path, node, nodeClosestLeaf);
+    const vguard<SeqIdx> oldSibEnvPos = sampler.guideSeqPos (oldAlign.path, oldSibling, oldSibClosestLeaf);
+    const vguard<SeqIdx> oldGranEnvPos = sampler.guideSeqPos (oldAlign.path, oldGrandparent, oldGranClosestLeaf);
+    const vguard<SeqIdx> newSibEnvPos = sampler.guideSeqPos (oldAlign.path, newSibling, newSibClosestLeaf);
+    const vguard<SeqIdx> newGranEnvPos = sampler.guideSeqPos (oldAlign.path, newGrandparent, newGranClosestLeaf);
+
+    const GuideAlignmentEnvelope newSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, newSibClosestLeaf, oldAlign.path, node, newSibling);
 
     map<TreeNodeIndex,TreeNodeIndex> exclude;
     exclude[node] = -1;
@@ -711,18 +735,15 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     LogThisAt(6,"Proposed (parent:node:newSibling) alignment:" << endl << alignPathString(newSiblingPath));
     const LogProb logPostNewSiblingPath = newSibMatrix.logPostProb (newSiblingPath);
 
-    const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
     LogThisAt(6,"Previous (parent:node:oldSibling) alignment:" << endl << alignPathString(oldSiblingPath));
-    const LogProb logPostOldSiblingPath = oldSibMatrix.logPostProb (oldSiblingPath);
 
     vguard<AlignPath> mergeComponents = { nodeCladePath, newSibCladePath, newSiblingPath };
     const AlignPath newParentSubtreePath = alignPathMerge (mergeComponents);
 
-    const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, newGranClosestLeaf, newParentClosestLeaf);
-    const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, oldGranClosestLeaf, oldParentClosestLeaf);
+    const GuideAlignmentEnvelope newBranchEnv = sampler.makeGuide (history.tree, newGranClosestLeaf, newParentClosestLeaf, oldAlign.path, newGrandparent, newParentClosestChild);
 
-    const vguard<SeqIdx> newParentEnvPos = guideSeqPos (newParentSubtreePath, parent, newParentClosestLeaf);
-    const vguard<SeqIdx> oldParentEnvPos = guideSeqPos (oldAlign.path, parent, oldParentClosestLeaf);
+    const vguard<SeqIdx> newParentEnvPos = sampler.guideSeqPos (newParentSubtreePath, parent, newParentClosestChild, newParentClosestLeaf);
+    const vguard<SeqIdx> oldParentEnvPos = sampler.guideSeqPos (oldAlign.path, parent, oldParentClosestChild, oldParentClosestLeaf);
 
     const PosWeightMatrix newParentSeq = newSibMatrix.parentSeq (newSiblingPath);
     const BranchMatrix newBranchMatrix (sampler.model, newGranSeq, newParentSeq, newGranParentDist, newBranchEnv, newGranEnvPos, newParentEnvPos, newGrandparent, parent);
@@ -731,9 +752,21 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     LogThisAt(6,"Proposed (newGrandparent:parent) alignment:" << endl << alignPathString(newBranchPath));
     const LogProb logPostNewBranchPath = newBranchMatrix.logPostProb (newBranchPath);
 
+    LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
+
+    mergeComponents.push_back (oldSibCladePath);
+    mergeComponents.push_back (oldGranSibPath);
+    mergeComponents.push_back (oldGranCladePath);
+    mergeComponents.push_back (newBranchPath);
+    const AlignPath newPath = alignPathMerge (mergeComponents);
+
+    const GuideAlignmentEnvelope oldSibEnv = sampler.makeGuide (history.tree, nodeClosestLeaf, oldSibClosestLeaf, newPath, node, oldSibling);
+    const SiblingMatrix oldSibMatrix (sampler.model, nodeSeq, oldSibSeq, parentNodeDist, parentOldSibDist, oldSibEnv, nodeEnvPos, oldSibEnvPos, node, oldSibling, parent);
+    const LogProb logPostOldSiblingPath = oldSibMatrix.logPostProb (oldSiblingPath);
+
+    const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, oldGranClosestLeaf, oldParentClosestLeaf, newPath, oldGrandparent, oldParentClosestChild);
     const PosWeightMatrix oldParentSeq = oldSibMatrix.parentSeq (oldSiblingPath);
     const BranchMatrix oldBranchMatrix (sampler.model, oldGranSeq, oldParentSeq, oldGranParentDist, oldBranchEnv, oldGranEnvPos, oldParentEnvPos, oldGrandparent, parent);
-    LogThisAt(6,"Previous (oldGrandparent:parent) alignment:" << endl << alignPathString(oldBranchPath));
     const LogProb logPostOldBranchPath = oldBranchMatrix.logPostProb (oldBranchPath);
 
     logForwardProposal = logFwdSibSelect + logPostNewSiblingPath + logPostNewBranchPath;
@@ -741,12 +774,6 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
 
     LogThisAt(6,"log(Q_fwd) = " << setw(10) << logFwdSibSelect << " (#newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
     LogThisAt(6,"log(Q_rev) = " << setw(10) << logRevSibSelect << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
-
-    mergeComponents.push_back (oldSibCladePath);
-    mergeComponents.push_back (oldGranSibPath);
-    mergeComponents.push_back (oldGranCladePath);
-    mergeComponents.push_back (newBranchPath);
-    const AlignPath newPath = alignPathMerge (mergeComponents);
 
     vguard<FastSeq> newUngapped = oldAlign.ungapped;
     newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
@@ -1422,6 +1449,7 @@ Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, cons
     movesProposed (Move::TotalMoveTypes, 0),
     movesAccepted (Move::TotalMoveTypes, 0),
     moveNanosecs (Move::TotalMoveTypes, 0.),
+    useFixedGuide (false),
     guide (gappedGuide),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
 {
