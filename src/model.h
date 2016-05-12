@@ -85,7 +85,7 @@ private:
   vguard<vguard<double> > realEvec, realEvecInv;
   vguard<double> real_ev_t, real_exp_ev_t;
 
-  void compute_exp_ev_t (double t);
+  void compute_exp_ev_t (double t, bool forceComplex = false);
   double getSubProbInner (double t, AlphTok i, AlphTok j) const;
   
   EigenModel& operator= (const EigenModel&) = delete;

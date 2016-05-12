@@ -936,8 +936,8 @@ EigenModel::~EigenModel() {
     gsl_matrix_complex_free (evecInv);
 }
 
-void EigenModel::compute_exp_ev_t (double t) {
-  if (isReal) {
+void EigenModel::compute_exp_ev_t (double t, bool forceComplex) {
+  if (isReal && !forceComplex) {
     for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
       real_ev_t[i] = realEval[i] * t;
       real_exp_ev_t[i] = exp (real_ev_t[i]);
@@ -1048,7 +1048,7 @@ void EigenModel::accumSubCounts (vguard<vguard<double> >& count, AlphTok a, Alph
 
 gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
   gsl_matrix_complex* esub = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
-  ((EigenModel&) *this).compute_exp_ev_t (t);
+  ((EigenModel&) *this).compute_exp_ev_t (t, true);
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
       const bool ev_eq = i == j || EIGENMODEL_NEAR_EQ_COMPLEX (ev[i], ev[j]);

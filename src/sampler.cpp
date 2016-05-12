@@ -1019,51 +1019,51 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
     lEmit (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb)),
     rEmit (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb))
 {
-  imm_www = lNoIns() + rNoIns();
-  imm_imi = rIns();
-  imm_iiw = lIns() + rNoIns();
+  imm_www = lpTransElimSelfLoopIDD (IMM, WWW);
+  imm_imi = lpTransElimSelfLoopIDD (IMM, IMI);
+  imm_iiw = lpTransElimSelfLoopIDD (IMM, IIW);
 
-  imd_wwx = lNoIns();
-  imd_iix = lIns();
+  imd_wwx = lpTransElimSelfLoopIDD (IMD, WWX);
+  imd_iix = lpTransElimSelfLoopIDD (IMD, IIX);
 
-  idm_wxw = rNoIns();
-  idm_idi = rIns();
+  idm_wxw = lpTransElimSelfLoopIDD (IDM, WXW);
+  idm_idi = lpTransElimSelfLoopIDD (IDM, IDI);
 
-  idd_imm = iddExit() + rootExt() + lNoDelExt() + rNoDelExt();
-  idd_imd = iddExit() + rootExt() + lNoDelExt() + rDelExt();
-  idd_idm = iddExit() + rootExt() + lDelExt() + rNoDelExt();
-  idd_eee = iddExit() + rootNoExt() + lNoDelExt() + rNoDelExt();
+  idd_imm = lpTransElimSelfLoopIDD (IDD, IMM);
+  idd_imd = lpTransElimSelfLoopIDD (IDD, IMD);
+  idd_idm = lpTransElimSelfLoopIDD (IDD, IDM);
+  idd_eee = lpTransElimSelfLoopIDD (IDD, EEE);
 
-  www_imm = rootExt() + lNoDel() + rNoDel();
-  www_imd = rootExt() + lNoDel() + rDel();
-  www_idm = rootExt() + lDel() + rNoDel();
-  www_idd = rootExt() + lDel() + rDel();
-  www_eee = 0;
+  www_imm = lpTransElimSelfLoopIDD (WWW, IMM);
+  www_imd = lpTransElimSelfLoopIDD (WWW, IMD);
+  www_idm = lpTransElimSelfLoopIDD (WWW, IDM);
+  www_idd = lpTransElimSelfLoopIDD (WWW, IDD);
+  www_eee = lpTransElimSelfLoopIDD (WWW, EEE);
 
-  wwx_imm = rootExt() + lNoDel() + rNoDelExt();
-  wwx_imd = rootExt() + lNoDel() + rDelExt();
-  wwx_idm = rootExt() + lDel() + rNoDelExt();
-  wwx_idd = rootExt() + lDel() + rDelExt();
-  wwx_eee = rNoDelExt();
+  wwx_imm = lpTransElimSelfLoopIDD (WWX, IMM);
+  wwx_imd = lpTransElimSelfLoopIDD (WWX, IMD);
+  wwx_idm = lpTransElimSelfLoopIDD (WWX, IDM);
+  wwx_idd = lpTransElimSelfLoopIDD (WWX, IDD);
+  wwx_eee = lpTransElimSelfLoopIDD (WWX, EEE);
 
-  wxw_imm = rootExt() + lNoDelExt() + rNoDel();
-  wxw_imd = rootExt() + lNoDelExt() + rDel();
-  wxw_idm = rootExt() + lDelExt() + rNoDel();
-  wxw_idd = rootExt() + lDelExt() + rDel();
-  wxw_eee = lNoDelExt();
+  wxw_imm = lpTransElimSelfLoopIDD (WXW, IMM);
+  wxw_imd = lpTransElimSelfLoopIDD (WXW, IMD);
+  wxw_idm = lpTransElimSelfLoopIDD (WXW, IDM);
+  wxw_idd = lpTransElimSelfLoopIDD (WXW, IDD);
+  wxw_eee = lpTransElimSelfLoopIDD (WXW, EEE);
 
-  imi_www = lNoIns() + rNoInsExt();
-  imi_imi = rInsExt();
-  imi_iiw = lIns() + rNoInsExt();
+  imi_www = lpTransElimSelfLoopIDD (IMI, WWW);
+  imi_imi = lpTransElimSelfLoopIDD (IMI, IMI);
+  imi_iiw = lpTransElimSelfLoopIDD (IMI, IIW);
 
-  iiw_www = lNoInsExt();
-  iiw_iiw = lInsExt();
+  iiw_www = lpTransElimSelfLoopIDD (IIW, WWW);
+  iiw_iiw = lpTransElimSelfLoopIDD (IIW, IIW);
 
-  idi_wxw = rNoInsExt();
-  idi_idi = rInsExt();
+  idi_wxw = lpTransElimSelfLoopIDD (IDI, WXW);
+  idi_idi = lpTransElimSelfLoopIDD (IDI, IDI);
 
-  iix_wwx = lNoInsExt();
-  iix_iix = lInsExt();
+  iix_wwx = lpTransElimSelfLoopIDD (IIX, WWX);
+  iix_iix = lpTransElimSelfLoopIDD (IIX, IIX);
 
   ProgressLog (plog, 5);
   plog.initProgress ("Parent proposal matrix (%u*%u)", xSize, ySize);
@@ -1181,7 +1181,7 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
     const LogProb e = lpEmit (coords);
     map<CellCoords,LogProb> srcLogProb;
     for (src.state = 0; src.state < (unsigned int) EEE; ++src.state)
-      srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state, true) + e;
+      srcLogProb[src] = srcCell(src.state) + lpTransElimSelfLoopIDD ((State) src.state, (State) coords.state) + e;
 
     const double lpTot = log_sum_exp (extract_values (srcLogProb));
     Assert (SAMPLER_NEAR_EQ (lpTot, cell(coords)), "Traceback total (%g) doesn't match stored value (%g) at cell %s", lpTot, cell(coords), coords.toString().c_str());
@@ -1215,11 +1215,11 @@ LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const {
     c.state = getState (prevState, dl, dr, dp);
     if (!inEnvelope (c.xpos, c.ypos))
       return -numeric_limits<double>::infinity();
-    lp += lpTransElim (prevState, (State) c.state, false) + lpEmit (c);
+    lp += lpTransElimWait (prevState, (State) c.state) + lpEmit (c);
     Assert (lp <= cell(c) * (1 - SAMPLER_EPSILON), "Positive posterior probability");
     lp = min (lp, cell(c));  // mitigate precision errors
   }
-  lp += lpTransElim ((State) c.state, EEE, false);
+  lp += lpTransElimWait ((State) c.state, EEE);
   Assert (lp <= lpEnd * (1 - SAMPLER_EPSILON), "Positive posterior probability");
   lp = min (lp, lpEnd);
   return lp - lpEnd;
@@ -1262,106 +1262,114 @@ void Sampler::SiblingMatrix::getColumn (const CellCoords& coords, bool& l, bool&
   }
 }
 
-LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest, bool elimSelfLoopIDD) const {
+LogProb Sampler::SiblingMatrix::lpTransElimSelfLoopIDD (State src, State dest) const {
+  return src == IDD
+    ? (dest == IDD
+       ? -numeric_limits<double>::infinity()
+       : lpTrans(src,dest) + iddExit())
+    : lpTrans(src,dest);
+}
+
+LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
   switch (src) {
   case IMM:
     switch (dest) {
-    case WWW: return imm_www;
-    case IMI: return imm_imi;
-    case IIW: return imm_iiw;
+    case WWW: return lNoIns() + rNoIns();
+    case IMI: return rIns();
+    case IIW: return lIns() + rNoIns();
     default: break;
     }
     break;
 
   case IMD:
     switch (dest) {
-    case WWX: return imd_wwx;
-    case IIX: return imd_iix;
+    case WWX: return lNoIns();
+    case IIX: return lIns();
     default: break;
     }
     break;
 
   case IDM:
     switch (dest) {
-    case WXW: return idm_wxw;
-    case IDI: return idm_idi;
+    case WXW: return rNoIns();
+    case IDI: return rIns();
     default: break;
     }
     break;
 
   case IDD:
     switch (dest) {
-    case IDD: return elimSelfLoopIDD ? -numeric_limits<double>::infinity() : iddStay();
-    case IMM: return idd_imm - (elimSelfLoopIDD ? 0 : iddExit());
-    case IMD: return idd_imd - (elimSelfLoopIDD ? 0 : iddExit());
-    case IDM: return idd_idm - (elimSelfLoopIDD ? 0 : iddExit());
-    case EEE: return idd_eee - (elimSelfLoopIDD ? 0 : iddExit());
+    case IDD: return iddStay();
+    case IMM: return rootExt() + lNoDelExt() + rNoDelExt();
+    case IMD: return rootExt() + lNoDelExt() + rDelExt();
+    case IDM: return rootExt() + lDelExt() + rNoDelExt();
+    case EEE: return rootNoExt() + lNoDelExt() + rNoDelExt();
     default: break;
     }
     break;
 
   case WWW:
     switch (dest) {
-    case IMM: return www_imm;
-    case IMD: return www_imd;
-    case IDM: return www_idm;
-    case IDD: return www_idd;
-    case EEE: return www_eee;
+    case IMM: return rootExt() + lNoDel() + rNoDel();
+    case IMD: return rootExt() + lNoDel() + rDel();
+    case IDM: return rootExt() + lDel() + rNoDel();
+    case IDD: return rootExt() + lDel() + rDel();
+    case EEE: return 0;
     default: break;
     }
     break;
 
   case WWX:
     switch (dest) {
-    case IMM: return wwx_imm;
-    case IMD: return wwx_imd;
-    case IDM: return wwx_idm;
-    case IDD: return wwx_idd;
-    case EEE: return wwx_eee;
+    case IMM: return rootExt() + lNoDel() + rNoDelExt();
+    case IMD: return rootExt() + lNoDel() + rDelExt();
+    case IDM: return rootExt() + lDel() + rNoDelExt();
+    case IDD: return rootExt() + lDel() + rDelExt();
+    case EEE: return rNoDelExt();
     default: break;
     }
     break;
 
   case WXW:
     switch (dest) {
-    case IMM: return wxw_imm;
-    case IMD: return wxw_imd;
-    case IDM: return wxw_idm;
-    case IDD: return wxw_idd;
-    case EEE: return wxw_eee;
+    case IMM: return rootExt() + lNoDelExt() + rNoDel();
+    case IMD: return rootExt() + lNoDelExt() + rDel();
+    case IDM: return rootExt() + lDelExt() + rNoDel();
+    case IDD: return rootExt() + lDelExt() + rDel();
+    case EEE: return lNoDelExt();
     default: break;
     }
     break;
 
   case IMI:
     switch (dest) {
-    case WWW: return imi_www;
-    case IMI: return imi_imi;
-    case IIW: return imi_iiw;
+    case WWW: return lNoIns() + rNoInsExt();
+    case IMI: return rInsExt();
+    case IIW: return lIns() + rNoInsExt();
     default: break;
     }
     break;
 
   case IIW:
     switch (dest) {
-    case WWW: return iiw_www;
-    case IIW: return iiw_iiw;
+    case WWW: return lNoInsExt();
+    case IIW: return lInsExt();
     default: break;
     }
     break;
 
   case IDI:
     switch (dest) {
-    case WXW: return idi_wxw;
-    case IDI: return idi_idi;
+    case WXW: return rNoInsExt();
+    case IDI: return rInsExt();
     default: break;
     }
     break;
 
   case IIX:
     switch (dest) {
-    case WWX: return iix_wwx;
-    case IIX: return iix_iix;
+    case WWX: return lNoInsExt();
+    case IIX: return lInsExt();
     default: break;
     }
     break;
@@ -1372,11 +1380,11 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest, bool elimSelfLoo
   return -numeric_limits<double>::infinity();
 }
 
-LogProb Sampler::SiblingMatrix::lpTransElim (State src, State dest, bool elimSelfLoopIDD) const {
-  return log_sum_exp (lpTrans (src, dest, elimSelfLoopIDD),
-		      lpTrans (src, WWW, elimSelfLoopIDD) + lpTrans (WWW, dest, elimSelfLoopIDD),
-		      lpTrans (src, WWX, elimSelfLoopIDD) + lpTrans (WWX, dest, elimSelfLoopIDD),
-		      lpTrans (src, WXW, elimSelfLoopIDD) + lpTrans (WXW, dest, elimSelfLoopIDD));
+LogProb Sampler::SiblingMatrix::lpTransElimWait (State src, State dest) const {
+  return log_sum_exp (lpTrans (src, dest),
+		      lpTrans (src, WWW) + lpTrans (WWW, dest),
+		      lpTrans (src, WWX) + lpTrans (WWX, dest),
+		      lpTrans (src, WXW) + lpTrans (WXW, dest));
 }
 
 Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrpPath) const {
