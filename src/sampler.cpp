@@ -1165,7 +1165,7 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
       rPath.push_back (r);
       pPath.push_back (p);
     }
-    if ((State) coords.state == IDD) {
+    if ((State) coords.state == IDD) {  // explicitly add IDD self-loops outside main traceback step
       geometric_distribution<int> distribution (iddSelfLoopProb());
       int iddSelfLoops = distribution (generator);
       while (iddSelfLoops-- > 0) {
@@ -1181,7 +1181,7 @@ AlignPath Sampler::SiblingMatrix::sample (random_engine& generator) const {
     const LogProb e = lpEmit (coords);
     map<CellCoords,LogProb> srcLogProb;
     for (src.state = 0; src.state < (unsigned int) EEE; ++src.state)
-      srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state) + e;
+      srcLogProb[src] = srcCell(src.state) + lpTrans ((State) src.state, (State) coords.state, true) + e;
 
     const double lpTot = log_sum_exp (extract_values (srcLogProb));
     Assert (SAMPLER_NEAR_EQ (lpTot, cell(coords)), "Traceback total (%g) doesn't match stored value (%g) at cell %s", lpTot, cell(coords), coords.toString().c_str());
@@ -1215,11 +1215,11 @@ LogProb Sampler::SiblingMatrix::logPostProb (const AlignPath& lrpPath) const {
     c.state = getState (prevState, dl, dr, dp);
     if (!inEnvelope (c.xpos, c.ypos))
       return -numeric_limits<double>::infinity();
-    lp += lpTransElim (prevState, (State) c.state) + lpEmit (c);
+    lp += lpTransElim (prevState, (State) c.state, false) + lpEmit (c);
     Assert (lp <= cell(c) * (1 - SAMPLER_EPSILON), "Positive posterior probability");
     lp = min (lp, cell(c));  // mitigate precision errors
   }
-  lp += lpTransElim ((State) c.state, EEE);
+  lp += lpTransElim ((State) c.state, EEE, false);
   Assert (lp <= lpEnd * (1 - SAMPLER_EPSILON), "Positive posterior probability");
   lp = min (lp, lpEnd);
   return lp - lpEnd;
@@ -1262,7 +1262,7 @@ void Sampler::SiblingMatrix::getColumn (const CellCoords& coords, bool& l, bool&
   }
 }
 
-LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
+LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest, bool elimSelfLoopIDD) const {
   switch (src) {
   case IMM:
     switch (dest) {
@@ -1291,11 +1291,11 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
 
   case IDD:
     switch (dest) {
-    case IDD: return iddStay();
-    case IMM: return idd_imm - iddExit();
-    case IMD: return idd_imd - iddExit();
-    case IDM: return idd_idm - iddExit();
-    case EEE: return idd_eee - iddExit();
+    case IDD: return elimSelfLoopIDD ? -numeric_limits<double>::infinity() : iddStay();
+    case IMM: return idd_imm - (elimSelfLoopIDD ? 0 : iddExit());
+    case IMD: return idd_imd - (elimSelfLoopIDD ? 0 : iddExit());
+    case IDM: return idd_idm - (elimSelfLoopIDD ? 0 : iddExit());
+    case EEE: return idd_eee - (elimSelfLoopIDD ? 0 : iddExit());
     default: break;
     }
     break;
@@ -1372,11 +1372,11 @@ LogProb Sampler::SiblingMatrix::lpTrans (State src, State dest) const {
   return -numeric_limits<double>::infinity();
 }
 
-LogProb Sampler::SiblingMatrix::lpTransElim (State src, State dest) const {
-  return log_sum_exp (lpTrans (src, dest),
-		      lpTrans (src, WWW) + lpTrans (WWW, dest),
-		      lpTrans (src, WWX) + lpTrans (WWX, dest),
-		      lpTrans (src, WXW) + lpTrans (WXW, dest));
+LogProb Sampler::SiblingMatrix::lpTransElim (State src, State dest, bool elimSelfLoopIDD) const {
+  return log_sum_exp (lpTrans (src, dest, elimSelfLoopIDD),
+		      lpTrans (src, WWW, elimSelfLoopIDD) + lpTrans (WWW, dest, elimSelfLoopIDD),
+		      lpTrans (src, WWX, elimSelfLoopIDD) + lpTrans (WWX, dest, elimSelfLoopIDD),
+		      lpTrans (src, WXW, elimSelfLoopIDD) + lpTrans (WXW, dest, elimSelfLoopIDD));
 }
 
 Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrpPath) const {

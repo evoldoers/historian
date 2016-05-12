@@ -44,9 +44,9 @@ PREFIX = /usr/local
 
 # other flags
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
-CPPFLAGS = -DUSE_VECTOR_GUARDS -std=c++11 -g $(GSLFLAGS) $(BOOSTFLAGS)
+CPPFLAGS = -std=c++11 -g -DUSE_VECTOR_GUARDS $(GSLFLAGS) $(BOOSTFLAGS)
 else
-CPPFLAGS = -std=c++11 -O3 $(GSLFLAGS) $(BOOSTFLAGS)
+CPPFLAGS = -std=c++11 -g -O3 $(GSLFLAGS) $(BOOSTFLAGS)
 endif
 LIBFLAGS = -lstdc++ -lz $(GSLLIBS) $(BOOSTLIBS)
 

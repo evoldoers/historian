@@ -231,8 +231,8 @@ struct Sampler {
     static State getState (State src, bool leftUngapped, bool rightUngapped, bool parentUngapped);
     static void getColumn (const CellCoords& coords, bool& leftUngapped, bool& rightUngapped, bool& parentUngapped);
     
-    LogProb lpTrans (State src, State dest) const;
-    LogProb lpTransElim (State src, State dest) const;
+    LogProb lpTrans (State src, State dest, bool elimSelfLoopIDD) const;
+    LogProb lpTransElim (State src, State dest, bool elimSelfLoopIDD) const;
 
     inline double iddSelfLoopProb() const { return Sampler::rootExtProb(model) * lProbModel.delExt * rProbModel.delExt; }
     inline LogProb iddStay() const { return log (iddSelfLoopProb()); }
