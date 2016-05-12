@@ -51,23 +51,28 @@ Reconstruction algorithm options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The reconstruction algorithm iterates through the guide tree in postorder,
 aligning each sibling pair and reconstructing a profile of their parent.
-The dynamic programming is constrained to a band around a guide alignment,
-and the reconstructed parent profile is a weighted finite-state transducer
-sampled from the posterior distribution implied by the children. The band
-size, posterior probability threshold for inclusion in the parent profile,
-and number of states in the parent profile can all be tweaked to trade off
-sensitivity vs performance.
+The dynamic programming is constrained to a band around a guide alignment.
 
   -band &lt;n&gt;       Size of band around guide alignment (default 10)
-  -noband         Unlimit band, ignore guide alignment
+  -noband         Unlimit band, removing dependence on guide alignment
+
+The reconstructed parent profile is a weighted finite-state transducer
+sampled from the posterior distribution implied by the children. The
+posterior probability threshold for inclusion in the parent profile and
+max number of states in the parent profile can both be tweaked to trade off
+sensitivity vs performance.
 
   -profminpost &lt;P&gt;, -profsamples &lt;N&gt;, -profmaxstates &lt;S&gt;
                   Specify minimum posterior prob. (P) for retaining DP states
                    in profile (default .01), or sample N states randomly;
                    either way, limit profile to at most S states
 
+Following alignment, ancestral sequence reconstruction can be performed.
+
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
   -ancprob        Report posterior probabilities for ancestral residues
+
+MCMC sampling allows for additional accuracy in historical reconstruction.
 
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
@@ -76,8 +81,12 @@ sensitivity vs performance.
 Guide alignment & tree estimation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The guide aligner builds a maximal spanning tree of pairwise alignments.
-It can be accelerated in two ways: (1) by using a sparse random forest
-instead of a fully connected all-vs-all pairwise comparison; and (2) by
+It can be accelerated in two ways. The first is by using a sparse random
+forest instead of a fully connected all-vs-all pairwise comparison.
+
+  -rndspan        Use a sparse random spanning graph, not all-vs-all pairs
+
+The second way to optimize construction of the guide alignment is by
 confining the pairwise DP matrix to cells around a subset of diagonals
 that contain above a threshold number of k-mer matches. To turn on the
 former optimization, use -rndspan; the latter is turned on by default for
@@ -85,13 +94,15 @@ sequences whose full DP matrix would not otherwise fit in memory (the
 memory threshold can be set with -kmatchmb). It can be disabled with
 -kmatchoff, or enabled (for a particular k-mer threshold) with -kmatchn.
 
-  -rndspan        Use a sparse random spanning graph, not all-vs-all pairs
   -kmatchn &lt;n&gt;    Threshold# of kmer matches to seed a diagonal
                    (default sets this as low as available memory will allow)
   -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
   -kmatchband &lt;n&gt; Size of DP band around kmer-matching diagonals (default 64)
   -kmatchmb &lt;M&gt;   Set kmer threshold to use M megabytes of memory
   -kmatchoff      No kmer threshold, do full DP
+
+Following construction of the guide alignment, a tree is estimated using a
+distance matrix method. By default this is UPGMA.
 
   -nj             Use neighbor-joining, not UPGMA, to estimate tree
 
