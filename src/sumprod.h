@@ -30,7 +30,6 @@ struct SumProductStorage {
 
 class SumProduct : private SumProductStorage {
 private:
-  void initProbs();
   void assertSingleRoot() const;
   
 public:
@@ -46,7 +45,6 @@ public:
   vguard<gsl_matrix_complex*> branchEigenSubCount;
   
   SumProduct (const RateModel& model, const Tree& tree);
-  SumProduct (const EigenModel& eigen, const Tree& tree);
   ~SumProduct();
 
   void initColumn (const map<AlignRowIndex,char>& seq);
@@ -88,7 +86,6 @@ public:
   AlignColIndex col;
   
   AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped);
-  AlignColSumProduct (const EigenModel& eigen, const Tree& tree, const vguard<FastSeq>& gapped);
 
   bool alignmentDone() const;
   void nextColumn();

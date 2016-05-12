@@ -68,6 +68,27 @@ vector<double> gsl_vector_to_stl (gsl_vector* v) {
   return stlv;
 }
 
+vector<vector<double> > gsl_matrix_to_stl (gsl_matrix* m) {
+  vector<vector<double> > vv (m->size1, vector<double> (m->size2));
+  for (size_t i = 0; i < m->size1; ++i)
+    for (size_t j = 0; j < m->size2; ++j)
+      vv[i][j] = gsl_matrix_get (m, i, j);
+  return vv;
+}
+
+gsl_matrix* stl_to_gsl_matrix (const vector<vector<double> >& vv) {
+  Assert (vv.size() > 0, "Matrix has no rows");
+  Assert (vv.front().size() > 0, "Matrix has no columns");
+  const size_t rows = vv.size(), cols = vv.front().size();
+  gsl_matrix* m = gsl_matrix_alloc (rows, cols);
+  for (size_t i = 0; i < rows; ++i) {
+    Assert (vv[i].size() == cols, "Matrix is uneven");
+    for (size_t j = 0; j < cols; ++j)
+      gsl_matrix_set (m, i, j, vv[i][j]);
+  }
+  return m;
+}
+
 double logBetaPdf (double prob, double yesCount, double noCount) {
   return log (gsl_ran_beta_pdf (prob, yesCount + 1, noCount + 1));
 }

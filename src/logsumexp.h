@@ -2,6 +2,7 @@
 #define LOGSUMEXP_INCLUDED
 
 #include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
 #include <vector>
 #include <cmath>
 
@@ -114,6 +115,9 @@ vector<LogProb> log_vector (const vector<double>& v);
 
 vector<LogProb> log_gsl_vector (gsl_vector* v);
 vector<double> gsl_vector_to_stl (gsl_vector* v);
+
+vector<vector<double> > gsl_matrix_to_stl (gsl_matrix* m);
+gsl_matrix* stl_to_gsl_matrix (const vector<vector<double> >& m);
 
 inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>& v2) {
   LogProb lip = -numeric_limits<double>::infinity();

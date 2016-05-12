@@ -8,6 +8,7 @@
 #include <gsl/gsl_min.h>
 #include <gsl/gsl_complex_math.h>
 
+#include <iomanip>
 #include <algorithm>
 #include <set>
 
@@ -262,21 +263,6 @@ ProbModel::ProbModel (const RateModel& model, double t)
     subMat (model.getSubProbMatrix (t))
 {
   CheckGsl (gsl_vector_memcpy (insVec, model.insProb));
-}
-
-ProbModel::ProbModel (const EigenModel& eigen, double t)
-  : AlphabetOwner (eigen.model),
-    t (t),
-    ins (1 - exp (-eigen.model.insRate * t)),
-    del (1 - exp (-eigen.model.delRate * t)),
-    insExt (eigen.model.insExtProb),
-    delExt (eigen.model.delExtProb),
-    insWait (IndelCounts::decayWaitTime (eigen.model.insRate, t)),
-    delWait (IndelCounts::decayWaitTime (eigen.model.delRate, t)),
-    insVec (eigen.model.newAlphabetVector()),
-    subMat (eigen.getSubProbMatrix (t))
-{
-  CheckGsl (gsl_vector_memcpy (insVec, eigen.model.insProb));
 }
 
 ProbModel::~ProbModel() {
@@ -869,7 +855,13 @@ EigenModel::EigenModel (const EigenModel& eigen)
     evecInv (gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize())),
     ev (eigen.ev),
     ev_t (eigen.ev_t),
-    exp_ev_t (eigen.exp_ev_t)
+    exp_ev_t (eigen.exp_ev_t),
+    isReal (eigen.isReal),
+    realEval (eigen.realEval),
+    realEvec (eigen.realEvec),
+    realEvecInv (eigen.realEvecInv),
+    real_ev_t (eigen.real_ev_t),
+    real_exp_ev_t (eigen.real_exp_ev_t)
 {
   CheckGsl (gsl_vector_complex_memcpy (eval, eigen.eval));
   CheckGsl (gsl_matrix_complex_memcpy (evec, eigen.evec));
@@ -883,7 +875,13 @@ EigenModel::EigenModel (const RateModel& model)
     evecInv (gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize())),
     ev (model.alphabetSize()),
     ev_t (model.alphabetSize()),
-    exp_ev_t (model.alphabetSize())
+    exp_ev_t (model.alphabetSize()),
+    isReal (false),
+    realEval (model.alphabetSize()),
+    realEvec (model.alphabetSize(), vguard<double> (model.alphabetSize())),
+    realEvecInv (model.alphabetSize(), vguard<double> (model.alphabetSize())),
+    real_ev_t (model.alphabetSize()),
+    real_exp_ev_t (model.alphabetSize())
 {
   gsl_matrix *R = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
   gsl_matrix_memcpy (R, model.subRate);
@@ -905,6 +903,23 @@ EigenModel::EigenModel (const RateModel& model)
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     ev[i] = gsl_vector_complex_get (eval, i);
 
+  isReal = true;
+  for (AlphTok i = 0; isReal && i < model.alphabetSize(); ++i) {
+    isReal = isReal && EIGENMODEL_NEAR_REAL(ev[i]);
+    for (AlphTok j = 0; isReal && j < model.alphabetSize(); ++j)
+      isReal = isReal && EIGENMODEL_NEAR_REAL(gsl_matrix_complex_get(evec,i,j))
+	&& EIGENMODEL_NEAR_REAL(gsl_matrix_complex_get(evecInv,i,j));
+  }
+
+  if (isReal)
+    for (AlphTok i = 0; isReal && i < model.alphabetSize(); ++i) {
+      realEval[i] = GSL_REAL (ev[i]);
+      for (AlphTok j = 0; isReal && j < model.alphabetSize(); ++j) {
+	realEvec[i][j] = GSL_REAL (gsl_matrix_complex_get (evec, i, j));
+	realEvecInv[i][j] = GSL_REAL (gsl_matrix_complex_get (evecInv, i, j));
+      }
+    }
+
   LogThisAt(8,"Eigenvalues:" << complexVectorToString(ev) << endl
 	    << "Right eigenvector matrix, V:" << endl << complexMatrixToString(evec)
 	    << "Left eigenvector matrix, V^{-1}:" << endl << complexMatrixToString(evecInv)
@@ -922,11 +937,19 @@ EigenModel::~EigenModel() {
 }
 
 void EigenModel::compute_exp_ev_t (double t) {
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-    ev_t[i] = gsl_complex_mul_real (ev[i], t);
-    exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
+  if (isReal) {
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+      real_ev_t[i] = realEval[i] * t;
+      real_exp_ev_t[i] = exp (real_ev_t[i]);
+    }
+    LogThisAt(9,"exp(eigenvalue*" << t << "):" << join(real_exp_ev_t," ") << endl);
+  } else {
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+      ev_t[i] = gsl_complex_mul_real (ev[i], t);
+      exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
+    }
+    LogThisAt(9,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
   }
-  LogThisAt(9,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
 }
 
 gsl_matrix_complex* EigenModel::getRateMatrix() const {
@@ -966,6 +989,12 @@ double EigenModel::getSubProb (double t, AlphTok i, AlphTok j) const {
 }
 
 double EigenModel::getSubProbInner (double t, AlphTok i, AlphTok j) const {
+  if (isReal) {
+    double p = 0;
+    for (AlphTok k = 0; k < model.alphabetSize(); ++k)
+      p += realEvec[i][k] * realEvecInv[k][j] * real_exp_ev_t[k];
+    return min (1., max (0., p));
+  }
   gsl_complex p = gsl_complex_rect (0, 0);
   for (AlphTok k = 0; k < model.alphabetSize(); ++k)
     p = gsl_complex_add
@@ -1107,4 +1136,38 @@ string complexVectorToString (const vector<gsl_complex>& v) {
   }
   s << endl;
   return s.str();
+}
+
+CachingRateModel::CachingRateModel (const RateModel& model, size_t precision, size_t flushSize)
+  : RateModel (model),
+    eigen (model),
+    precision (precision),
+    flushSize (flushSize)
+{ }
+
+string CachingRateModel::timeKey (double t) const {
+  ostringstream o;
+  o << scientific << setprecision(precision) << t;
+  return o.str();
+}
+
+gsl_matrix* CachingRateModel::getSubProbMatrix (double t) const {
+  CachingRateModel* mutableThis = (CachingRateModel*) this;  // cast away const
+  auto& mutableCache = mutableThis->cache;
+  auto& mutableCount = mutableThis->count;
+  const string k = timeKey (t);
+  gsl_matrix *m;
+  if (cache.count (k))
+    m = stl_to_gsl_matrix (cache.at(k));
+  else {
+    m = eigen.getSubProbMatrix (t);
+    if (mutableCount[k]++) {  // wait until the 2nd evaluation to start caching
+      if (mutableCache.size() >= flushSize) {
+	mutableCache.clear();
+	mutableCount.clear();
+      }
+      mutableCache[k] = gsl_matrix_to_stl (m);
+    }
+  }
+  return m;
 }

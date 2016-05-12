@@ -922,11 +922,12 @@ void Reconstructor::sampleAll() {
     vguard<Sampler> samplers;
     vguard<HistoryLogger*> loggers;
     size_t totalNodes = 0;
+    CachingRateModel cachedModel (model);
     for (auto& dataset: datasets) {
       if (!dataset.hasReconstruction())
 	reconstruct (dataset);
       dataset.tree.assignInternalNodeNames (dataset.gappedRecon);
-      samplers.push_back (Sampler (model, treePrior, dataset.gappedGuide));
+      samplers.push_back (Sampler (cachedModel, treePrior, dataset.gappedGuide));
       loggers.push_back (new HistoryLogger (*this, dataset.name));
       Sampler& sampler = samplers.back();
       sampler.addLogger (*loggers.back());

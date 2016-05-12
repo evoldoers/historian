@@ -13,6 +13,9 @@
 
 using namespace std;
 
+#define DefaultCachingRateModelPrecision 5
+#define DefaultCachingRateModelFlushSize 1000
+
 struct AlphabetOwner {
   string alphabet;
   AlphabetOwner() { }
@@ -45,7 +48,7 @@ struct RateModel : AlphabetOwner {
   void write (ostream& out) const;
 
   gsl_vector* getEqmProbVector() const;
-  gsl_matrix* getSubProbMatrix (double t) const;
+  virtual gsl_matrix* getSubProbMatrix (double t) const;
 
   double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = 100) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
@@ -76,10 +79,28 @@ public:
   
 private:
   vguard<gsl_complex> ev, ev_t, exp_ev_t;
+
+  bool isReal;
+  vguard<double> realEval;
+  vguard<vguard<double> > realEvec, realEvecInv;
+  vguard<double> real_ev_t, real_exp_ev_t;
+
   void compute_exp_ev_t (double t);
   double getSubProbInner (double t, AlphTok i, AlphTok j) const;
   
   EigenModel& operator= (const EigenModel&) = delete;
+};
+
+class CachingRateModel : public RateModel {
+private:
+  const size_t precision, flushSize;
+  map<string,int> count;
+  map<string,vector<vector<double> > > cache;
+  string timeKey (double t) const;
+  EigenModel eigen;
+public:
+  CachingRateModel (const RateModel& model, size_t precision = DefaultCachingRateModelPrecision, size_t flushSize = DefaultCachingRateModelFlushSize);
+  gsl_matrix* getSubProbMatrix (double t) const;
 };
 
 class ProbModel : public AlphabetOwner {
@@ -92,7 +113,6 @@ public:
   gsl_vector* insVec;
   gsl_matrix* subMat;
   ProbModel (const RateModel& model, double t);
-  ProbModel (const EigenModel& eigen, double t);
   ~ProbModel();
   double transProb (State src, State dest) const;
   void write (ostream& out) const;

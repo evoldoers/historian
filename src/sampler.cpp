@@ -275,7 +275,7 @@ set<TreeNodeIndex> Sampler::nodesAndAncestors (const Tree& tree, TreeNodeIndex n
 
 map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
-  AlignColSumProduct colSumProd (eigen, tree, gapped);
+  AlignColSumProduct colSumProd (model, tree, gapped);
   colSumProd.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
   colSumProd.postorder = vguard<TreeNodeIndex> (fillUpNodes.begin(), fillUpNodes.end());
   while (!colSumProd.alignmentDone()) {
@@ -297,11 +297,11 @@ LogProb Sampler::logLikelihood (const History& history, const char* suffix) cons
   LogProb lpGaps = 0;
   for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
     const TreeNodeIndex parent = history.tree.parentNode (node);
-    const ProbModel probModel (eigen, history.tree.branchLength (node));
+    const ProbModel probModel (model, history.tree.branchLength (node));
     const AlignPath path = pairPath (align.path, parent, node);
     lpGaps += logBranchPathLikelihood (probModel, path, parent, node);
   }
-  AlignColSumProduct colSumProd (eigen, history.tree, history.gapped);
+  AlignColSumProduct colSumProd (model, history.tree, history.gapped);
   LogProb lpSub = 0;
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
@@ -327,11 +327,10 @@ LogProb Sampler::logBranchPathLikelihood (const ProbModel& probModel, const Alig
 }
 
 Sampler::PosWeightMatrix Sampler::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
-  PosWeightMatrix pwm;
-  pwm.reserve (child.size());
+  PosWeightMatrix pwm (child.size(), vguard<LogProb> (submat.size(), -numeric_limits<double>::infinity()));
+  size_t n = 0;
   for (const auto& lpp : child) {
-    pwm.push_back (vguard<LogProb> (lpp.size(), -numeric_limits<double>::infinity()));
-    auto& pre = pwm.back();
+    auto& pre = pwm[n++];
     for (AlphTok i = 0; i < pre.size(); ++i)
       for (AlphTok j = 0; j < lpp.size(); ++j)
 	log_accum_exp (pre[i], submat[i][j] + lpp[j]);
@@ -846,11 +845,10 @@ Sampler::RescaleMove::RescaleMove (const History& history, LogProb oldLogLikelih
   initRatio (sampler);
 }
 
-Sampler::BranchMatrix::BranchMatrix (const EigenModel& eigen, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
+Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
-    eigen (eigen),
-    model (eigen.model),
-    probModel (eigen, max (Tree::minBranchLength, dist)),
+    model (model),
+    probModel (model, max (Tree::minBranchLength, dist)),
     logProbModel (probModel),
     xRow (x),
     yRow (y),
@@ -1005,12 +1003,11 @@ void Sampler::BranchMatrix::getColumn (const CellCoords& coords, bool& x, bool& 
   }
 }
 
-Sampler::SiblingMatrix::SiblingMatrix (const EigenModel& eigen, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
+Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
   : SparseDPMatrix (env, lEnvPos, rEnvPos),
-    eigen (eigen),
-    model (eigen.model),
-    lProbModel (eigen, max (Tree::minBranchLength, plDist)),
-    rProbModel (eigen, max (Tree::minBranchLength, prDist)),
+    model (model),
+    lProbModel (model, max (Tree::minBranchLength, plDist)),
+    rProbModel (model, max (Tree::minBranchLength, prDist)),
     lLogProbModel (lProbModel),
     rLogProbModel (rProbModel),
     logRoot (log_gsl_vector (model.insProb)),
@@ -1412,7 +1409,6 @@ Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrp
 
 Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide)
   : model (model),
-    eigen (model),
     treePrior (treePrior),
     moveRate (Move::TotalMoveTypes, 1.),
     movesProposed (Move::TotalMoveTypes, 0),

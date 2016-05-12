@@ -143,7 +143,6 @@ struct Sampler {
   public:
     typedef ProbModel::State State;
 
-    const EigenModel& eigen;
     const RateModel& model;
     const ProbModel probModel;
     const LogProbModel logProbModel;
@@ -155,7 +154,7 @@ struct Sampler {
     const PosWeightMatrix ySub;
     const vguard<LogProb> yEmit;
    
-    BranchMatrix (const EigenModel& eigen, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
+    BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
     AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& path) const;
@@ -181,7 +180,6 @@ struct Sampler {
 		 IDI = 9, IIX = 10,
 		 EEE = 11 };
 
-    const EigenModel& eigen;
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
     const LogProbModel lLogProbModel, rLogProbModel;
@@ -223,7 +221,7 @@ struct Sampler {
     const PosWeightMatrix lSub, rSub;
     const vguard<LogProb> lEmit, rEmit;
     
-    SiblingMatrix (const EigenModel& eigen, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
+    SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex lRow, AlignRowIndex rRow, AlignRowIndex pRow);
 
     AlignPath sample (random_engine& generator) const;
     LogProb logPostProb (const AlignPath& lrpPath) const;
@@ -328,7 +326,6 @@ struct Sampler {
 
   // Sampler member variables
   const RateModel& model;
-  const EigenModel eigen;
   const SimpleTreePrior& treePrior;
   list<Logger*> loggers;
   vguard<double> moveRate, moveNanosecs;

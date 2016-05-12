@@ -28,29 +28,10 @@ SumProduct::SumProduct (const RateModel& model, const Tree& tree)
     branchSubProb (tree.nodes(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize()))),
     branchEigenSubCount (tree.nodes())
 {
-  initProbs();
-}
-
-SumProduct::SumProduct (const EigenModel& eigen, const Tree& tree)
-  : SumProductStorage (tree.nodes(), eigen.model.alphabetSize()),
-    model (eigen.model),
-    eigen (eigen),
-    tree (tree),
-    preorder (tree.preorderSort()),
-    postorder (tree.postorderSort()),
-    insProb (model.alphabetSize()),
-    branchSubProb (tree.nodes(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize()))),
-    branchEigenSubCount (tree.nodes())
-{
-  initProbs();
-}
-
-void SumProduct::initProbs()
-{
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     insProb[i] = gsl_vector_get (model.insProb, i);
   for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r) {
-    ProbModel pm (eigen, tree.branchLength(r));
+    ProbModel pm (model, tree.branchLength(r));
     for (AlphTok i = 0; i < model.alphabetSize(); ++i)
       for (AlphTok j = 0; j < model.alphabetSize(); ++j)
 	branchSubProb[r][i][j] = gsl_matrix_get (pm.subMat, i, j);
@@ -235,7 +216,7 @@ void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<
     if (node != rootNode) {
       LogThisAt(9,"Accumulating substitution counts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
-      gsl_matrix* submat = eigen.getSubProbMatrix (tree.branchLength(node));
+      gsl_matrix* submat = model.getSubProbMatrix (tree.branchLength(node));
       for (AlphTok a = 0; a < model.alphabetSize(); ++a)
 	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
 	  eigen.accumSubCounts (subCounts, a, b, weight * exp (logBranchPostProb (node, a, b)), submat, branchEigenSubCount[node]);
@@ -319,15 +300,6 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
 
 AlignColSumProduct::AlignColSumProduct (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped)
   : SumProduct (model, tree),
-    gapped (gapped),
-    col (0)
-{
-  Require (tree.nodes() == gapped.size(), "Every tree node must have an alignment row");
-  initAlignColumn();
-}
-
-AlignColSumProduct::AlignColSumProduct (const EigenModel& eigen, const Tree& tree, const vguard<FastSeq>& gapped)
-  : SumProduct (eigen, tree),
     gapped (gapped),
     col (0)
 {
