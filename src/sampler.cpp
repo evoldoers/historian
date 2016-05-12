@@ -846,9 +846,10 @@ Sampler::RescaleMove::RescaleMove (const History& history, LogProb oldLogLikelih
   initRatio (sampler);
 }
 
-Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
+Sampler::BranchMatrix::BranchMatrix (const EigenModel& eigen, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
-    model (model),
+    eigen (eigen),
+    model (eigen.model),
     probModel (model, max (Tree::minBranchLength, dist)),
     logProbModel (probModel),
     xRow (x),
@@ -1004,9 +1005,10 @@ void Sampler::BranchMatrix::getColumn (const CellCoords& coords, bool& x, bool& 
   }
 }
 
-Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
+Sampler::SiblingMatrix::SiblingMatrix (const EigenModel& eigen, const PosWeightMatrix& lSeq, const PosWeightMatrix& rSeq, TreeBranchLength plDist, TreeBranchLength prDist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& lEnvPos, const vguard<SeqIdx>& rEnvPos, AlignRowIndex l, AlignRowIndex r, AlignRowIndex p)
   : SparseDPMatrix (env, lEnvPos, rEnvPos),
-    model (model),
+    eigen (eigen),
+    model (eigen.model),
     lProbModel (model, max (Tree::minBranchLength, plDist)),
     rProbModel (model, max (Tree::minBranchLength, prDist)),
     lLogProbModel (lProbModel),
@@ -1410,6 +1412,7 @@ Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrp
 
 Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, const vguard<FastSeq>& gappedGuide)
   : model (model),
+    eigen (model),
     treePrior (treePrior),
     moveRate (Move::TotalMoveTypes, 1.),
     movesProposed (Move::TotalMoveTypes, 0),

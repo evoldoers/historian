@@ -59,6 +59,7 @@ public:
   gsl_matrix_complex *evec;  // right eigenvectors
   gsl_matrix_complex *evecInv;  // left eigenvectors
 
+  EigenModel (const EigenModel& eigen);
   EigenModel (const RateModel& model);
   ~EigenModel();
 
@@ -78,7 +79,6 @@ private:
   void compute_exp_ev_t (double t);
   double getSubProbInner (double t, AlphTok i, AlphTok j) const;
   
-  EigenModel (const EigenModel&) = delete;
   EigenModel& operator= (const EigenModel&) = delete;
 };
 
@@ -92,6 +92,7 @@ public:
   gsl_vector* insVec;
   gsl_matrix* subMat;
   ProbModel (const RateModel& model, double t);
+  ProbModel (const EigenModel& eigen, double t);
   ~ProbModel();
   double transProb (State src, State dest) const;
   void write (ostream& out) const;

@@ -264,6 +264,21 @@ ProbModel::ProbModel (const RateModel& model, double t)
   CheckGsl (gsl_vector_memcpy (insVec, model.insProb));
 }
 
+ProbModel::ProbModel (const EigenModel& eigen, double t)
+  : AlphabetOwner (eigen.model),
+    t (t),
+    ins (1 - exp (-eigen.model.insRate * t)),
+    del (1 - exp (-eigen.model.delRate * t)),
+    insExt (eigen.model.insExtProb),
+    delExt (eigen.model.delExtProb),
+    insWait (IndelCounts::decayWaitTime (eigen.model.insRate, t)),
+    delWait (IndelCounts::decayWaitTime (eigen.model.delRate, t)),
+    insVec (eigen.model.newAlphabetVector()),
+    subMat (eigen.getSubProbMatrix (t))
+{
+  CheckGsl (gsl_vector_memcpy (insVec, eigen.model.insProb));
+}
+
 ProbModel::~ProbModel() {
   gsl_matrix_free (subMat);
   gsl_vector_free (insVec);
@@ -847,6 +862,19 @@ double IndelCounts::decayWaitTime (double decayRate, double timeInterval) {
   return 1 / decayRate - timeInterval / (exp (decayRate*timeInterval) - 1);
 }
 
+EigenModel::EigenModel (const EigenModel& eigen)
+  : model (eigen.model),
+    eval (gsl_vector_complex_alloc (eigen.model.alphabetSize())),
+    evec (gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize())),
+    evecInv (gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize())),
+    ev (eigen.ev),
+    ev_t (eigen.ev_t),
+    exp_ev_t (eigen.exp_ev_t)
+{
+  CheckGsl (gsl_vector_complex_memcpy (eval, eigen.eval));
+  CheckGsl (gsl_matrix_complex_memcpy (evec, eigen.evec));
+  CheckGsl (gsl_matrix_complex_memcpy (evecInv, eigen.evecInv));
+}
 
 EigenModel::EigenModel (const RateModel& model)
   : model (model),
@@ -885,9 +913,12 @@ EigenModel::EigenModel (const RateModel& model)
 }
 
 EigenModel::~EigenModel() {
-  gsl_vector_complex_free (eval);
-  gsl_matrix_complex_free (evec);
-  gsl_matrix_complex_free (evecInv);
+  if (eval)
+    gsl_vector_complex_free (eval);
+  if (evec)
+    gsl_matrix_complex_free (evec);
+  if (evecInv)
+    gsl_matrix_complex_free (evecInv);
 }
 
 void EigenModel::compute_exp_ev_t (double t) {
