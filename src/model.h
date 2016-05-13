@@ -13,6 +13,8 @@
 
 using namespace std;
 
+#define DefaultDistanceMatrixIterations 100
+
 #define DefaultCachingRateModelPrecision 5
 #define DefaultCachingRateModelFlushSize 1000
 
@@ -52,8 +54,8 @@ struct RateModel : AlphabetOwner {
 
   double expectedSubstitutionRate() const;
   
-  double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = 100) const;
-  vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = 100) const;
+  double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = DefaultDistanceMatrixIterations) const;
+  vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = DefaultDistanceMatrixIterations) const;
 };
 
 class EigenModel {

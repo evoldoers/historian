@@ -87,7 +87,6 @@ It can be accelerated in two ways. The first is by using a sparse random
 forest instead of a fully connected all-vs-all pairwise comparison.
 
   -rndspan        Use a sparse random spanning graph, not all-vs-all pairs
-  -fast           Alias for '-rndspan -kmatchn 3'
 
 The second way to optimize construction of the guide alignment is by
 confining the pairwise DP matrix to cells around a subset of diagonals
@@ -108,6 +107,12 @@ Following construction of the guide alignment, a tree is estimated using a
 distance matrix method. By default this is UPGMA.
 
   -nj             Use neighbor-joining, not UPGMA, to estimate tree
+  -jc             Use Jukes-Cantor-like estimates for distance matrix
+
+If you are confident the guide alignment & tree should be reasonably obvious,
+and just want to get on to reconstruction as quickly as possible:
+
+  -fast           Shorthand for '-rndspan -kmatchn 3 -jc'
 
 Model-fitting and event-counting options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

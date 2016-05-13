@@ -28,6 +28,7 @@ Reconstructor::Reconstructor()
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     guideAlignTryAllPairs (true),
     useUPGMA (true),
+    jukesCantorDistanceMatrix (false),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
@@ -287,6 +288,11 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-jc") {
+      jukesCantorDistanceMatrix = true;
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-tree") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       setTreeFilename (argvec[1]);
@@ -476,7 +482,7 @@ void Reconstructor::loadTree (Dataset& dataset) {
 
 void Reconstructor::buildTree (Dataset& dataset) {
   LogThisAt(1,"Estimating initial tree by " << (useUPGMA ? "UPGMA" : "neighbor-joining") << endl);
-  auto dist = model.distanceMatrix (dataset.gappedGuide);
+  auto dist = model.distanceMatrix (dataset.gappedGuide, jukesCantorDistanceMatrix ? 0 : DefaultDistanceMatrixIterations);
   if (useUPGMA)
     dataset.tree.buildByUPGMA (dataset.gappedGuide, dist);
   else

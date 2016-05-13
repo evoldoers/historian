@@ -440,6 +440,11 @@ double DistanceMatrixParams::tJC() const {
 }
 
 double DistanceMatrixParams::tML (int maxIterations) const {
+  const double tMin = 1e-9, tMax = 10;
+  const double tjc = min (tMax, max (tMin, tJC()));
+  if (maxIterations <= 0)
+    return tjc;
+  
   const gsl_min_fminimizer_type *T;
   gsl_min_fminimizer *s;
 
@@ -450,14 +455,11 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   T = gsl_min_fminimizer_goldensection; // gsl_min_fminimizer_brent;
   s = gsl_min_fminimizer_alloc (T);
 
-  const double tMin = 1e-9, tMax = 10;
-  const double tjc = min (tMax, max (tMin, tJC()));
-  const double lljc = negLogLike(tjc);
-
   double t;
   const double tLower = min (tMin, tjc/2), tUpper = max (tMax, tjc*2);
   const double llLower = negLogLike(tLower), llUpper = negLogLike(tUpper);
-  LogThisAt(8,"tML: f(" << tLower << ") = " << llLower << ", f(" << tUpper << ") = " << llUpper << endl);
+  const double lljc = negLogLike(tjc);
+  LogThisAt(8,"tML: f(" << tLower << ") = " << llLower << ", f(" << tjc << ") = " << lljc << ", f(" << tUpper << ") = " << llUpper << endl);
 
   if (lljc < llLower && lljc < llUpper)
     t = tjc;
@@ -490,6 +492,7 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   LogThisAt(8,"Initializing with t=" << t << ", tLower=" << tLower << ", tUpper=" << tUpper << endl);
   gsl_min_fminimizer_set (s, &F, t, tLower, tUpper);
 
+  const double tML_convergence = .01; // converge to 1%
   for (int iter = 0; iter < maxIterations; ++iter) {
     (void) gsl_min_fminimizer_iterate (s);
 
@@ -497,9 +500,9 @@ double DistanceMatrixParams::tML (int maxIterations) const {
     const double a = gsl_min_fminimizer_x_lower (s);
     const double b = gsl_min_fminimizer_x_upper (s);
 
-    LogThisAt(7,"Iteration #" << iter+1 << " tML: f(" << t << ") = " << negLogLike(t) << endl);
+    const int status = gsl_min_test_interval (a, b, 0., tML_convergence);
+    LogThisAt(7,"Iteration #" << iter+1 << " tML: f(" << t << ") = " << negLogLike(t) << " (a=" << a << ", b=" << b << ", status=" << status << ")" << endl);
     
-    const int status = gsl_min_test_interval (a, b, 0.01, 0.0);  // converge to 1%
     if (status == GSL_SUCCESS)
       break;
   }
