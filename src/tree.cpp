@@ -1,4 +1,6 @@
 #include <cmath>
+#include <gsl/gsl_math.h>
+
 #include "tree.h"
 #include "knhx.h"
 #include "logger.h"
@@ -191,7 +193,7 @@ bool Tree::isUltrametric (double epsilon) const {
       minDist = min (minDist, dist[node]);
   for (TreeNodeIndex node = 0; node < nodes(); ++node)
     if (isLeaf(node))
-      if (abs (dist[node] - minDist) / max (abs(dist[node]), abs(minDist)) >= epsilon)
+      if (gsl_fcmp (dist[node], minDist, epsilon) != 0)
 	return false;
   return true;
 }
