@@ -314,9 +314,9 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
       node[k].child.push_back (min_i);
       node[k].child.push_back (min_j);
       node[min_i].parent = k;
-      node[min_i].d = d_ik;
+      node[min_i].d = max (0., d_ik);
       node[min_j].parent = k;
-      node[min_j].d = d_jk;
+      node[min_j].d = max (0., d_jk);
       LogThisAt(7,"Joining nodes " << min_i << " and " << min_j << " to common ancestor " << k << " (branch lengths: " << k << "->" << min_i << " = " << d_ik << ", " << k << "->" << min_j << " = " << d_jk << ")" << endl);
       activeNodes.erase (min_i);
       activeNodes.erase (min_j);
@@ -329,13 +329,14 @@ void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<
   const double d = max (dist[i][j], 0.);  // don't correct the last node, just keep branch length non-negative
   const TreeNodeIndex k = node.size();
   node.push_back (TreeNode());
+  node[k].parent = -1;
   node[k].child.push_back (i);
   node[k].child.push_back (j);
   node[i].parent = k;
-  node[i].d = d/2;
+  node[i].d = max (0., d/2);
   node[j].parent = k;
-  node[j].d = d/2;
-
+  node[j].d = max (0., d/2);
+  
   const string s = toString();
   LogThisAt(5,"Neighbor-joining tree: " << s << endl);
   parse (s);  // to ensure consistency (i.e. serializing & deserializing will not change node indices)
@@ -411,9 +412,9 @@ void Tree::buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<Tre
       node[k].child.push_back (min_i);
       node[k].child.push_back (min_j);
       node[min_i].parent = k;
-      node[min_i].d = d_ik;
+      node[min_i].d = max (0., d_ik);
       node[min_j].parent = k;
-      node[min_j].d = d_jk;
+      node[min_j].d = max (0., d_jk);
       LogThisAt(7,"Joining nodes " << min_i << " and " << min_j << " to common ancestor " << k << " (branch lengths: " << k << "->" << min_i << " = " << d_ik << ", " << k << "->" << min_j << " = " << d_jk << ")" << endl);
       activeNodes.erase (min_i);
       activeNodes.erase (min_j);
@@ -424,14 +425,17 @@ void Tree::buildByUPGMA (const vguard<string>& nodeName, const vguard<vguard<Tre
   const TreeNodeIndex i = *iter;
   const TreeNodeIndex j = *++iter;
   const TreeNodeIndex k = node.size();
-  nodeHeight.push_back ((nodeHeight[i] + nodeHeight[j] + dist[i][j] ) / 2);
+  nodeHeight.push_back (max (nodeHeight[i] + minBranchLength,
+			     max (nodeHeight[j] + minBranchLength,
+				  (nodeHeight[i] + nodeHeight[j] + dist[i][j]) / 2)));
   node.push_back (TreeNode());
+  node[k].parent = -1;
   node[k].child.push_back (i);
   node[k].child.push_back (j);
   node[i].parent = k;
-  node[i].d = nodeHeight[k] - nodeHeight[i];
+  node[i].d = max (0., nodeHeight[k] - nodeHeight[i]);
   node[j].parent = k;
-  node[j].d = nodeHeight[k] - nodeHeight[j];
+  node[j].d = max (0., nodeHeight[k] - nodeHeight[j]);
 
   const string s = toString();
   LogThisAt(5,"UPGMA tree: " << s << endl);
@@ -662,7 +666,7 @@ vguard<TreeBranchLength> Tree::distanceFrom (TreeNodeIndex node) const {
   const vguard<TreeNodeIndex> parent = rerootedParent (node);
   for (auto n : rerootedPreorderSort(node)) {
     const auto p = parent[n];
-    dist[n] = p < 0 ? 0 : branchLength(p,n) + dist[p];
+    dist[n] = p < 0 ? 0 : max(0.,branchLength(p,n)) + dist[p];
   }
   return dist;
 }

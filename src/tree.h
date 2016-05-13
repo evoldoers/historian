@@ -21,7 +21,7 @@ struct TreeNode {
   TreeBranchLength d;
 };
 
-#define TREE_MIN_BRANCH_LEN 1e-6
+#define TREE_MIN_BRANCH_LEN 1e-9
 struct Tree {
   vector<TreeNode> node;
 
