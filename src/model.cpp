@@ -464,8 +464,9 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   else {
     bool foundGuess = false;
     double tScanLower = tLower, tScanUpper = tUpper;
+    const double nScanSteps = 4;
     while (!foundGuess && tScanUpper - tScanLower > tLower) {
-      const double step = (tScanUpper - tScanLower) / 4;
+      const double step = (tScanUpper - tScanLower) / nScanSteps;
       LogThisAt(9,"tML: Scanning from " << tScanLower << " to " << tScanUpper << " step " << step << endl);
       for (double x = tScanLower; x < tScanUpper && !foundGuess; x += step) {
 	const double ll = negLogLike(x);
