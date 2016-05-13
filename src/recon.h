@@ -19,17 +19,21 @@
 
 #define AncestralSequencePostProbTag "PP"
 
+#define ReconFastAliasArgs {"-rndspan","-kmatchn","3"}
+
 class Reconstructor {
 public:
   typedef AlignColSumProduct::ReconPostProbMap ReconPostProbMap;
 
+  static const vguard<string> fastAliasArgs;
+  
   string fastaReconFilename, treeFilename, modelFilename;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
   string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, fixGuideMCMC;
+  bool guideAlignTryAllPairs, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
@@ -73,7 +77,6 @@ public:
 
   bool parseReconArgs (deque<string>& argvec);
   bool parseAncSeqArgs (deque<string>& argvec);
-  bool parseDiagEnvArgs (deque<string>& argvec);
   bool parseProfileArgs (deque<string>& argvec);
   bool parseSamplerArgs (deque<string>& argvec);
   bool parsePremadeArgs (deque<string>& argvec);

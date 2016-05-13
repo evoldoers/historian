@@ -38,6 +38,7 @@ struct DistanceMatrixParams {
     : pairCount(pairCount),
       model(model)
   { }
+  double tJC() const;  // Jukes-Cantor estimate
   double tML (int maxIterations) const;
   double negLogLike (double t) const;
 };
@@ -250,6 +251,17 @@ gsl_matrix* RateModel::getSubProbMatrix (double t) const {
   return m;
 }
 
+double RateModel::expectedSubstitutionRate() const {
+  gsl_vector* eqm = getEqmProbVector();
+  double R = 0;
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (i != j)
+	R += gsl_vector_get (eqm, i) * gsl_matrix_get (subRate, i, j);
+  gsl_vector_free (eqm);
+  return R;
+}
+
 ProbModel::ProbModel (const RateModel& model, double t)
   : AlphabetOwner (model),
     t (t),
@@ -358,23 +370,25 @@ LogProbModel::LogProbModel (const ProbModel& pm)
 }
 
 double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterations) const {
-  LogThisAt(6,"Estimating distance from " << x.name << " to " << y.name << endl);
+  LogThisAt(7,"Estimating distance from " << x.name << " to " << y.name << endl);
   map<pair<AlphTok,AlphTok>,int> pairCount;
   Assert (x.length() == y.length(), "Sequences %s and %s have different lengths (%u, %u)", x.name.c_str(), y.name.c_str(), x.length(), y.length());
   for (size_t col = 0; col < x.length(); ++col) {
     const char ci = x.seq[col];
     const char cj = y.seq[col];
-    if (!Alignment::isGap(ci) && !Alignment::isGap(cj))
+    if (!Alignment::isGap(ci) && !Alignment::isGap(cj) && !Alignment::isWildcard(ci) && !Alignment::isWildcard(cj))
       ++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
   }
-  if (LoggingThisAt(6)) {
-    LogThisAt(6,"Counts:");
+  if (LoggingThisAt(7)) {
+    LogThisAt(7,"Counts:");
     for (const auto& pc : pairCount)
-      LogThisAt(6," " << pc.second << "*" << alphabet[pc.first.first] << alphabet[pc.first.second]);
-    LogThisAt(6,endl);
+      LogThisAt(7," " << pc.second << "*" << alphabet[pc.first.first] << alphabet[pc.first.second]);
+    LogThisAt(7,endl);
   }
   const DistanceMatrixParams dmp (pairCount, *this);
-  return dmp.tML (maxIterations);
+  const double t = dmp.tML (maxIterations);
+  LogThisAt(6,"Distance from " << x.name << " to " << y.name << " is " << t << endl);
+  return t;
 }
 
 vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations) const {
@@ -387,7 +401,7 @@ vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gapped
     for (size_t j = i + 1; j < gappedSeq.size(); ++j) {
       plog.logProgress (n / (double) pairs, "computing entry %d/%d", n + 1, pairs);
       ++n;
-      dist[i][j] = dist[j][i] = mlDistance (gappedSeq[i], gappedSeq[j]);
+      dist[i][j] = dist[j][i] = mlDistance (gappedSeq[i], gappedSeq[j], maxIterations);
     }
   if (LoggingThisAt(3)) {
     LogThisAt(3,"Distance matrix (" << dist.size() << " rows):" << endl);
@@ -411,6 +425,20 @@ double DistanceMatrixParams::negLogLike (double t) const {
   return distanceMatrixNegLogLike (t, (void*) this);
 }
 
+double DistanceMatrixParams::tJC() const {
+  int same = 0, diff = 0;
+  for (const auto& pc: pairCount)
+    if (pc.first.first == pc.first.second)
+      same += pc.second;
+    else
+      diff += pc.second;
+  const double pDiff = diff / (double) (same + diff);
+  const double A = (double) model.alphabetSize();
+  if (pDiff >= (A - 1) / A)
+    return numeric_limits<double>::infinity();
+  return -((A-1) / A) * log (1 - (A/(A-1)) * pDiff) / model.expectedSubstitutionRate();
+}
+
 double DistanceMatrixParams::tML (int maxIterations) const {
   const gsl_min_fminimizer_type *T;
   gsl_min_fminimizer *s;
@@ -422,25 +450,41 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   T = gsl_min_fminimizer_goldensection; // gsl_min_fminimizer_brent;
   s = gsl_min_fminimizer_alloc (T);
 
+  const double tMin = 1e-9, tMax = 10;
+  const double tjc = min (tMax, max (tMin, tJC()));
+  const double lljc = negLogLike(tjc);
+
   double t;
-  const double tLower = .0001, tUpper = 10 + tLower;
+  const double tLower = min (tMin, tjc/2), tUpper = max (tMax, tjc*2);
   const double llLower = negLogLike(tLower), llUpper = negLogLike(tUpper);
   LogThisAt(8,"tML: f(" << tLower << ") = " << llLower << ", f(" << tUpper << ") = " << llUpper << endl);
 
-  const double maxSteps = 128;
-  double nSteps;
-  bool foundGuess = false;
-  for (double step = 4; step > 1.0001 && !foundGuess; step = sqrt(step))
-    for (double x = tLower + step; x < tUpper && !foundGuess; x += step) {
-      const double ll = negLogLike(x);
-      LogThisAt(8,"tML: f(" << x << ") = " << ll << endl);
-      if (ll < llLower && ll < llUpper) {
-	foundGuess = true;
-	t = x;
+  if (lljc < llLower && lljc < llUpper)
+    t = tjc;
+  else {
+    bool foundGuess = false;
+    double tScanLower = tLower, tScanUpper = tUpper;
+    while (!foundGuess && tScanUpper - tScanLower > tLower) {
+      const double step = (tScanUpper - tScanLower) / 4;
+      LogThisAt(9,"tML: Scanning from " << tScanLower << " to " << tScanUpper << " step " << step << endl);
+      for (double x = tScanLower; x < tScanUpper && !foundGuess; x += step) {
+	const double ll = negLogLike(x);
+	LogThisAt(8,"tML: f(" << x << ") = " << ll << endl);
+	if (ll < llLower && ll < llUpper) {
+	  foundGuess = true;
+	  t = x;
+	}
+      }
+      if (!foundGuess) {
+	if (llLower < llUpper)
+	  tScanUpper = (tScanLower + tScanUpper) / 2;
+	else
+	  tScanLower = (tScanLower + tScanUpper) / 2;
       }
     }
-  if (!foundGuess)
-    return llLower < llUpper ? tLower : tUpper;
+    if (!foundGuess)
+      return llLower < llUpper ? tLower : tUpper;
+  }
 
   LogThisAt(8,"Initializing with t=" << t << ", tLower=" << tLower << ", tUpper=" << tUpper << endl);
   gsl_min_fminimizer_set (s, &F, t, tLower, tUpper);

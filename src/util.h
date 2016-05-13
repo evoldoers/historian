@@ -68,15 +68,15 @@ std::string to_string_join (const Container& c, const char* sep = " ") {
 }
 
 /* transform_vector */
-template<class S,class T>
-std::vector<S> transform_vector (const std::vector<T>& v, S (op) (const T&)) {
+template<class S,class Container>
+std::vector<S> transform_container (const Container& v, S (op) (typename Container::value_type const&)) {
   std::vector<S> result;
   std::transform (v.begin(), v.end(), back_inserter(result), op);
   return result;
 }
 
-template<class S,class T>
-std::vector<S> transform_vector (const std::vector<T>& v, S (op) (T)) {
+template<class S,class Container>
+std::vector<S> transform_container (const Container& v, S (op) (typename Container::value_type)) {
   std::vector<S> result;
   std::transform (v.begin(), v.end(), back_inserter(result), op);
   return result;

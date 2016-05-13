@@ -151,7 +151,7 @@ map<AlignSeqMap::AlignNum,AlignColIndex> AlignSeqMap::linkedColumns (AlignNum nA
 }
 
 AlignPath alignPathMerge (const vguard<AlignPath>& alignments) {
-  LogThisAt(8,"Merging alignments:\n" << to_string_join (transform_vector (alignments, alignPathString), "//\n"));
+  LogThisAt(8,"Merging alignments:\n" << to_string_join (transform_container (alignments, alignPathString), "//\n"));
   const AlignSeqMap alignSeqMap (alignments);
   AlignPath a;
   for (auto& row_seqlen : alignSeqMap.seqLen)

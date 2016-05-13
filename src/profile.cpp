@@ -3,6 +3,7 @@
 #include "profile.h"
 #include "jsonutil.h"
 #include "forward.h"
+#include "alignpath.h"
 #include "util.h"
 
 ProfileTransition::ProfileTransition()
@@ -37,9 +38,13 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
     state[pos+1].in.push_back (pos);
     if (pos < dsq.size()) {
       state[pos+1].name = string(1,seq.seq[pos]) + to_string(pos+1);
-      state[pos+1].lpAbsorb[dsq[pos]] = 0;
       state[pos+1].alignPath[rowIndex].push_back (true);
       state[pos+1].seqCoords[rowIndex] = pos + 1;
+      auto& lpAbsorb = state[pos+1].lpAbsorb;
+      if (Alignment::isWildcard (seq.seq[pos]))
+	fill (lpAbsorb.begin(), lpAbsorb.end(), 0);
+      else
+	lpAbsorb[dsq[pos]] = 0;
     }
   }
   this->seq[rowIndex] = seq.seq;

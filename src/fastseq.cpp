@@ -2,6 +2,7 @@
 #include <iostream>
 #include "fastseq.h"
 #include "util.h"
+#include "alignpath.h"
 #include "logger.h"
 
 KSEQ_INIT(gzFile, gzread)
@@ -21,15 +22,22 @@ const QualScore FastSeq::qualScoreRange = 94;
 TokSeq validTokenize (const string& s, const string& alphabet, const char* seqname) {
   TokSeq tok;
   tok.reserve (s.size());
-  for (const auto& c : s) {
-    const int t = tokenize (c, alphabet);
+  vguard<int> freq (alphabet.size());
+  for (auto c: s) {
+    const auto t = tokenize (c, alphabet);
+    if (t >= 0)
+      ++freq[t];
+  }
+  const AlphTok mostFrequentTok = (AlphTok) (max_element (freq.begin(), freq.end()) - freq.begin());
+  for (auto c: s) {
+    const UnvalidatedAlphTok t = Alignment::isWildcard(c) ? mostFrequentTok : tokenize (c, alphabet);
     if (t < 0) {
       cerr << "Unknown symbol " << c << " in sequence"
 	   << (seqname ? ((string(" ") + seqname)) : string())
 	   << " (alphabet is " << alphabet << ")" << endl;
       throw;
     }
-    tok.push_back (t);
+    tok.push_back ((AlphTok) t);
   }
   return tok;
 }

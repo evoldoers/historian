@@ -77,6 +77,7 @@ MCMC sampling allows for additional accuracy in historical reconstruction.
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
   -trace &lt;file&gt;   Specify MCMC trace filename (default is stdout)
+  -notrace        Suppress MCMC trace
   -fixguide       Fix guide alignment during MCMC
 
 Guide alignment & tree estimation options
@@ -86,6 +87,7 @@ It can be accelerated in two ways. The first is by using a sparse random
 forest instead of a fully connected all-vs-all pairwise comparison.
 
   -rndspan        Use a sparse random spanning graph, not all-vs-all pairs
+  -fast           Alias for '-rndspan -kmatchn 3'
 
 The second way to optimize construction of the guide alignment is by
 confining the pairwise DP matrix to cells around a subset of diagonals
@@ -133,7 +135,7 @@ General options
 
 REFERENCES
 
-The reconstruction method uses phylogenetic transducers, as described in:
+The initial reconstruction uses phylogenetic transducers, as described in:
   Westesson, Lunter, Paten & Holmes (2012). Accurate Reconstruction of
   Insertion-Deletion Histories by Statistical Phylogenetics.
   PLoS One, DOI: 10.1371/journal.pone.0034572
@@ -148,5 +150,11 @@ Model-fitting uses the following phylogenetic EM algorithm:
   Holmes & Rubin (2002). An Expectation Maximization Algorithm
   for Training Hidden Substitution Models.
   Journal of Molecular Biology, 317(5).
+
+The MCMC kernels for co-sampling alignments and trees are described in:
+  Holmes & Bruno (2001). Evolutionary HMMs: A Bayesian Approach to.
+  Multiple Alignment. Bioinformatics, 17(9).
+  Redelings & Suchard (2005). Joint Bayesian Estimation of Alignment
+  and Phylogeny. Systematic Biology, 54(3).
 
 </code></pre>

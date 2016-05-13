@@ -51,7 +51,7 @@ void log_accum_exp_slow (double& a, double b) {
 }
 
 vector<LogProb> log_vector (const vector<double>& v) {
-  return transform_vector<double,double> (v, log);
+  return transform_container<double,vector<double> > (v, log);
 }
 
 vector<LogProb> log_gsl_vector (gsl_vector* v) {

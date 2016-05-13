@@ -108,9 +108,15 @@ void SumProduct::fillUp() {
 	  logF[r] += log (Fmax);
 	}
       } else {
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	  F[r][i] = 0;
-	F[r][model.tokenize(gappedCol[r])] = 1;
+	const char c = gappedCol[r];
+	if (Alignment::isWildcard(c))
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	    F[r][i] = 1;
+	else {
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	    F[r][i] = 0;
+	  F[r][model.tokenize(c)] = 1;
+	}
       }
 
       const TreeNodeIndex rp = tree.parentNode(r);

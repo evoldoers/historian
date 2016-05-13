@@ -94,6 +94,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -mcmc           Run MCMC sampler after reconstruction\n"
     + "  -samples <N>    Number of MCMC iterations per sequence (default " + to_string(DefaultMCMCSamplesPerSeq) + ")\n"
     + "  -trace <file>   Specify MCMC trace filename (default is stdout)\n"
+    + "  -notrace        Suppress MCMC trace\n"
     + "  -fixguide       Fix guide alignment during MCMC\n"
     + "\n"
     // Uncomment to show help for obsolescent random-sampling profile option:
@@ -110,6 +111,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "forest instead of a fully connected all-vs-all pairwise comparison.\n"
     + "\n"
     + "  -rndspan        Use a sparse random spanning graph, not all-vs-all pairs\n"
+    + "  -fast           Alias for '" + join(Reconstructor::fastAliasArgs," ") + "'\n"
     + "\n"
     + "The second way to optimize construction of the guide alignment is by\n"
     + "confining the pairwise DP matrix to cells around a subset of diagonals\n"
@@ -161,7 +163,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "REFERENCES\n"
     + "\n"
-    + "The reconstruction method uses phylogenetic transducers, as described in:\n"
+    + "The initial reconstruction uses phylogenetic transducers, as described in:\n"
     + "  Westesson, Lunter, Paten & Holmes (2012). Accurate Reconstruction of\n"
     + "  Insertion-Deletion Histories by Statistical Phylogenetics.\n"
     + "  PLoS One, DOI: 10.1371/journal.pone.0034572\n"
@@ -176,6 +178,12 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  Holmes & Rubin (2002). An Expectation Maximization Algorithm\n"
     + "  for Training Hidden Substitution Models.\n"
     + "  Journal of Molecular Biology, 317(5).\n"
+    + "\n"
+    + "The MCMC kernels for co-sampling alignments and trees are described in:\n"
+    + "  Holmes & Bruno (2001). Evolutionary HMMs: A Bayesian Approach to.\n"
+    + "  Multiple Alignment. Bioinformatics, 17(9).\n"
+    + "  Redelings & Suchard (2005). Joint Bayesian Estimation of Alignment\n"
+    + "  and Phylogeny. Systematic Biology, 54(3).\n"
     + "\n";
 }
 
@@ -199,7 +207,6 @@ int main (int argc, char** argv) {
       while (logger.parseLogArgs (argvec)
 	     || recon.parseReconArgs (argvec)
 	     || recon.parseProfileArgs (argvec)
-	     || recon.parseDiagEnvArgs (argvec)
 	     || recon.parseSamplerArgs (argvec)
 	     || recon.parseAncSeqArgs (argvec)
 	     || usage.parseUnknown())
@@ -231,7 +238,6 @@ int main (int argc, char** argv) {
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
 	   || recon.parseProfileArgs (argvec)
-	   || recon.parseDiagEnvArgs (argvec)
 	   || recon.parseSamplerArgs (argvec)
 	   || recon.parseAncSeqArgs (argvec)
 	   || usage.parseUnknown())
@@ -257,7 +263,6 @@ int main (int argc, char** argv) {
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
 	   || recon.parseProfileArgs (argvec)
-	   || recon.parseDiagEnvArgs (argvec)
 	   || recon.parseCountArgs (argvec)
 	   || recon.parseSumArgs (argvec)
 	   || usage.parseUnknown())
@@ -298,7 +303,6 @@ int main (int argc, char** argv) {
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
 	   || recon.parseProfileArgs (argvec)
-	   || recon.parseDiagEnvArgs (argvec)
 	   || recon.parseCountArgs (argvec)
 	   || recon.parseSumArgs (argvec)
 	   || recon.parseFitArgs (argvec)

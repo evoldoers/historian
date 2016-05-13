@@ -19,6 +19,8 @@ const regex fasta_re (RE_WHITE_OR_EMPTY ">" RE_DOT_STAR);
 const regex newick_re (RE_WHITE_OR_EMPTY "\\(" RE_DOT_STAR);
 const regex json_re (RE_WHITE_OR_EMPTY "{" RE_DOT_STAR);
 
+const vguard<string> Reconstructor::fastAliasArgs = ReconFastAliasArgs;
+
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
     profileNodeLimit (0),
@@ -43,6 +45,7 @@ Reconstructor::Reconstructor()
     maxEMIterations (DefaultMaxEMIterations),
     minEMImprovement (DefaultMinEMImprovement),
     runMCMC (false),
+    outputTraceMCMC (true),
     fixGuideMCMC (false),
     mcmcSamplesPerSeq (DefaultMCMCSamplesPerSeq),
     mcmcTraceFiles (0),
@@ -263,6 +266,12 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-fast") {
+      argvec.pop_front();
+      for (auto fastArgIter = fastAliasArgs.rbegin(); fastArgIter != fastAliasArgs.rend(); ++fastArgIter)
+	argvec.push_front (*fastArgIter);
+      return true;
+
     } else if (arg == "-rndspan") {
       guideAlignTryAllPairs = false;
       argvec.pop_front();
@@ -294,10 +303,6 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
     }
   }
 
-  return false;
-}
-
-bool Reconstructor::parseDiagEnvArgs (deque<string>& argvec) {
   return diagEnvParams.parseDiagEnvParams (argvec);
 }
 
@@ -347,6 +352,13 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
 
     } else if (arg == "-fixguide") {
       fixGuideMCMC = true;
+      runMCMC = true;
+      useUPGMA = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-notrace") {
+      outputTraceMCMC = false;
       runMCMC = true;
       useUPGMA = true;
       argvec.pop_front();
@@ -911,7 +923,7 @@ Reconstructor::HistoryLogger::HistoryLogger (Reconstructor& recon, const string&
     out (NULL),
     name (name)
 {
-  if (recon.mcmcTraceFilename.size())
+  if (recon.outputTraceMCMC && recon.mcmcTraceFilename.size())
     out = new ofstream (recon.mcmcTraceFilename + "." + to_string(++recon.mcmcTraceFiles));
 }
 
@@ -921,7 +933,8 @@ Reconstructor::HistoryLogger::~HistoryLogger() {
 }
 
 void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) {
-  recon->writeTreeAlignment (history.tree, history.gapped, name, out ? *out : cout, true);
+  if (recon->outputTraceMCMC)
+    recon->writeTreeAlignment (history.tree, history.gapped, name, out ? *out : cout, true);
 }
 
 void Reconstructor::sampleAll() {
