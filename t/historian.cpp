@@ -185,7 +185,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  Journal of Molecular Biology, 317(5).\n"
     + "\n"
     + "The MCMC kernels for co-sampling alignments and trees are described in:\n"
-    + "  Holmes & Bruno (2001). Evolutionary HMMs: A Bayesian Approach to.\n"
+    + "  Holmes & Bruno (2001). Evolutionary HMMs: A Bayesian Approach to\n"
     + "  Multiple Alignment. Bioinformatics, 17(9).\n"
     + "  Redelings & Suchard (2005). Joint Bayesian Estimation of Alignment\n"
     + "  and Phylogeny. Systematic Biology, 54(3).\n"

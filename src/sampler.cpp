@@ -559,8 +559,12 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
   vguard<AlignPath> mergeComponents = { lCladePath, rCladePath, newSiblingPath };
   AlignPath newPath = alignPathMerge (mergeComponents);
 
+  const PosWeightMatrix newNodeSeq = newSibMatrix.parentSeq (newSiblingPath);
+
   vguard<FastSeq> newUngapped = oldAlign.ungapped;
-  newUngapped[node].seq = string (alignPathResiduesInRow (newSiblingPath.at (node)), Alignment::wildcardChar);
+  newUngapped[node].seq = sampler.sampleAncestralSeqs
+    ? sampler.sampleSeq (newNodeSeq, generator)
+    : string (alignPathResiduesInRow (newSiblingPath.at (node)), Alignment::wildcardChar);
 
   if (parent >= 0) {  // don't attempt to align to parent if node is root
     const PosWeightMatrix& pSeq = pwms.at (parent);
@@ -578,7 +582,6 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
     const AlignPath pCladePath = Sampler::cladePath (oldAlign.path, history.tree, parent, node);
     const vguard<SeqIdx> parentEnvPos = sampler.guideSeqPos (oldAlign.path, parent, parentClosestLeaf);
 
-    const PosWeightMatrix newNodeSeq = newSibMatrix.parentSeq (newSiblingPath);
     const BranchMatrix newBranchMatrix (sampler.model, pSeq, newNodeSeq, pDist, newBranchEnv, parentEnvPos, newNodeEnvPos, parent, node);
 
     const AlignPath newBranchPath = newBranchMatrix.sample (generator);
@@ -776,7 +779,9 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     LogThisAt(6,"log(Q_rev) = " << setw(10) << logRevSibSelect << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
     vguard<FastSeq> newUngapped = oldAlign.ungapped;
-    newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
+    newUngapped[parent].seq = sampler.sampleAncestralSeqs
+      ? sampler.sampleSeq (newParentSeq, generator)
+      : string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
   
     initNewHistory (newTree, newUngapped, newPath);
   }
@@ -1447,6 +1452,7 @@ Sampler::Sampler (const RateModel& model, const SimpleTreePrior& treePrior, cons
     movesAccepted (Move::TotalMoveTypes, 0),
     moveNanosecs (Move::TotalMoveTypes, 0.),
     useFixedGuide (false),
+    sampleAncestralSeqs (false),
     guide (gappedGuide),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide)
 {
@@ -1565,4 +1571,19 @@ string Sampler::moveStats() const {
 	<< setw(12) << ((double) movesAccepted[t] / (moveNanosecs[t] / 1e9)) << " accepted/sec"
 	<< endl;
   return out.str();
+}
+
+string Sampler::sampleSeq (const PosWeightMatrix& profile, random_engine& generator) const {
+  string seq (profile.size(), Alignment::wildcardChar);
+  for (SeqIdx pos = 0; pos < profile.size(); ++pos) {
+    vguard<double> p (model.alphabetSize());
+    LogProb norm = -numeric_limits<double>::infinity();
+    for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
+      log_accum_exp (norm, profile[pos][tok]);
+    for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
+      p[tok] = exp (profile[pos][tok] - norm);
+    discrete_distribution<AlphTok> posDistrib (p.begin(), p.end());
+    seq[pos] = model.alphabet [posDistrib (generator)];
+  }
+  return seq;
 }

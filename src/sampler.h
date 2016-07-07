@@ -331,7 +331,7 @@ struct Sampler {
   list<Logger*> loggers;
   vguard<double> moveRate, moveNanosecs;
   vguard<int> movesProposed, movesAccepted;
-  bool useFixedGuide;
+  bool useFixedGuide, sampleAncestralSeqs;
   const Alignment guide;
   map<string,AlignRowIndex> guideRowByName;
   int maxDistanceFromGuide;
@@ -393,6 +393,8 @@ struct Sampler {
 
   static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
   static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
+
+  string sampleSeq (const PosWeightMatrix& profile, random_engine& generator) const;
 };
 
 #endif /* SAMPLER_INCLUDED */

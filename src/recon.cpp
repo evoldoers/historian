@@ -363,6 +363,13 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-sampancs") {
+      fixGuideMCMC = true;
+      runMCMC = true;
+      useUPGMA = true;
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-notrace") {
       outputTraceMCMC = false;
       runMCMC = true;
@@ -959,6 +966,7 @@ void Reconstructor::sampleAll() {
       Sampler& sampler = samplers.back();
       sampler.addLogger (*loggers.back());
       sampler.useFixedGuide = fixGuideMCMC;
+      sampler.sampleAncestralSeqs = predictAncestralSequence;
       Sampler::History history;
       history.tree = dataset.tree;
       history.gapped = dataset.gappedRecon;
