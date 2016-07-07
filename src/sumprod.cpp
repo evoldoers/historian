@@ -107,7 +107,7 @@ void SumProduct::fillUp() {
 	    Fi /= Fmax;
 	  logF[r] += log (Fmax);
 	}
-      } else {
+      } else {  // !isWild(r)
 	const char c = gappedCol[r];
 	if (Alignment::isWildcard(c))
 	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
