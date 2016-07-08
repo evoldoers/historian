@@ -65,7 +65,7 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
       fill (E[r].begin(), E[r].end(), 1);
       logE[r] = 0;
     } else {
-      Require (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
+      //      Require (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
       const TreeNodeIndex rp = tree.parentNode(r);
       if (rp < 0 || isGap(rp))
 	roots.push_back (r);
@@ -92,7 +92,8 @@ void SumProduct::fillUp() {
     for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
       logF[r] += logE[tree.getChild(r,nc)];
     if (!isGap(r)) {
-      if (isWild(r)) {
+      const char c = gappedCol[r];
+      if (Alignment::isWildcard(c)) {
 	double Fmax = 0;
 	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
 	  double Fi = 1;
@@ -108,16 +109,24 @@ void SumProduct::fillUp() {
 	  logF[r] += log (Fmax);
 	}
       } else {  // !isWild(r)
-	const char c = gappedCol[r];
-	if (Alignment::isWildcard(c))
-	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	    F[r][i] = 1;
-	else {
-	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	    F[r][i] = 0;
-	  F[r][model.tokenize(c)] = 1;
+	const AlphTok tok = model.tokenize(c);
+	double Ftok = 1;
+	for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
+	  Ftok *= E[tree.getChild(r,nc)][tok];
+
+	if (Ftok < SUMPROD_RESCALE_THRESHOLD) {
+	  logF[r] += log (Ftok);
+	  Ftok = 1;
 	}
+
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  F[r][i] = 0;
+	F[r][tok] = Ftok;
       }
+
+      LogThisAt(10,"Row " << setw(3) << r << " " << c
+		<< " logF=" << setw(9) << setprecision(3) << logF[r]
+		<< " F=(" << to_string_join(F[r]," ",9,3) << ")" << endl);
 
       const TreeNodeIndex rp = tree.parentNode(r);
       if (rp < 0 || isGap(rp))
@@ -138,7 +147,7 @@ void SumProduct::fillUp() {
 void SumProduct::fillDown() {
   LogThisAt(8,"Sending root-to-tip messages, column " << join(gappedCol,"") << endl);
   if (!columnEmpty()) {
-    for (auto r: preorder)
+    for (auto r: preorder) {
       if (!isGap(r)) {
 	const TreeNodeIndex rp = tree.parentNode(r);
 	if (rp < 0 || isGap(rp)) {
@@ -162,6 +171,11 @@ void SumProduct::fillDown() {
 	  }
 	}
       }
+
+      LogThisAt(10,"Row " << setw(3) << r << " " << gappedCol[r]
+		<< " logG=" << setw(9) << setprecision(3) << logG[r]
+		<< " G=(" << to_string_join(G[r]," ",9,3) << ")" << endl);
+    }
   }
 }
 

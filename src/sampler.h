@@ -395,6 +395,9 @@ struct Sampler {
   static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
 
   string sampleSeq (const PosWeightMatrix& profile, random_engine& generator) const;
+  LogProb logSeqPostProb (const string& seq, const PosWeightMatrix& profile) const;
+
+  static string profileToString (const PosWeightMatrix& profile);
 };
 
 #endif /* SAMPLER_INCLUDED */

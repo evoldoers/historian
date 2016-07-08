@@ -10,6 +10,7 @@
 #include <functional>
 #include <cassert>
 #include <mutex>
+#include <iomanip>
 #include <sys/stat.h>
 
 /* uncomment to enable NaN checks */
@@ -63,6 +64,18 @@ std::string to_string_join (const Container& c, const char* sep = " ") {
     if (n++ > 0)
       j << sep;
     j << s;
+  }
+  return j.str();
+}
+
+template<class Container>
+std::string to_string_join (const Container& c, const char* sep, size_t width, int precision = 5) {
+  std::ostringstream j;
+  int n = 0;
+  for (const auto& s : c) {
+    if (n++ > 0)
+      j << sep;
+    j << std::setprecision(precision) << std::setw(width) << s;
   }
   return j.str();
 }

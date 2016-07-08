@@ -560,11 +560,15 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
   AlignPath newPath = alignPathMerge (mergeComponents);
 
   const PosWeightMatrix newNodeSeq = newSibMatrix.parentSeq (newSiblingPath);
+  const PosWeightMatrix& oldNodeSeq = oldSibMatrix->parentSeq (oldSiblingPath);
 
   vguard<FastSeq> newUngapped = oldAlign.ungapped;
-  newUngapped[node].seq = sampler.sampleAncestralSeqs
-    ? sampler.sampleSeq (newNodeSeq, generator)
-    : string (alignPathResiduesInRow (newSiblingPath.at (node)), Alignment::wildcardChar);
+  if (sampler.sampleAncestralSeqs) {
+    newUngapped[node].seq = sampler.sampleSeq (newNodeSeq, generator);
+    logForwardProposal += sampler.logSeqPostProb (newUngapped[node].seq, newNodeSeq);
+    logReverseProposal += sampler.logSeqPostProb (oldAlign.ungapped[node].seq, oldNodeSeq);
+  } else
+    newUngapped[node].seq = string (alignPathResiduesInRow (newSiblingPath.at (node)), Alignment::wildcardChar);
 
   if (parent >= 0) {  // don't attempt to align to parent if node is root
     const PosWeightMatrix& pSeq = pwms.at (parent);
@@ -592,7 +596,6 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
     mergeComponents.push_back (newBranchPath);
     newPath = alignPathMerge (mergeComponents);
 
-    const PosWeightMatrix& oldNodeSeq = oldSibMatrix->parentSeq (oldSiblingPath);
     const GuideAlignmentEnvelope oldBranchEnv = sampler.makeGuide (history.tree, parentClosestLeaf, nodeClosestLeaf, newPath, parent, nodeClosestChild);
     const BranchMatrix oldBranchMatrix (sampler.model, pSeq, oldNodeSeq, pDist, oldBranchEnv, parentEnvPos, oldNodeEnvPos, parent, node);
     const AlignPath oldBranchPath = Sampler::branchPath (oldAlign.path, history.tree, node);
@@ -779,9 +782,12 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     LogThisAt(6,"log(Q_rev) = " << setw(10) << logRevSibSelect << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
     vguard<FastSeq> newUngapped = oldAlign.ungapped;
-    newUngapped[parent].seq = sampler.sampleAncestralSeqs
-      ? sampler.sampleSeq (newParentSeq, generator)
-      : string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
+    if (sampler.sampleAncestralSeqs) {
+      newUngapped[parent].seq = sampler.sampleSeq (newParentSeq, generator);
+      logForwardProposal += sampler.logSeqPostProb (newUngapped[parent].seq, newParentSeq);
+      logReverseProposal += sampler.logSeqPostProb (oldAlign.ungapped[parent].seq, oldParentSeq);
+    } else
+      newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
   
     initNewHistory (newTree, newUngapped, newPath);
   }
@@ -899,6 +905,9 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
   dd = lpTrans (ProbModel::Delete, ProbModel::Delete);
   de = lpTrans (ProbModel::Delete, ProbModel::End);
 
+  LogThisAt(8,"Parent profile:\n" << Sampler::profileToString(xSeq)
+	    << "Child profile:\n" << Sampler::profileToString(ySeq));
+  
   ProgressLog (plog, 5);
   plog.initProgress ("Branch alignment matrix (%u*%u)", xSize, ySize);
 
@@ -1093,6 +1102,9 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
 
   iix_wwx = lpTransElimSelfLoopIDD (IIX, WWX);
   iix_iix = lpTransElimSelfLoopIDD (IIX, IIX);
+
+  LogThisAt(8,"Left-node profile:\n" << Sampler::profileToString(lSeq)
+	    << "Right-node profile:\n" << Sampler::profileToString(rSeq));
 
   ProgressLog (plog, 5);
   plog.initProgress ("Parent proposal matrix (%u*%u)", xSize, ySize);
@@ -1576,14 +1588,33 @@ string Sampler::moveStats() const {
 string Sampler::sampleSeq (const PosWeightMatrix& profile, random_engine& generator) const {
   string seq (profile.size(), Alignment::wildcardChar);
   for (SeqIdx pos = 0; pos < profile.size(); ++pos) {
+    const LogProb norm = log_sum_exp (profile[pos]);
     vguard<double> p (model.alphabetSize());
-    LogProb norm = -numeric_limits<double>::infinity();
-    for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
-      log_accum_exp (norm, profile[pos][tok]);
     for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
       p[tok] = exp (profile[pos][tok] - norm);
     discrete_distribution<AlphTok> posDistrib (p.begin(), p.end());
-    seq[pos] = model.alphabet [posDistrib (generator)];
+    seq[pos] = model.alphabet[posDistrib(generator)];
   }
   return seq;
+}
+
+LogProb Sampler::logSeqPostProb (const string& seq, const PosWeightMatrix& profile) const {
+  Assert (seq.size() == profile.size(), "Sequence length (%d) does not match profile (%d)", seq.size(), profile.size());
+  LogProb lp = 0;
+  for (SeqIdx pos = 0; pos < profile.size(); ++pos) {
+    const LogProb norm = log_sum_exp (profile[pos]);
+    const AlphTok tok = model.tokenize (seq[pos]);
+    lp += profile[pos][tok] - norm;
+  }
+  return lp;
+}
+
+string Sampler::profileToString (const PosWeightMatrix& profile) {
+  ostringstream out;
+  for (const auto& wm: profile) {
+    for (AlphTok i = 0; i < wm.size(); ++i)
+      out << setw(10) << wm[i];
+    out << endl;
+  }
+  return out.str();
 }
