@@ -122,9 +122,9 @@ my %aa3 = map (($_ => $aa_to_aa3{$aa{$_}}), keys %aa);
 # ASCII characters 33 through 126:
 # !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 # Characters avoided in token set:
-# ( ) ; " ' \ (used by S-expression format)
+# ( ) ; " ' \ (used by S-expression & JSON formats)
 # - * ? . (used for alignment/reconstruction/ambiguity)
-# > (used by FASTA format)
+# > @ (used by FASTA & FASTQ formats)
 %tok = ( 'ttt'=>'F',  'tct'=>'S',  'tat'=>'Y',  'tgt'=>'C',
 	 'ttc'=>'f',  'tcc'=>'s',  'tac'=>'y',  'tgc'=>'c',
 	 'tta'=>'L',  'tca'=>'5',  'taa'=>'0',  'tga'=>'2',
@@ -137,7 +137,7 @@ my %aa3 = map (($_ => $aa_to_aa3{$aa{$_}}), keys %aa);
        
 	 'att'=>'I',  'act'=>'T',  'aat'=>'N',  'agt'=>'%',
 	 'atc'=>'i',  'acc'=>'t',  'aac'=>'n',  'agc'=>'#',
-	 'ata'=>'|',  'aca'=>'~',  'aaa'=>'K',  'aga'=>'@',
+	 'ata'=>'|',  'aca'=>'~',  'aaa'=>'K',  'aga'=>'3',
 	 'atg'=>'M',  'acg'=>'`',  'aag'=>'k',  'agg'=>']',
        
 	 'gtt'=>'V',  'gct'=>'A',  'gat'=>'D',  'ggt'=>'G',
