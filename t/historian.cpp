@@ -211,7 +211,7 @@ int main (int argc, char** argv) {
 
       while (logger.parseLogArgs (argvec)
 	     || recon.parseReconArgs (argvec)
-	     || recon.parseProfileArgs (argvec)
+	     || recon.parseProfileArgs (argvec, false)
 	     || recon.parseSamplerArgs (argvec)
 	     || recon.parseAncSeqArgs (argvec)
 	     || usage.parseUnknown())
@@ -242,7 +242,7 @@ int main (int argc, char** argv) {
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
-	   || recon.parseProfileArgs (argvec)
+	   || recon.parseProfileArgs (argvec, true)
 	   || recon.parseSamplerArgs (argvec)
 	   || recon.parseAncSeqArgs (argvec)
 	   || usage.parseUnknown())
@@ -266,7 +266,7 @@ int main (int argc, char** argv) {
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
-	   || recon.parseProfileArgs (argvec)
+	   || recon.parseProfileArgs (argvec, true)
 	   || recon.parseCountArgs (argvec)
 	   || recon.parseSumArgs (argvec)
 	   || usage.parseUnknown())
@@ -306,7 +306,7 @@ int main (int argc, char** argv) {
     
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
-	   || recon.parseProfileArgs (argvec)
+	   || recon.parseProfileArgs (argvec, true)
 	   || recon.parseCountArgs (argvec)
 	   || recon.parseSumArgs (argvec)
 	   || recon.parseFitArgs (argvec)

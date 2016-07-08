@@ -78,7 +78,7 @@ public:
 
   bool parseReconArgs (deque<string>& argvec);
   bool parseAncSeqArgs (deque<string>& argvec);
-  bool parseProfileArgs (deque<string>& argvec);
+  bool parseProfileArgs (deque<string>& argvec, bool allowReconstructions);
   bool parseSamplerArgs (deque<string>& argvec);
   bool parsePremadeArgs (deque<string>& argvec);
   bool parseCountArgs (deque<string>& argvec);

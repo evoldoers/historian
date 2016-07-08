@@ -508,6 +508,23 @@ void Tree::assertNodesMatchSeqs (const vguard<FastSeq>& seq) const {
   Assert (nodesMatchSeqs(seq), "Node names and sequence names don't match");  // should be redundant after previous tests...
 }
 
+bool Tree::seqNamesBijective (const vguard<FastSeq>& seq) const {
+  if (!allNodesNamed())
+    return false;
+  if (seq.size() != nodes())
+    return false;
+  map<string,size_t> name2seq;
+  for (size_t n = 0; n < seq.size(); ++n) {
+    if (name2seq.find (seq[n].name) != name2seq.end())
+      return false;
+    name2seq[seq[n].name] = n;
+  }
+  for (TreeNodeIndex n = 0; n < nodes(); ++n)
+    if (name2seq.find (seqName(n)) == name2seq.end())
+      return false;
+  return true;
+}
+
 void Tree::reorderSeqs (vguard<FastSeq>& seq) const {
   Assert (seq.size() == nodes(), "Number of sequences doesn't match number of nodes in tree");
   map<string,size_t> name2seq;

@@ -124,7 +124,7 @@ void Reconstructor::checkUniqueTreeFile() {
   Require (treeFilename.empty() || (seqFilenames.size() + fastaGuideFilenames.size() + (fastaReconFilename.empty() ? 0 : 1) == 1), "If you specify a tree file, there can be one and only one sequence file, otherwise matching up trees to sequence files involves too much guesswork for my liking. To avoid complication, I recommend that if you want to analyze multiple datasets, you please use Nexus or Stockholm format to encode the tree and sequence data directly into the same file.");
 }
 
-bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
+bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstructions) {
   if (argvec.size()) {
     const string& arg = argvec[0];
     if (arg == "-auto") {
@@ -140,10 +140,26 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec) {
 	fastaGuideFilenames.push_back (filename);
 	break;
       case NexusFormat:
-	nexusGuideFilenames.push_back (filename);
+	if (allowReconstructions) {
+	  ifstream in (filename);
+	  NexusData nex (in);
+	  if (nex.tree.seqNamesBijective(nex.gapped))
+	    nexusReconFilenames.push_back (filename);
+	  else
+	    nexusGuideFilenames.push_back (filename);
+	} else
+	  nexusGuideFilenames.push_back (filename);
 	break;
       case StockholmFormat:
-	stockholmGuideFilenames.push_back (filename);
+	if (allowReconstructions) {
+	  ifstream in (filename);
+	  Stockholm stock (in);
+	  if (stock.hasTree() && stock.getTree().seqNamesBijective(stock.gapped))
+	    stockholmReconFilenames.push_back (filename);
+	  else
+	    stockholmGuideFilenames.push_back (filename);
+	} else
+	  stockholmGuideFilenames.push_back (filename);
 	break;
       case NewickFormat:
 	setTreeFilename (filename);

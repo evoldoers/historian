@@ -102,9 +102,10 @@ struct Tree {
   bool allNodesNamed() const;  // true if all nodes have nonempty names
   void assertAllNodesNamed() const;
   
+  bool seqNamesBijective (const vguard<FastSeq>& seq) const;  // true if one-to-one onto mapping between node & sequence names
   void reorderSeqs (vguard<FastSeq>& seq) const;  // reorders seq so that seq[n].name == seqName(n)
 
-  bool nodesMatchSeqs (const vguard<FastSeq>& seq) const;  // true if seq[n].name == nodeName(n)
+  bool nodesMatchSeqs (const vguard<FastSeq>& seq) const;  // true if seq[n].name == nodeName(n) for all n, including internal nodes
   void assertNodesMatchSeqs (const vguard<FastSeq>& seq) const;
 
   void assignInternalNodeNames (const char* prefix = DefaultNodeNamePrefix);
