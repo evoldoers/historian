@@ -157,7 +157,7 @@ Model-fitting uses the following phylogenetic EM algorithm:
   Journal of Molecular Biology, 317(5).
 
 The MCMC kernels for co-sampling alignments and trees are described in:
-  Holmes & Bruno (2001). Evolutionary HMMs: A Bayesian Approach to.
+  Holmes & Bruno (2001). Evolutionary HMMs: A Bayesian Approach to
   Multiple Alignment. Bioinformatics, 17(9).
   Redelings & Suchard (2005). Joint Bayesian Estimation of Alignment
   and Phylogeny. Systematic Biology, 54(3).
