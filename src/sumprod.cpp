@@ -326,7 +326,7 @@ AlignColSumProduct::AlignColSumProduct (const RateModel& model, const Tree& tree
     gapped (gapped),
     col (0)
 {
-  Require (tree.nodes() == gapped.size(), "Every tree node must have an alignment row");
+  Assert (tree.nodes() == gapped.size(), "Number of nodes in tree (%d) does not match number of sequences (%d)", tree.nodes(), gapped.size());
   initAlignColumn();
 }
 
