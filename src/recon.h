@@ -69,6 +69,7 @@ public:
     void prepareRecon (Reconstructor& recon);
     void clearPrep();
     bool hasReconstruction() const { return !gappedRecon.empty(); }
+    bool hasAncestralReconstruction() const { return !gappedAncestralRecon.empty(); }
   };
   vguard<Dataset> datasets;
   EventCounts priorCounts, dataCounts, dataPlusPriorCounts;

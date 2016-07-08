@@ -1602,9 +1602,14 @@ LogProb Sampler::logSeqPostProb (const string& seq, const PosWeightMatrix& profi
   Assert (seq.size() == profile.size(), "Sequence length (%d) does not match profile (%d)", seq.size(), profile.size());
   LogProb lp = 0;
   for (SeqIdx pos = 0; pos < profile.size(); ++pos) {
-    const LogProb norm = log_sum_exp (profile[pos]);
-    const AlphTok tok = model.tokenize (seq[pos]);
-    lp += profile[pos][tok] - norm;
+    const char c = seq[pos];
+    if (!Alignment::isWildcard(c)) {
+      const UnvalidatedAlphTok tok = model.tokenize (c);
+      if (tok < 0)
+	return -numeric_limits<double>::infinity();
+      const LogProb norm = log_sum_exp (profile[pos]);
+      lp += profile[pos][tok] - norm;
+    }
   }
   return lp;
 }

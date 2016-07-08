@@ -253,7 +253,6 @@ int main (int argc, char** argv) {
     recon.loadRecon();
 
     recon.sampleAll();
-    recon.predictAllAncestors();
     recon.writeRecon (cout);
 
   } else if (command == "count" || command == "c") {

@@ -960,7 +960,10 @@ void Reconstructor::sampleAll() {
     for (auto& dataset: datasets) {
       if (!dataset.hasReconstruction())
 	reconstruct (dataset);
-      dataset.tree.assignInternalNodeNames (dataset.gappedRecon);
+      if (!dataset.hasAncestralReconstruction())
+	predictAncestors (dataset);
+      vguard<FastSeq>& gappedRecon = predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon;
+      dataset.tree.assignInternalNodeNames (gappedRecon);
       samplers.push_back (Sampler (cachedModel, treePrior, dataset.gappedGuide));
       loggers.push_back (new HistoryLogger (*this, dataset.name));
       Sampler& sampler = samplers.back();
@@ -969,7 +972,7 @@ void Reconstructor::sampleAll() {
       sampler.sampleAncestralSeqs = predictAncestralSequence;
       Sampler::History history;
       history.tree = dataset.tree;
-      history.gapped = dataset.gappedRecon;
+      history.gapped = gappedRecon;
       sampler.initialize (history, dataset.name);
       totalNodes += history.tree.nodes();
     }
