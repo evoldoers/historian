@@ -188,8 +188,11 @@ vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
 }
 
 vguard<LogProb> SumProduct::logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude) const {
-  if (!isWild(node))
-    return log_vector (F[node]);
+  if (!isWild(node)) {
+    vguard<LogProb> lpDelta (model.alphabetSize(), -numeric_limits<double>::infinity());
+    lpDelta[model.tokenize(gappedCol[node])] = 0;
+    return lpDelta;
+  }
   vguard<LogProb> lpp (model.alphabetSize(), 0);
   for (size_t nc = 0; nc < tree.nChildren(node); ++nc) {
     const TreeNodeIndex child = tree.getChild(node,nc);
