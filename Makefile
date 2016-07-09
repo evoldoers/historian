@@ -227,8 +227,12 @@ README.md: bin/$(MAIN)
 	PATH=bin:$(PATH); $(MAIN) help | perl -pe 's/</&lt;/g;s/>/&gt;/g;' | perl -e 'open FILE,"<README.md";while(<FILE>){last if/<pre>/;print}close FILE;print"<pre><code>\n";while(<>){print};print"</code></pre>\n"' >temp.md
 	mv temp.md $@
 
-# For updating default model
+# For updating default models
 src/amino.cpp: data/prot1.json
+	perl -e 'open S,"<".shift();while(<S>){print;last if/defaultAminoModelText =/}close S;open A,"<".shift();$$q=chr(34);while(<A>){chomp;s/$$q/\\$$q/g;print chr(34),$$_,"\\n",chr(34),"\n"}print";\n"' $@ $< >temp.cpp
+	mv temp.cpp $@
+
+src/codon.cpp: data/tokenized-codon-model.json
 	perl -e 'open S,"<".shift();while(<S>){print;last if/defaultAminoModelText =/}close S;open A,"<".shift();$$q=chr(34);while(<A>){chomp;s/$$q/\\$$q/g;print chr(34),$$_,"\\n",chr(34),"\n"}print";\n"' $@ $< >temp.cpp
 	mv temp.cpp $@
 

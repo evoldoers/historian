@@ -47,6 +47,8 @@ Reconstruction file I/O options
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
 
+  -codon          Interpret sequences as spliced protein-coding DNA/RNA
+
 Reconstruction algorithm options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The reconstruction algorithm iterates through the guide tree in postorder,

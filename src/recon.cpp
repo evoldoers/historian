@@ -11,6 +11,8 @@
 #include "stockholm.h"
 #include "seqgraph.h"
 #include "regexmacros.h"
+#include "ctok.h"
+#include "codon.h"
 
 const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
 const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
@@ -26,6 +28,7 @@ Reconstructor::Reconstructor()
     profileNodeLimit (0),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
+    tokenizeCodons (false),
     guideAlignTryAllPairs (true),
     useUPGMA (true),
     jukesCantorDistanceMatrix (false),
@@ -206,6 +209,11 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       guideSaveFilename = argvec[1];
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-codon") {
+      tokenizeCodons = true;
       argvec.pop_front();
       return true;
 
@@ -480,6 +488,9 @@ void Reconstructor::loadModel() {
     ifstream modelFile (modelFilename);
     ParsedJson pj (modelFile);
     model.read (pj.value);
+  } else if (tokenizeCodons) {
+    LogThisAt(1,"Using default codon model" << endl);
+    model = defaultCodonModel();
   } else {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
@@ -545,7 +556,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
 	break;
       Dataset& dataset = newDataset();
       dataset.name = stockholmFilename;
-      dataset.initGuide (stock.gapped);
+      dataset.initGuide (tokenizeCodons ? codonTokenizer.tokenize(stock.gapped) : stock.gapped);
       if (stock.hasTree())
 	dataset.tree = stock.getTree();
       else
@@ -563,14 +574,16 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
       NexusData nex (nexIn);
       nex.convertNexusToAlignment();
       dataset.tree = nex.tree;
-      dataset.initGuide (nex.gapped);
+      dataset.initGuide (tokenizeCodons ? codonTokenizer.tokenize(nex.gapped) : nex.gapped);
       dataset.prepareRecon (*this);
-    
+
     } else {
       if (seqFilename.size()) {
 	dataset.name = seqFilename;
 	LogThisAt(1,"Loading sequences from " << seqFilename << endl);
 	dataset.seqs = readFastSeqs (seqFilename.c_str());
+	if (tokenizeCodons)
+	  dataset.seqs = codonTokenizer.tokenize (dataset.seqs);
 	if (maxDistanceFromGuide < 0 && treeFilename.size())
 	  LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
 	else {
@@ -591,7 +604,8 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
       } else {
 	LogThisAt(1,"Loading guide alignment from " << guideFilename << endl);
 	dataset.name = guideFilename;
-	dataset.initGuide (readFastSeqs (guideFilename.c_str()));
+	const auto guide = readFastSeqs (guideFilename.c_str());
+	dataset.initGuide (tokenizeCodons ? codonTokenizer.tokenize(guide) : guide);
       }
 
       if (treeFilename.size())
@@ -806,6 +820,8 @@ void Reconstructor::predictAllAncestors() {
 void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, const string& name, ostream& out, bool isReconstruction, const ReconPostProbMap* postProb) const {
   Tree t (tree);
   vguard<FastSeq> g (gapped);
+  if (tokenizeCodons)
+    g = codonTokenizer.untokenize (g);
   switch (outputFormat) {
   case FastaFormat:
     writeFastaSeqs (out, gapped);

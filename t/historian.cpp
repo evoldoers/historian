@@ -64,6 +64,8 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -output (nexus|fasta|stockholm)\n"
     + "                  Specify output format (default is Stockholm)\n"
     + "\n"
+    + "  -codon          Interpret sequences as spliced protein-coding DNA/RNA\n"
+    + "\n"
     + "Reconstruction algorithm options\n"
     + "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     + "The reconstruction algorithm iterates through the guide tree in postorder,\n"

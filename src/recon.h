@@ -33,7 +33,7 @@ public:
   string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
   int maxDistanceFromGuide;
-  bool guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC;
+  bool tokenizeCodons, guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
