@@ -343,7 +343,7 @@ TreeAlignFuncs::PosWeightMatrix TreeAlignFuncs::preMultiply (const PosWeightMatr
   return pwm;
 }
 
-vguard<LogProb> Sampler::calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec) {
+vguard<LogProb> TreeAlignFuncs::calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec) {
   vguard<LogProb> ins;
   ins.reserve (child.size());
   for (const auto& lpp : child) {

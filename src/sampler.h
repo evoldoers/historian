@@ -43,12 +43,10 @@ struct TreeAlignFuncs {
   static set<TreeNodeIndex> nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2);
 
   static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
-
   static double rootExtProb (const RateModel& model) { return model.insExtProb; }
-  
+  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
   static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix);
 };
-
 
 struct Sampler : TreeAlignFuncs {
   typedef DPMatrix::random_engine random_engine;
@@ -404,8 +402,6 @@ struct Sampler : TreeAlignFuncs {
   inline map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const {
     return TreeAlignFuncs::getConditionalPWMs (model, tree, gapped, exclude, fillUpNodes, fillDownNodes);
   }
-
-  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
 
   string sampleSeq (const PosWeightMatrix& profile, random_engine& generator) const;
   LogProb logSeqPostProb (const string& seq, const PosWeightMatrix& profile) const;
