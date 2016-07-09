@@ -118,9 +118,10 @@ and just want to get on to reconstruction as quickly as possible:
 
 Model-fitting and event-counting options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-By default, the reconstruction algorithm will interpret any supplied alignment
-as a guide alignment, i.e. a hint, even if it contains a full ancestral sequence
-reconstruction. To insist that the alignment be interpreted as a reconstruction,
+In reconstruction mode, any supplied alignment will be interpreted as a hint,
+i.e. a guide alignment. In MCMC, counting, or model-fitting mode, any alignment
+that contains a full ancestral sequence reconstruction will be interpreted as a
+reconstruction. To force the alignment to be interpreted as a reconstruction,
 precede it with -recon, -nexusrecon or -stockrecon (depending on the format).
 
   -recon &lt;file&gt;, -nexusrecon &lt;file&gt;, -stockrecon &lt;file&gt;
