@@ -15,10 +15,43 @@ struct SimpleTreePrior {
   LogProb treeLogLikelihood (const Tree& tree) const;
 };
 
-struct Sampler {
-
-  typedef DPMatrix::random_engine random_engine;
+struct TreeAlignFuncs {
   typedef vguard<vguard<LogProb> > PosWeightMatrix;
+
+  // TreeAlignFuncs::History
+  struct History {
+    vguard<FastSeq> gapped;
+    Tree tree;
+    History reorder (const vguard<TreeNodeIndex>& newOrder) const;
+    void assertNamesMatch() const;
+  };
+
+  static map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes);
+
+  static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
+
+  static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude = -1);
+  static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
+  static AlignPath triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent);
+  static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
+
+  static bool subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex>& nodes);
+  
+  static set<TreeNodeIndex> allNodes (const Tree& tree);
+  static set<TreeNodeIndex> allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node);
+  static set<TreeNodeIndex> nodeAndAncestors (const Tree& tree, TreeNodeIndex node);
+  static set<TreeNodeIndex> nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2);
+
+  static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
+
+  static double rootExtProb (const RateModel& model) { return model.insExtProb; }
+  
+  static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix);
+};
+
+
+struct Sampler : TreeAlignFuncs {
+  typedef DPMatrix::random_engine random_engine;
 
   // Sampler::SparseDPMatrix
   template <size_t CellStates>
@@ -269,14 +302,6 @@ struct Sampler {
     LogProb lpEmit (const CellCoords& coords) const;
   };
 
-  // Sampler::History
-  struct History {
-    vguard<FastSeq> gapped;
-    Tree tree;
-    History reorder (const vguard<TreeNodeIndex>& newOrder) const;
-    void assertNamesMatch() const;
-  };
-
   // Sampler::Logger
   struct Logger {
     virtual void logHistory (const History& history) = 0;
@@ -349,7 +374,10 @@ struct Sampler {
   void initialize (const History& initialHistory, const string& name);
 
   // Sampler sampling methods
-  LogProb logLikelihood (const History& history, const char* prefix = "") const;
+  inline LogProb logLikelihood (const History& history, const char* prefix = "") const {
+    return TreeAlignFuncs::logLikelihood (treePrior, model, history, prefix);
+  }
+  
   Move proposeMove (const History& oldHistory, LogProb oldLogLikelihood, random_engine& generator) const;
 
   void sample (random_engine& generator);
@@ -360,8 +388,6 @@ struct Sampler {
   string moveStats() const;
   
   // Sampler helpers
-  static double rootExtProb (const RateModel& model) { return model.insExtProb; }
-  
   static TreeNodeIndex randomInternalNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomChildNode (const Tree& tree, random_engine& generator);
   static TreeNodeIndex randomGrandchildNode (const Tree& tree, random_engine& generator);
@@ -375,23 +401,10 @@ struct Sampler {
   vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex fixedGuideRow) const;
   vguard<SeqIdx> guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex variableGuideRow, AlignRowIndex fixedGuideRow) const;
 
-  static set<TreeNodeIndex> allNodes (const Tree& tree);
-  static set<TreeNodeIndex> allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node);
-  static set<TreeNodeIndex> nodeAndAncestors (const Tree& tree, TreeNodeIndex node);
-  static set<TreeNodeIndex> nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2);
+  inline map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const {
+    return TreeAlignFuncs::getConditionalPWMs (model, tree, gapped, exclude, fillUpNodes, fillDownNodes);
+  }
 
-  map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const;
-
-  static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude = -1);
-  static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
-  static AlignPath triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent);
-  static AlignPath branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node);
-
-  static bool subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex>& nodes);
-  
-  static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
-
-  static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
   static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
 
   string sampleSeq (const PosWeightMatrix& profile, random_engine& generator) const;

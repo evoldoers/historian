@@ -129,7 +129,7 @@ vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, A
   return guidePos;
 }
 
-AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude) {
+AlignPath TreeAlignFuncs::cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude) {
   AlignPath p;
   const vguard<TreeNodeIndex> rerootedParent = tree.rerootedParent (cladeRootParent);
   vguard<bool> childrenIncluded (tree.nodes(), false);
@@ -143,7 +143,7 @@ AlignPath Sampler::cladePath (const AlignPath& path, const Tree& tree, TreeNodeI
   return alignPathRemoveEmptyColumns (p);
 }
 
-AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2) {
+AlignPath TreeAlignFuncs::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2) {
   AlignPath p;
   size_t nDel = 0;
   const AlignColIndex cols = alignPathColumns (path);
@@ -184,7 +184,7 @@ AlignPath Sampler::pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNod
   return p;
 }
 
-AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent) {
+AlignPath TreeAlignFuncs::triplePath (const AlignPath& path, TreeNodeIndex lChild, TreeNodeIndex rChild, TreeNodeIndex parent) {
   AlignPath p;
   size_t nLeftIns = 0;
   const AlignColIndex cols = alignPathColumns (path);
@@ -237,13 +237,13 @@ AlignPath Sampler::triplePath (const AlignPath& path, TreeNodeIndex lChild, Tree
   return p;
 }
 
-AlignPath Sampler::branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
+AlignPath TreeAlignFuncs::branchPath (const AlignPath& path, const Tree& tree, TreeNodeIndex node) {
   const TreeNodeIndex parent = tree.parentNode(node);
   Assert (parent >= 0, "Parent node not found");
   return pairPath (path, parent, node);
 }
 
-bool Sampler::subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex>& rows) {
+bool TreeAlignFuncs::subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex>& rows) {
   const AlignColIndex cols = alignPathColumns (path);
   for (AlignColIndex col = 0; col < cols; ++col) {
     size_t n = 0;
@@ -256,29 +256,29 @@ bool Sampler::subpathUngapped (const AlignPath& path, const vguard<TreeNodeIndex
   return true;
 }
 
-set<TreeNodeIndex> Sampler::allNodes (const Tree& tree) {
+set<TreeNodeIndex> TreeAlignFuncs::allNodes (const Tree& tree) {
   const auto nvec = tree.preorderSort();
   return set<TreeNodeIndex> (nvec.begin(), nvec.end());
 }
 
-set<TreeNodeIndex> Sampler::allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node) {
+set<TreeNodeIndex> TreeAlignFuncs::allExceptNodeAndAncestors (const Tree& tree, TreeNodeIndex node) {
   set<TreeNodeIndex> n = allNodes (tree), a = tree.nodeAndAncestors (node);
   for (auto anc: a)
     n.erase (anc);
   return n;
 }
 
-set<TreeNodeIndex> Sampler::nodeAndAncestors (const Tree& tree, TreeNodeIndex node) {
+set<TreeNodeIndex> TreeAlignFuncs::nodeAndAncestors (const Tree& tree, TreeNodeIndex node) {
   return tree.nodeAndAncestors (node);
 }
 
-set<TreeNodeIndex> Sampler::nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2) {
+set<TreeNodeIndex> TreeAlignFuncs::nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2) {
   set<TreeNodeIndex> a = tree.nodeAndAncestors (node1), n2 = tree.nodeAndAncestors (node2);
   a.insert (n2.begin(), n2.end());
   return a;
 }
 
-map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) const {
+map<TreeNodeIndex,TreeAlignFuncs::PosWeightMatrix> TreeAlignFuncs::getConditionalPWMs (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
   AlignColSumProduct colSumProd (model, tree, gapped);
   colSumProd.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
@@ -294,7 +294,7 @@ map<TreeNodeIndex,Sampler::PosWeightMatrix> Sampler::getConditionalPWMs (const T
   return pwms;
 }
 
-LogProb Sampler::logLikelihood (const History& history, const char* suffix) const {
+LogProb TreeAlignFuncs::logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix) {
   const Alignment align (history.gapped);
   const LogProb lpTree = treePrior.treeLogLikelihood (history.tree);
   const double rootExt = rootExtProb (model);
@@ -318,7 +318,7 @@ LogProb Sampler::logLikelihood (const History& history, const char* suffix) cons
   return lp;
 }
 
-LogProb Sampler::logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child) {
+LogProb TreeAlignFuncs::logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child) {
   const AlignColIndex cols = alignPathColumns (path);
   ProbModel::State state = ProbModel::Start;
   LogProb lp = 0;
@@ -331,7 +331,7 @@ LogProb Sampler::logBranchPathLikelihood (const ProbModel& probModel, const Alig
   return lp;
 }
 
-Sampler::PosWeightMatrix Sampler::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
+TreeAlignFuncs::PosWeightMatrix TreeAlignFuncs::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
   PosWeightMatrix pwm (child.size(), vguard<LogProb> (submat.size(), -numeric_limits<double>::infinity()));
   size_t n = 0;
   for (const auto& lpp : child) {
