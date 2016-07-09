@@ -1,4 +1,5 @@
 #include "codon.h"
+#include "util.h"
 
 CodonTokenizer codonTokenizer;
 
@@ -73,4 +74,72 @@ CodonTokenizer::CodonTokenizer() {
   addToken('f',"ttc"); 
   addToken('l',"ttg"); 
   addToken('F',"ttt");   
+
+  addToken('-',"---");
+  addToken('*',"***");
+}
+
+string CodonTokenizer::tokenize (const string& gappedSeq) const {
+  Assert (gappedSeq.size() % 3 == 0, "Can't codon-tokenize a sequence that's not a multiple of 3 nucleotides in length");
+  string tokSeq;
+  tokSeq.reserve (gappedSeq.size() / 3);
+  for (SeqIdx pos = 0; pos < gappedSeq.size(); pos += 3) {
+    const string cod = tolower (gappedSeq.substr (pos, 3));
+    Assert (cod2tok.count(cod), "Can't tokenize '%s'", cod.c_str());
+    tokSeq.push_back (cod2tok.at(cod));
+  }
+  return tokSeq;
+}
+
+string CodonTokenizer::untokenize (const string& tokSeq) const {
+  string gappedSeq;
+  gappedSeq.reserve (gappedSeq.size() * 3);
+  for (SeqIdx pos = 0; pos < tokSeq.size(); ++pos) {
+    const char tok = tokSeq[pos];
+    Assert (tok2cod.count(tok), "Can't untokenize '%c'", tok);
+    gappedSeq.append (tok2cod.at(tok));
+  }
+  return gappedSeq;
+}
+
+vguard<FastSeq> CodonTokenizer::tokenize (const vguard<FastSeq>& gappedSeq) const {
+  vguard<FastSeq> tokSeq;
+  tokSeq.reserve (gappedSeq.size());
+  for (auto& fs: gappedSeq) {
+    FastSeq tfs;
+    tfs.name = fs.name;
+    tfs.comment = fs.comment;
+    tfs.seq = tokenize (fs.seq);
+    tokSeq.push_back (tfs);
+  }
+  return tokSeq;
+}
+
+Stockholm CodonTokenizer::tokenize (const Stockholm& stock) const {
+  Stockholm tokStock;
+  tokStock.gapped = tokenize (stock.gapped);
+  tokStock.gf = stock.gf;
+  tokStock.gs = stock.gs;
+  return tokStock;
+}
+
+vguard<FastSeq> CodonTokenizer::untokenize (const vguard<FastSeq>& tokSeq) const {
+  vguard<FastSeq> gappedSeq;
+  gappedSeq.reserve (tokSeq.size());
+  for (auto& tfs: tokSeq) {
+    FastSeq fs;
+    fs.name = tfs.name;
+    fs.comment = tfs.comment;
+    fs.seq = untokenize (tfs.seq);
+    gappedSeq.push_back (fs);
+  }
+  return gappedSeq;
+}
+
+Stockholm CodonTokenizer::untokenize (const Stockholm& tokStock) const {
+  Stockholm stock;
+  stock.gapped = untokenize (tokStock.gapped);
+  stock.gf = tokStock.gf;
+  stock.gs = tokStock.gs;
+  return stock;
 }

@@ -93,3 +93,10 @@ std::string toupper (const std::string& s) {
     r[n] = toupper (r[n]);
   return r;
 }
+
+std::string tolower (const std::string& s) {
+  std::string r (s);
+  for (size_t n = 0; n < r.size(); ++n)
+    r[n] = tolower (r[n]);
+  return r;
+}

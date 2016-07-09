@@ -23,8 +23,8 @@ struct NexusData {
   void read (const string& nexusString);
   void write (ostream& out) const;
 
-  void convertNexusToAlignment();
-  void convertAlignmentToNexus();
+  void convertNexusToAlignment();  // converts Nexus gap/wildcard characters to our gap/wildcard characters
+  void convertAlignmentToNexus();  // converts our gap/wildcard characters to Nexus gap/wildcard characters
 };
 
 #endif /* NEXUS_INCLUDED */

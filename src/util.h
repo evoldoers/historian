@@ -98,8 +98,9 @@ std::vector<S> transform_container (const Container& v, S (op) (typename Contain
 /* split */
 std::vector<std::string> split (const std::string& s, const char* splitChars = " \t\n");
 
-/* toupper */
+/* toupper, tolower */
 std::string toupper (const std::string& s);
+std::string tolower (const std::string& s);
 
 /* escaping a string
    http://stackoverflow.com/questions/2417588/escaping-a-c-string
