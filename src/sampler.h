@@ -46,12 +46,8 @@ struct TreeAlignFuncs {
   static double rootExtProb (const RateModel& model) { return model.insExtProb; }
   static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
   static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix);
-};
 
-struct Sampler : TreeAlignFuncs {
-  typedef DPMatrix::random_engine random_engine;
-
-  // Sampler::SparseDPMatrix
+  // TreeAlignFuncs::SparseDPMatrix
   template <size_t CellStates>
   class SparseDPMatrix {
   protected:
@@ -168,9 +164,9 @@ struct Sampler : TreeAlignFuncs {
 	  }
     }
   };
-  
-  // Sampler::BranchMatrix
-  class BranchMatrix : public SparseDPMatrix<3> {
+
+  // TreeAlignFuncs::BranchMatrixBase
+  class BranchMatrixBase : public SparseDPMatrix<3> {
   public:
     typedef ProbModel::State State;
 
@@ -185,10 +181,7 @@ struct Sampler : TreeAlignFuncs {
     const PosWeightMatrix ySub;
     const vguard<LogProb> yEmit;
    
-    BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
-
-    AlignPath sample (random_engine& generator) const;
-    LogProb logPostProb (const AlignPath& path) const;
+    BranchMatrixBase (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
 
     // helper methods
     static void getColumn (const CellCoords& coords, bool& xUngapped, bool& yUngapped);
@@ -199,6 +192,19 @@ struct Sampler : TreeAlignFuncs {
 
     LogProb lpTrans (State src, State dest) const;
     LogProb lpEmit (const CellCoords& coords) const;
+  };
+};
+
+struct Sampler : TreeAlignFuncs {
+  typedef DPMatrix::random_engine random_engine;
+  
+  // Sampler::BranchMatrix
+  class BranchMatrix : public BranchMatrixBase {
+  public:
+    BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex xRow, AlignRowIndex yRow);
+
+    AlignPath sample (random_engine& generator) const;
+    LogProb logPostProb (const AlignPath& path) const;
   };
 
   // Sampler::SiblingMatrix

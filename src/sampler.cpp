@@ -880,7 +880,7 @@ Sampler::RescaleMove::RescaleMove (const History& history, LogProb oldLogLikelih
   initRatio (sampler);
 }
 
-Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
+TreeAlignFuncs::BranchMatrixBase::BranchMatrixBase (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
   : SparseDPMatrix (env, xEnvPos, yEnvPos),
     model (model),
     probModel (model, max (Tree::minBranchLength, dist)),
@@ -907,7 +907,11 @@ Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatr
 
   LogThisAt(8,"Parent profile:\n" << Sampler::profileToString(xSeq)
 	    << "Child profile:\n" << Sampler::profileToString(ySeq));
-  
+}
+
+Sampler::BranchMatrix::BranchMatrix (const RateModel& model, const PosWeightMatrix& xSeq, const PosWeightMatrix& ySeq, TreeBranchLength dist, const GuideAlignmentEnvelope& env, const vguard<SeqIdx>& xEnvPos, const vguard<SeqIdx>& yEnvPos, AlignRowIndex x, AlignRowIndex y)
+  : BranchMatrixBase (model, xSeq, ySeq, dist, env, xEnvPos, yEnvPos, x, y)
+{
   ProgressLog (plog, 5);
   plog.initProgress ("Branch alignment matrix (%u*%u)", xSize, ySize);
 
@@ -1018,11 +1022,11 @@ LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const {
   return lp - lpEnd;
 }
 
-LogProb Sampler::BranchMatrix::lpTrans (State src, State dest) const {
+LogProb TreeAlignFuncs::BranchMatrixBase::lpTrans (State src, State dest) const {
   return log (probModel.transProb (src, dest));
 }
 
-LogProb Sampler::BranchMatrix::lpEmit (const CellCoords& coords) const {
+LogProb TreeAlignFuncs::BranchMatrixBase::lpEmit (const CellCoords& coords) const {
   switch ((State) coords.state) {
   case ProbModel::Match: return coords.xpos > 0 && coords.ypos > 0 ? logMatch (coords.xpos, coords.ypos) : -numeric_limits<double>::infinity();
   case ProbModel::Insert: return coords.ypos > 0 ? yEmit[coords.ypos - 1] : -numeric_limits<double>::infinity();
@@ -1031,7 +1035,7 @@ LogProb Sampler::BranchMatrix::lpEmit (const CellCoords& coords) const {
   return 0;
 }
 
-void Sampler::BranchMatrix::getColumn (const CellCoords& coords, bool& x, bool& y) {
+void TreeAlignFuncs::BranchMatrixBase::getColumn (const CellCoords& coords, bool& x, bool& y) {
   x = y = false;
   switch ((State) coords.state) {
   case ProbModel::Match: if (coords.xpos > 0 && coords.ypos > 0) x = y = true; break;
