@@ -120,7 +120,11 @@ my %aa_to_aa3 = ('A' => 'Ala',
 my %aa3 = map (($_ => $aa_to_aa3{$aa{$_}}), keys %aa);
 
 # ASCII characters 33 through 126:
-# !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+# All:        !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+# Codons:       #$%&     ,  /0123456789  <=   A CDEFGHI KLMN PQRST VW Y [ ]^ `a cdefghi kl n pqrst v  y {|}~
+# Avoided:     "    '()*+ -.            ;  >?@                           \
+# Degenerate:                                                        X Z                             x z
+# Spare:      !                        :       B       J    O     U         _  b       j  m o     u w
 # Characters avoided in token set:
 # ( ) ; " ' \ (used by S-expression & JSON formats)
 # - * ? . (used for alignment/reconstruction/ambiguity)
@@ -145,7 +149,6 @@ my %aa3 = map (($_ => $aa_to_aa3{$aa{$_}}), keys %aa);
 	 'gta'=>'^',  'gca'=>'4',  'gaa'=>'E',  'gga'=>'9',
 	 'gtg'=>'7',  'gcg'=>'&',  'gag'=>'e',  'ggg'=>'6',
 
-	 'n'=>'z', 'nn'=>'Z', 'nnn'=>'X',
 	 map (($_ x 3 => $_), qw(* - ? . x)) );
 
 my %is_stop = map (($_ => 1), qw(tag taa tga));
