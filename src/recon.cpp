@@ -13,6 +13,7 @@
 #include "regexmacros.h"
 #include "ctok.h"
 #include "codon.h"
+#include "refiner.h"
 
 const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
 const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
@@ -36,6 +37,7 @@ Reconstructor::Reconstructor()
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
     reconstructRoot (true),
+    refineReconstruction (false),
     accumulateSubstCounts (false),
     accumulateIndelCounts (false),
     predictAncestralSequence (false),
@@ -387,13 +389,6 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-sampancs") {
-      fixGuideMCMC = true;
-      runMCMC = true;
-      useUPGMA = true;
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-notrace") {
       outputTraceMCMC = false;
       runMCMC = true;
@@ -407,6 +402,11 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       runMCMC = true;
       useUPGMA = true;
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-refine") {
+      refineReconstruction = true;
       argvec.pop_front();
       return true;
     }
@@ -515,7 +515,7 @@ void Reconstructor::loadTree (Dataset& dataset) {
 }
 
 void Reconstructor::buildTree (Dataset& dataset) {
-  LogThisAt(1,"Estimating initial tree by " << (useUPGMA ? "UPGMA" : "neighbor-joining") << endl);
+  LogThisAt(1,"Estimating initial tree by " << (useUPGMA ? "UPGMA" : "neighbor-joining") << " (" << dataset.name << ")" << endl);
   auto dist = model.distanceMatrix (dataset.gappedGuide, jukesCantorDistanceMatrix ? 0 : DefaultDistanceMatrixIterations);
   if (useUPGMA)
     dataset.tree.buildByUPGMA (dataset.gappedGuide, dist);
@@ -587,7 +587,7 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
 	if (maxDistanceFromGuide < 0 && treeFilename.size())
 	  LogThisAt(1,"Don't need guide alignment: banding is turned off and tree is supplied" << endl);
 	else {
-	  LogThisAt(1,"Building guide alignment" << endl);
+	  LogThisAt(1,"Building guide alignment (" << dataset.name << ")" << endl);
 	  AlignGraph* ag = NULL;
 	  if (guideAlignTryAllPairs)
 	    ag = new AlignGraph (dataset.seqs, model, 1, diagEnvParams);
@@ -691,7 +691,7 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
 }
 
 void Reconstructor::reconstruct (Dataset& dataset) {
-  LogThisAt(1,"Starting reconstruction on " << dataset.tree.nodes() << "-node tree" << endl);
+  LogThisAt(1,"Starting reconstruction on " << dataset.tree.nodes() << "-node tree" << " (" << dataset.name << ")" << endl);
 
   if (!usePosteriorsForProfile)
     seedGenerator();  // re-seed generator, in case it was used during prealignment
@@ -782,11 +782,14 @@ void Reconstructor::reconstruct (Dataset& dataset) {
     }
   }
 
-  LogThisAt(1,"Final Forward log-likelihood is " << lpFinalFwd << (reconstructRoot ? (string(", final alignment log-likelihood is ") + to_string(lpFinalTrace)) : string()) << endl);
+  LogThisAt(2,"Final Forward log-likelihood is " << lpFinalFwd << (reconstructRoot ? (string(", final alignment log-likelihood is ") + to_string(lpFinalTrace)) : string()) << endl);
 
   if (reconstructRoot) {
     dataset.reconstruction = makeAlignment (dataset, path, dataset.tree.root());
     dataset.gappedRecon = dataset.reconstruction.gapped();
+
+    if (refineReconstruction)
+      refine (dataset);
   }
 
   if (accumulateSubstCounts)
@@ -798,8 +801,26 @@ void Reconstructor::reconstruct (Dataset& dataset) {
     delete sumProd;
 }
 
+void Reconstructor::refine (Dataset& dataset) {
+  LogThisAt(1,"Commencing refinement of branchwise parent-child alignments for " << dataset.name << endl);
+  vguard<FastSeq>& gappedRecon = dataset.hasAncestralReconstruction() ? dataset.gappedAncestralRecon : dataset.gappedRecon;
+  Refiner::History history;
+  history.tree = dataset.tree;
+  history.gapped = gappedRecon;
+  Refiner refiner (model);
+  const Refiner::History refinedHistory = refiner.refine (history);
+  dataset.tree = refinedHistory.tree;
+  gappedRecon = refinedHistory.gapped;
+}
+
+void Reconstructor::refineAll() {
+  for (auto& ds : datasets)
+    refine (ds);
+}
+
 void Reconstructor::predictAncestors (Dataset& dataset) {
   if (predictAncestralSequence) {
+    LogThisAt(1,"Predicting ancestral sequences for " << dataset.name << endl);
     AlignColSumProduct colSumProd (model, dataset.tree, dataset.gappedRecon);
     while (!colSumProd.alignmentDone()) {
       colSumProd.fillUp();
@@ -994,22 +1015,26 @@ void Reconstructor::sampleAll() {
 	reconstruct (dataset);
       if (!dataset.hasAncestralReconstruction())
 	predictAncestors (dataset);
-      vguard<FastSeq>& gappedRecon = predictAncestralSequence ? dataset.gappedAncestralRecon : dataset.gappedRecon;
+      vguard<FastSeq>& gappedRecon = dataset.hasAncestralReconstruction() ? dataset.gappedAncestralRecon : dataset.gappedRecon;
       dataset.tree.assignInternalNodeNames (gappedRecon);
       samplers.push_back (Sampler (cachedModel, treePrior, dataset.gappedGuide));
       loggers.push_back (new HistoryLogger (*this, dataset.name));
       Sampler& sampler = samplers.back();
       sampler.addLogger (*loggers.back());
       sampler.useFixedGuide = fixGuideMCMC;
-      sampler.sampleAncestralSeqs = predictAncestralSequence;
+      sampler.sampleAncestralSeqs = dataset.hasAncestralReconstruction();
       Sampler::History history;
       history.tree = dataset.tree;
       history.gapped = gappedRecon;
       sampler.initialize (history, dataset.name);
       totalNodes += history.tree.nodes();
     }
-    
-    Sampler::run (samplers, generator, mcmcSamplesPerSeq * totalNodes);
+
+    const unsigned int nSamples = mcmcSamplesPerSeq * totalNodes;
+    LogThisAt(1,"Starting MCMC sampler ("
+	      << plural(mcmcSamplesPerSeq,"sample") << " per node, "
+	      << plural(nSamples,"sample") << " in total)" << endl);
+    Sampler::run (samplers, generator, nSamples);
 
     for (size_t n = 0; n < datasets.size(); ++n) {
       Dataset& dataset = datasets[n];
@@ -1018,6 +1043,9 @@ void Reconstructor::sampleAll() {
       dataset.gappedRecon = sampler.bestHistory.gapped;
       dataset.reconstruction = Alignment (dataset.gappedRecon);
       dataset.clearPrep();
+
+      if (refineReconstruction)
+	refine (dataset);
     }
 
     for (HistoryLogger* logger: loggers)

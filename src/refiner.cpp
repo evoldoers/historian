@@ -168,15 +168,15 @@ Refiner::History Refiner::refine (const History& oldHistory) const {
     const History newBestHistory = refine (bestHistory, node);
     const LogProb newBestLogProb = logLikelihood (newBestHistory);
     if (newBestLogProb > bestLogProb) {
-      LogThisAt(5,"Refinement improved log-likelihood from " << bestLogProb << " to " << newBestLogProb << endl);
+      LogThisAt(3,"Branch refinement improved alignment log-likelihood from " << bestLogProb << " to " << newBestLogProb << endl);
       bestHistory = newBestHistory;
       bestLogProb = newBestLogProb;
       stepsSinceImprovement = 0;
     } else {
       if (newBestLogProb < bestLogProb)
-	Warn ("During refinement, log-likelihood dropped from %g to %g", bestLogProb, newBestLogProb);
+	Warn ("During branch refinement, alignment log-likelihood dropped from %g to %g", bestLogProb, newBestLogProb);
       ++stepsSinceImprovement;
-      LogThisAt(6,"Refinement failed to improved log-likelihood for " << plural(stepsSinceImprovement,"step") << endl);
+      LogThisAt(4,"Branch refinement failed to improved alignment log-likelihood for " << plural(stepsSinceImprovement,"step") << endl);
     }
     node = (node + 1) % (tree.nodes() - 1);  // skip root
   }
