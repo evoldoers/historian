@@ -111,8 +111,12 @@ vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, A
 }
 
 vguard<SeqIdx> Sampler::guideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex variableGuideRow, AlignRowIndex fixedGuideRow) const {
-  vguard<SeqIdx> guidePos;
   const AlignRowIndex guideRow = useFixedGuide ? fixedGuideRow : variableGuideRow;
+  return TreeAlignFuncs::getGuideSeqPos (path, row, guideRow);
+}
+
+vguard<SeqIdx> TreeAlignFuncs::getGuideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow) {
+  vguard<SeqIdx> guidePos;
   LogThisAt(9,"Mapping sequence coordinates between node #" << row << " and guide row #" << guideRow << endl);
   const auto cols = alignPathColumns (path);
   guidePos.reserve (cols);
@@ -294,11 +298,18 @@ map<TreeNodeIndex,TreeAlignFuncs::PosWeightMatrix> TreeAlignFuncs::getConditiona
   return pwms;
 }
 
-LogProb TreeAlignFuncs::logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix) {
+LogProb TreeAlignFuncs::rootLogLikelihood (const RateModel& model, const History& history) {
+  size_t rootLen = 0;
+  for (auto c: history.gapped[history.tree.root()].seq)
+    if (!Alignment::isGap(c))
+      ++rootLen;
+  const LogProb rootExt = rootExtProb(model);
+  const LogProb lpRoot = log(1. - rootExt) + log(rootExt) * rootLen;
+  return lpRoot;
+}
+
+LogProb TreeAlignFuncs::indelLogLikelihood (const RateModel& model, const History& history) {
   const Alignment align (history.gapped);
-  const LogProb lpTree = treePrior.treeLogLikelihood (history.tree);
-  const double rootExt = rootExtProb (model);
-  const LogProb lpRoot = log(1. - rootExt) + log(rootExt) * alignPathResiduesInRow (align.path.at (history.tree.root()));
   LogProb lpGaps = 0;
   for (TreeNodeIndex node = 0; node < history.tree.root(); ++node) {
     const TreeNodeIndex parent = history.tree.parentNode (node);
@@ -306,6 +317,10 @@ LogProb TreeAlignFuncs::logLikelihood (const SimpleTreePrior& treePrior, const R
     const AlignPath path = pairPath (align.path, parent, node);
     lpGaps += logBranchPathLikelihood (probModel, path, parent, node);
   }
+  return lpGaps;
+}
+
+LogProb TreeAlignFuncs::substLogLikelihood (const RateModel& model, const History& history) {
   AlignColSumProduct colSumProd (model, history.tree, history.gapped);
   LogProb lpSub = 0;
   while (!colSumProd.alignmentDone()) {
@@ -313,8 +328,26 @@ LogProb TreeAlignFuncs::logLikelihood (const SimpleTreePrior& treePrior, const R
     lpSub += colSumProd.columnLogLikelihood();
     colSumProd.nextColumn();
   }
+  return lpSub;
+}
+
+LogProb TreeAlignFuncs::logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix) {
+  const LogProb lpTree = treePrior.treeLogLikelihood (history.tree);
+  const LogProb lpRoot = rootLogLikelihood (model, history);
+  const LogProb lpGaps = indelLogLikelihood (model, history);
+  const LogProb lpSub = substLogLikelihood (model, history);
   const LogProb lp = lpTree + lpRoot + lpGaps + lpSub;
   LogThisAt(6,"log(L" << suffix << ") = " << setw(10) << lpTree << " (tree) + " << setw(10) << lpRoot << " (root) + " << setw(10) << lpGaps << " (indels) + " << setw(10) << lpSub << " (substitutions) = " << lp << endl);
+  return lp;
+}
+
+LogProb TreeAlignFuncs::logLikelihood (const RateModel& model, const History& history, const char* suffix) {
+  const Alignment align (history.gapped);
+  const LogProb lpRoot = rootLogLikelihood (model, history);
+  const LogProb lpGaps = indelLogLikelihood (model, history);
+  const LogProb lpSub = substLogLikelihood (model, history);
+  const LogProb lp = lpRoot + lpGaps + lpSub;
+  LogThisAt(6,"log(L" << suffix << ") = " << setw(10) << lpRoot << " (root) + " << setw(10) << lpGaps << " (indels) + " << setw(10) << lpSub << " (substitutions) = " << lp << endl);
   return lp;
 }
 

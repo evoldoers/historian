@@ -42,10 +42,18 @@ struct TreeAlignFuncs {
   static set<TreeNodeIndex> nodeAndAncestors (const Tree& tree, TreeNodeIndex node);
   static set<TreeNodeIndex> nodesAndAncestors (const Tree& tree, TreeNodeIndex node1, TreeNodeIndex node2);
 
+  static vguard<SeqIdx> getGuideSeqPos (const AlignPath& path, AlignRowIndex row, AlignRowIndex guideRow);
+
   static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
   static double rootExtProb (const RateModel& model) { return model.insExtProb; }
   static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
-  static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix);
+
+  static LogProb rootLogLikelihood (const RateModel& model, const History& history);
+  static LogProb indelLogLikelihood (const RateModel& model, const History& history);
+  static LogProb substLogLikelihood (const RateModel& model, const History& history);
+
+  static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix = "");
+  static LogProb logLikelihood (const RateModel& model, const History& history, const char* suffix = "");
 
   // TreeAlignFuncs::SparseDPMatrix
   template <size_t CellStates>
