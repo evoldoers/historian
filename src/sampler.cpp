@@ -595,11 +595,12 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
   const PosWeightMatrix newNodeSeq = newSibMatrix.parentSeq (newSiblingPath);
   const PosWeightMatrix& oldNodeSeq = oldSibMatrix->parentSeq (oldSiblingPath);
 
-  vguard<FastSeq> newUngapped = oldAlign.ungapped;
+  const vguard<FastSeq>& oldUngapped = oldAlign.ungapped;
+  vguard<FastSeq> newUngapped = oldUngapped;
   if (sampler.sampleAncestralSeqs) {
     newUngapped[node].seq = sampler.sampleSeq (newNodeSeq, generator);
     logForwardProposal += sampler.logSeqPostProb (newUngapped[node].seq, newNodeSeq);
-    logReverseProposal += sampler.logSeqPostProb (oldAlign.ungapped[node].seq, oldNodeSeq);
+    logReverseProposal += sampler.logSeqPostProb (oldUngapped[node].seq, oldNodeSeq);
   } else
     newUngapped[node].seq = string (alignPathResiduesInRow (newSiblingPath.at (node)), Alignment::wildcardChar);
 
@@ -645,7 +646,7 @@ Sampler::NodeAlignMove::NodeAlignMove (const History& history, LogProb oldLogLik
   if (!sampler.useFixedGuide)
     delete oldSibMatrix;
 
-  if (newPath == oldAlign.path) {
+  if (newPath == oldAlign.path && (!sampler.sampleAncestralSeqs || newUngapped[node].seq == oldUngapped[node].seq)) {
     LogThisAt(6,"Alignments are identical; abandoning move" << endl);
     nullify("no change");
     return;
@@ -814,11 +815,12 @@ Sampler::PruneAndRegraftMove::PruneAndRegraftMove (const History& history, LogPr
     LogThisAt(6,"log(Q_fwd) = " << setw(10) << logFwdSibSelect << " (#newSibling) + " << setw(10) << logPostNewSiblingPath << " (parent:node:newSibling) + " << setw(10) << logPostNewBranchPath << " (newGrandparent:parent) = " << logForwardProposal << endl);
     LogThisAt(6,"log(Q_rev) = " << setw(10) << logRevSibSelect << " (#oldSibling) + " << setw(10) << logPostOldSiblingPath << " (parent:node:oldSibling) + " << setw(10) << logPostOldBranchPath << " (oldGrandparent:parent) = " << logReverseProposal << endl);
 
-    vguard<FastSeq> newUngapped = oldAlign.ungapped;
+    const vguard<FastSeq>& oldUngapped = oldAlign.ungapped;
+    vguard<FastSeq> newUngapped = oldUngapped;
     if (sampler.sampleAncestralSeqs) {
       newUngapped[parent].seq = sampler.sampleSeq (newParentSeq, generator);
       logForwardProposal += sampler.logSeqPostProb (newUngapped[parent].seq, newParentSeq);
-      logReverseProposal += sampler.logSeqPostProb (oldAlign.ungapped[parent].seq, oldParentSeq);
+      logReverseProposal += sampler.logSeqPostProb (oldUngapped[parent].seq, oldParentSeq);
     } else
       newUngapped[parent].seq = string (alignPathResiduesInRow (newSiblingPath.at (parent)), Alignment::wildcardChar);
   
