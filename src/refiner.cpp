@@ -176,7 +176,7 @@ Refiner::History Refiner::refine (const History& oldHistory) const {
       if (newBestLogProb < bestLogProb)
 	Warn ("During branch refinement, alignment log-likelihood dropped from %g to %g", bestLogProb, newBestLogProb);
       ++stepsSinceImprovement;
-      LogThisAt(4,"Branch refinement failed to improved alignment log-likelihood for " << plural(stepsSinceImprovement,"step") << endl);
+      LogThisAt(4,"Branch refinement failed to improve alignment log-likelihood for " << plural(stepsSinceImprovement,"step") << endl);
     }
     node = (node + 1) % (tree.nodes() - 1);  // skip root
   }
