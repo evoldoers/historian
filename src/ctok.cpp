@@ -84,24 +84,24 @@ CodonTokenizer::CodonTokenizer() {
   addToken('*',"***");
 }
 
-string CodonTokenizer::tokenize (const string& gappedSeq, bool allowStopCodons) const {
-  Assert (gappedSeq.size() % 3 == 0, "Can't codon-tokenize a sequence that's not a multiple of 3 nucleotides in length");
+string CodonTokenizer::tokenize (const string& gappedSeq, bool allowStopCodons, const char* name) const {
+  Assert (gappedSeq.size() % 3 == 0, "Can't codon-tokenize %s: length (%d) is not a multiple of 3", name, gappedSeq.size());
   string tokSeq;
   tokSeq.reserve (gappedSeq.size() / 3);
   for (SeqIdx pos = 0; pos < gappedSeq.size(); pos += 3) {
     const string cod = tolower (gappedSeq.substr (pos, 3));
-    Assert (cod2tok.count(cod), "Unknown codon '%s' at position %u in sequence", cod.c_str(), pos);
+    Assert (cod2tok.count(cod), "Unknown codon '%s' at position %u in %s", cod.c_str(), pos, name);
     const char tok = cod2tok.at(cod);
     if (!allowStopCodons && isStopCodon(tok)) {
       if (pos + 3 == gappedSeq.size()) {
-	Warn ("Omitting stop codon '%s' at end of sequence", cod.c_str());
+	Warn ("Ignoring stop codon '%s' at end of %s", cod.c_str(), name);
 	continue;
       }
-      Abort ("Illegal stop codon '%s' at position %u in sequence", cod.c_str(), pos);
+      Abort ("Illegal stop codon '%s' at position %u in %s", cod.c_str(), pos, name);
     } else
       tokSeq.push_back (tok);
   }
-  LogThisAt(7,"Tokenized " << gappedSeq << " to " << tokSeq << endl);
+  LogThisAt(7,"Tokenized " << name << " " << gappedSeq << " to " << tokSeq << endl);
   return tokSeq;
 }
 
@@ -125,7 +125,7 @@ vguard<FastSeq> CodonTokenizer::tokenize (const vguard<FastSeq>& gappedSeq, bool
     FastSeq tfs;
     tfs.name = fs.name;
     tfs.comment = fs.comment;
-    tfs.seq = tokenize (fs.seq, allowStopCodons);
+    tfs.seq = tokenize (fs.seq, allowStopCodons, fs.name.c_str());
     tokSeq.push_back (tfs);
   }
   return tokSeq;

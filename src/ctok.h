@@ -15,7 +15,7 @@ private:
 public:
   CodonTokenizer();
 
-  string tokenize (const string& gappedSeq, bool allowStopCodons = false) const;
+  string tokenize (const string& gappedSeq, bool allowStopCodons = false, const char* name = "sequence") const;
   vguard<FastSeq> tokenize (const vguard<FastSeq>& gappedSeq, bool allowStopCodons = false) const;
   Stockholm tokenize (const Stockholm& stock, bool allowStopCodons = false) const;
 
