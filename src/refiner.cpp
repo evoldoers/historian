@@ -146,7 +146,9 @@ Refiner::History Refiner::refine (const History& oldHistory, TreeNodeIndex node)
   const vguard<AlignPath> mergeComponents = { pCladePath, newBranchPath, nCladePath };
   const AlignPath newPath = alignPathMerge (mergeComponents);
 
+#ifdef DEBUG
   LogThisAt(12,"Test of conditional probability weight matrix calculation:" << endl << branchConditionalDump(model, oldHistory.tree, oldHistory.gapped, parent, node));
+#endif /* DEBUG */
 
   LogThisAt(7,"Old (parent:node) alignment:" << endl << alignPathString(oldBranchPath)
 	    << "Log-likelihood: " << branchMatrix.logPathProb(oldBranchPath) << endl);

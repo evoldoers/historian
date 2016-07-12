@@ -293,11 +293,8 @@ string TreeAlignFuncs::branchConditionalDump (const RateModel& model, const Tree
   exclude[node] = parent;
   exclude[parent] = node;
 
-  //  const set<TreeNodeIndex> fillUpNodes = allExceptNodeAndAncestors (tree, parent);
-  //  const set<TreeNodeIndex> fillDownNodes = nodeAndAncestors (tree, parent);
-
-  const set<TreeNodeIndex> fillUpNodes = allNodes(tree);
-  const set<TreeNodeIndex> fillDownNodes = allNodes(tree);
+  const set<TreeNodeIndex> fillUpNodes = allExceptNodeAndAncestors (tree, parent);
+  const set<TreeNodeIndex> fillDownNodes = nodeAndAncestors (tree, parent);
 
   const auto pwms = getConditionalPWMs (model, tree, gapped, exclude, fillUpNodes, fillDownNodes, false);
   const PosWeightMatrix& pSeq = pwms.at (parent);
@@ -307,8 +304,8 @@ string TreeAlignFuncs::branchConditionalDump (const RateModel& model, const Tree
   AlignColSumProduct colSumProdBranch (model, tree, gapped);
   AlignColSumProduct colSumProdFull (model, tree, gapped);
 
-  //  colSumProdBranch.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
-  //  colSumProdBranch.postorder = vguard<TreeNodeIndex> (fillUpNodes.begin(), fillUpNodes.end());
+  colSumProdBranch.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
+  colSumProdBranch.postorder = vguard<TreeNodeIndex> (fillUpNodes.begin(), fillUpNodes.end());
 
   size_t col = 0, pCol = 0, nCol = 0;
   while (!colSumProdBranch.alignmentDone()) {
