@@ -51,7 +51,7 @@ Reconstructor::Reconstructor()
     maxEMIterations (DefaultMaxEMIterations),
     minEMImprovement (DefaultMinEMImprovement),
     runMCMC (false),
-    outputTraceMCMC (true),
+    outputTraceMCMC (false),
     fixGuideMCMC (false),
     mcmcSamplesPerSeq (DefaultMCMCSamplesPerSeq),
     mcmcTraceFiles (0),
@@ -389,16 +389,10 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-notrace") {
-      outputTraceMCMC = false;
-      runMCMC = true;
-      useUPGMA = true;
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-trace") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       mcmcTraceFilename = argvec[1].c_str();
+      outputTraceMCMC = true;
       runMCMC = true;
       useUPGMA = true;
       argvec.pop_front();

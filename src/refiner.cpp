@@ -140,13 +140,21 @@ Refiner::History Refiner::refine (const History& oldHistory, TreeNodeIndex node)
   const PosWeightMatrix& pSeq = pwms.at (parent);
   const PosWeightMatrix& nSeq = pwms.at (node);
 
-  const BranchMatrix newBranchMatrix (model, pSeq, nSeq, dist, newBranchEnv, parentEnvPos, nodeEnvPos, parent, node);
-  const AlignPath newBranchPath = newBranchMatrix.best();
+  const BranchMatrix branchMatrix (model, pSeq, nSeq, dist, newBranchEnv, parentEnvPos, nodeEnvPos, parent, node);
+  const AlignPath newBranchPath = branchMatrix.best();
 
   const vguard<AlignPath> mergeComponents = { pCladePath, newBranchPath, nCladePath };
   const AlignPath newPath = alignPathMerge (mergeComponents);
 
-  LogThisAt(6,"New (parent:node) alignment:" << endl << alignPathString(newPath));
+  LogThisAt(12,"Test of conditional probability weight matrix calculation:" << endl << branchConditionalDump(model, oldHistory.tree, oldHistory.gapped, parent, node));
+
+  LogThisAt(7,"Old (parent:node) alignment:" << endl << alignPathString(oldBranchPath)
+	    << "Log-likelihood: " << branchMatrix.logPathProb(oldBranchPath) << endl);
+
+  LogThisAt(6,"New (parent:node) alignment:" << endl << alignPathString(newBranchPath)
+	    << "Log-likelihood: " << branchMatrix.logPathProb(newBranchPath) << endl);
+
+  LogThisAt(7,"New full alignment:" << endl << alignPathString(newPath));
 
   const Alignment newAlign (oldAlign.ungapped, newPath);
 

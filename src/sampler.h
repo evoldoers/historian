@@ -26,7 +26,9 @@ struct TreeAlignFuncs {
     void assertNamesMatch() const;
   };
 
-  static map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes);
+  static map<TreeNodeIndex,PosWeightMatrix> getConditionalPWMs (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes, bool normalize = true);
+
+  static string branchConditionalDump (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, TreeNodeIndex parent, TreeNodeIndex node);
 
   static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
 
@@ -200,6 +202,7 @@ struct TreeAlignFuncs {
 
     LogProb lpTrans (State src, State dest) const;
     LogProb lpEmit (const CellCoords& coords) const;
+    LogProb logPathProb (const AlignPath& path) const;
   };
 };
 

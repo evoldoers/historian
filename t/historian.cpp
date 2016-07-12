@@ -95,8 +95,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "  -mcmc           Run MCMC sampler after reconstruction\n"
     + "  -samples <N>    Number of MCMC iterations per sequence (default " + to_string(DefaultMCMCSamplesPerSeq) + ")\n"
-    + "  -trace <file>   Specify MCMC trace filename (default is stdout)\n"
-    + "  -notrace        Suppress MCMC trace\n"
+    + "  -trace <file>   Specify MCMC trace filename\n"
     + "  -fixguide       Fix guide alignment during MCMC\n"
     + "\n"
     // Uncomment to show help for obsolescent random-sampling profile option:

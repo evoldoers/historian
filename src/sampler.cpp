@@ -282,7 +282,80 @@ set<TreeNodeIndex> TreeAlignFuncs::nodesAndAncestors (const Tree& tree, TreeNode
   return a;
 }
 
-map<TreeNodeIndex,TreeAlignFuncs::PosWeightMatrix> TreeAlignFuncs::getConditionalPWMs (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes) {
+string TreeAlignFuncs::branchConditionalDump (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, TreeNodeIndex parent, TreeNodeIndex node) {
+  ostringstream out;
+
+  const ProbModel probModel (model, max (Tree::minBranchLength, tree.branchLength(parent,node)));
+  const LogProbModel logProbModel (probModel);
+  const auto& submat (logProbModel.logSubProb);
+
+  map<TreeNodeIndex,TreeNodeIndex> exclude;
+  exclude[node] = parent;
+  exclude[parent] = node;
+
+  //  const set<TreeNodeIndex> fillUpNodes = allExceptNodeAndAncestors (tree, parent);
+  //  const set<TreeNodeIndex> fillDownNodes = nodeAndAncestors (tree, parent);
+
+  const set<TreeNodeIndex> fillUpNodes = allNodes(tree);
+  const set<TreeNodeIndex> fillDownNodes = allNodes(tree);
+
+  const auto pwms = getConditionalPWMs (model, tree, gapped, exclude, fillUpNodes, fillDownNodes, false);
+  const PosWeightMatrix& pSeq = pwms.at (parent);
+  const PosWeightMatrix& nSeq = pwms.at (node);
+  const PosWeightMatrix nPre = preMultiply (nSeq, submat);
+
+  AlignColSumProduct colSumProdBranch (model, tree, gapped);
+  AlignColSumProduct colSumProdFull (model, tree, gapped);
+
+  //  colSumProdBranch.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
+  //  colSumProdBranch.postorder = vguard<TreeNodeIndex> (fillUpNodes.begin(), fillUpNodes.end());
+
+  size_t col = 0, pCol = 0, nCol = 0;
+  while (!colSumProdBranch.alignmentDone()) {
+    colSumProdBranch.fillUp();
+    colSumProdBranch.fillDown();
+    colSumProdFull.fillUp();
+    colSumProdFull.fillDown();
+
+    const bool pGap = Alignment::isGap(gapped[parent].seq[col]);
+    const bool nGap = Alignment::isGap(gapped[node].seq[col]);
+
+    const LogProb cll = colSumProdFull.columnLogLikelihood();
+    const LogProb pll = pGap ? -numeric_limits<double>::infinity() : colSumProdFull.computeColumnLogLikelihoodAt (parent);
+    const LogProb nll = nGap ? -numeric_limits<double>::infinity() : colSumProdFull.computeColumnLogLikelihoodAt (node);
+
+    LogProb lp = -numeric_limits<double>::infinity();
+    LogProb lpc = -numeric_limits<double>::infinity();
+    if (!pGap && !nGap) {
+      const auto pCond = colSumProdBranch.logNodeExcludedPostProb (parent, node, false);
+      const auto nCond = colSumProdBranch.logNodeExcludedPostProb (node, parent, false);
+
+      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	log_accum_exp (lp, pSeq[pCol][i] + nPre[nCol][i]);
+	for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+	  log_accum_exp (lpc, pCond[i] + submat[i][j] + nCond[j]);
+      }
+    }
+
+    out << "Column #" << col << " (parent #" << pCol << ", node #" << nCol << ") "
+	<< "log-likelihood: " << cll << "(root) " << pll << "(parent) " << nll << "(node) "
+	<< lp << "(pwm) " << lpc << "(branch)"
+	<< endl;
+
+    colSumProdBranch.nextColumn();
+    colSumProdFull.nextColumn();
+
+    if (!pGap)
+      ++pCol;
+    if (!nGap)
+      ++nCol;
+    ++col;
+  }
+
+  return out.str();
+}
+
+map<TreeNodeIndex,TreeAlignFuncs::PosWeightMatrix> TreeAlignFuncs::getConditionalPWMs (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const map<TreeNodeIndex,TreeNodeIndex>& exclude, const set<TreeNodeIndex>& fillUpNodes, const set<TreeNodeIndex>& fillDownNodes, bool normalize) {
   map<TreeNodeIndex,PosWeightMatrix> pwms;
   AlignColSumProduct colSumProd (model, tree, gapped);
   colSumProd.preorder = vguard<TreeNodeIndex> (fillDownNodes.rbegin(), fillDownNodes.rend());
@@ -292,7 +365,7 @@ map<TreeNodeIndex,TreeAlignFuncs::PosWeightMatrix> TreeAlignFuncs::getConditiona
     colSumProd.fillDown();
     for (const auto& node_exclude : exclude)
       if (!colSumProd.isGap (node_exclude.first))
-	pwms[node_exclude.first].push_back (colSumProd.logNodeExcludedPostProb (node_exclude.first, node_exclude.second));
+	pwms[node_exclude.first].push_back (colSumProd.logNodeExcludedPostProb (node_exclude.first, node_exclude.second, normalize));
     colSumProd.nextColumn();
   }
   return pwms;
@@ -323,11 +396,15 @@ LogProb TreeAlignFuncs::indelLogLikelihood (const RateModel& model, const Histor
 LogProb TreeAlignFuncs::substLogLikelihood (const RateModel& model, const History& history) {
   AlignColSumProduct colSumProd (model, history.tree, history.gapped);
   LogProb lpSub = 0;
+  vguard<LogProb> colSub;
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
-    lpSub += colSumProd.columnLogLikelihood();
+    const LogProb cll = colSumProd.columnLogLikelihood();
+    lpSub += cll;
+    colSub.push_back (cll);
     colSumProd.nextColumn();
   }
+  LogThisAt(9,"Column substitution log-likelihoods: (" << to_string_join(colSub) << ")" << endl);
   return lpSub;
 }
 
@@ -1032,10 +1109,11 @@ AlignPath Sampler::BranchMatrix::sample (random_engine& generator) const {
   return path;
 }
 
-LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const {
+LogProb Sampler::BranchMatrixBase::logPathProb (const AlignPath& path) const {
   const AlignColIndex cols = alignPathColumns (path);
-  LogProb lp = 0;
+  LogProb lp = 0, lpPathTrans = 0, lpPathEmit = 0;
   CellCoords c (0, 0, ProbModel::Start);
+  vguard<LogProb> colEmit (cols, 0);
   for (AlignColIndex col = 0; col < cols; ++col) {
     const bool dx = path.at(xRow)[col];
     const bool dy = path.at(yRow)[col];
@@ -1047,14 +1125,28 @@ LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const {
     c.state = ProbModel::getState (dx, dy);
     if (!inEnvelope (c.xpos, c.ypos))
       return -numeric_limits<double>::infinity();
-    lp += lpTrans (prevState, (ProbModel::State) c.state) + lpEmit (c);
+    const LogProb lpt = lpTrans (prevState, (ProbModel::State) c.state);
+    const LogProb lpe = lpEmit (c);
+    lp += lpt + lpe;
     Assert (lp <= cell(c) * (1 - SAMPLER_EPSILON), "Positive posterior probability");
     lp = min (lp, cell(c));  // mitigate precision errors
+    lpPathTrans += lpt;
+    lpPathEmit += lpe;
+    colEmit[col] = lpe;
   }
-  lp += lpTrans ((ProbModel::State) c.state, ProbModel::End);
+  const LogProb lpte = lpTrans ((ProbModel::State) c.state, ProbModel::End);
+  lp += lpte;
+  lpPathTrans += lpte;
+  LogThisAt(8,"Path:\n" << alignPathString(path)
+	    << "Log-likelihood = " << lp << " = " << lpPathTrans << " (trans) + " << lpPathEmit << " (emit)\n"
+	    << "Column emissions: (" << to_string_join(colEmit) << ")" << endl);
+  return lp;
+}
+
+LogProb Sampler::BranchMatrix::logPostProb (const AlignPath& path) const {
+  const LogProb lp = logPathProb (path);
   Assert (lp <= lpEnd * (1 - SAMPLER_EPSILON), "Positive posterior probability");
-  lp = min (lp, lpEnd);
-  return lp - lpEnd;
+  return min (lp, lpEnd) - lpEnd;
 }
 
 LogProb TreeAlignFuncs::BranchMatrixBase::lpTrans (State src, State dest) const {

@@ -57,11 +57,13 @@ public:
   inline bool isWild (AlignRowIndex row) const { return Alignment::isWildcard (gappedCol[row]); }
   inline bool columnEmpty() const { return ungappedRows.empty(); }
 
+  LogProb computeColumnLogLikelihoodAt (AlignRowIndex row) const;
+
   void fillUp();  // E, F
   void fillDown();  // G
   
   vguard<LogProb> logNodePostProb (AlignRowIndex node) const;
-  vguard<LogProb> logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude) const;
+  vguard<LogProb> logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude, bool normalize = true) const;
   LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
   AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
 

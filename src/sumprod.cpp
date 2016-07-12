@@ -179,6 +179,13 @@ void SumProduct::fillDown() {
   }
 }
 
+LogProb SumProduct::computeColumnLogLikelihoodAt (AlignRowIndex node) const {
+  LogProb lp = -numeric_limits<double>::infinity();
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    log_accum_exp (lp, logF[node] + log(F[node][i]) + logG[node] + log(G[node][i]));
+  return lp;
+}
+
 vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   assertSingleRoot();
   vguard<LogProb> lpp (model.alphabetSize());
@@ -187,8 +194,11 @@ vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   return lpp;
 }
 
-vguard<LogProb> SumProduct::logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude) const {
+vguard<LogProb> SumProduct::logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude, bool normalize) const {
+  Require (!isGap(node), "Attempt to find posterior probability of sequence at gapped position");
   if (!isWild(node)) {
+    if (!normalize)
+      Warn ("non-normalized profile unimplemented when sequence is specified!");
     vguard<LogProb> lpDelta (model.alphabetSize(), -numeric_limits<double>::infinity());
     lpDelta[model.tokenize(gappedCol[node])] = 0;
     return lpDelta;
@@ -200,14 +210,18 @@ vguard<LogProb> SumProduct::logNodeExcludedPostProb (TreeNodeIndex node, TreeNod
       for (AlphTok i = 0; i < model.alphabetSize(); ++i)
 	lpp[i] += log (E[child][i]);
   }
-  LogProb norm = -numeric_limits<double>::infinity();
   const TreeNodeIndex parent = tree.parentNode (node);
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-    lpp[i] += log (parent == exclude ? insProb[i] : G[node][i]);
-    log_accum_exp (norm, lpp[i]);
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+    lpp[i] += parent == exclude
+      ? 0 // to add a prior for orphaned nodes, this should be log(insProb[i]), but that complicates MCMC etc
+      : log(G[node][i]);
+  if (normalize) {
+    LogProb norm = -numeric_limits<double>::infinity();
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      log_accum_exp (norm, lpp[i]);
+    for (auto& lp: lpp)
+      lp -= norm;
   }
-  for (auto& lp: lpp)
-    lp -= norm;
   return lpp;
 }
 
