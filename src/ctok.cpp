@@ -105,15 +105,15 @@ string CodonTokenizer::tokenize (const string& gappedSeq, bool allowStopCodons, 
   return tokSeq;
 }
 
-string CodonTokenizer::untokenize (const string& tokSeq) const {
+string CodonTokenizer::detokenize (const string& tokSeq) const {
   string gappedSeq;
   gappedSeq.reserve (gappedSeq.size() * 3);
   for (SeqIdx pos = 0; pos < tokSeq.size(); ++pos) {
     const char tok = tokSeq[pos];
-    Assert (tok2cod.count(tok), "Can't untokenize '%c'", tok);
+    Assert (tok2cod.count(tok), "Can't detokenize '%c'", tok);
     gappedSeq.append (tok2cod.at(tok));
   }
-  LogThisAt(7,"Untokenized " << tokSeq << " to " << gappedSeq << endl);
+  LogThisAt(7,"Detokenized " << tokSeq << " to " << gappedSeq << endl);
   return gappedSeq;
 }
 
@@ -139,7 +139,7 @@ Stockholm CodonTokenizer::tokenize (const Stockholm& stock, bool allowStopCodons
   return tokStock;
 }
 
-vguard<FastSeq> CodonTokenizer::untokenize (const vguard<FastSeq>& tokSeq) const {
+vguard<FastSeq> CodonTokenizer::detokenize (const vguard<FastSeq>& tokSeq) const {
   vguard<FastSeq> gappedSeq;
   gappedSeq.reserve (tokSeq.size());
   for (auto& tfs: tokSeq) {
@@ -147,15 +147,15 @@ vguard<FastSeq> CodonTokenizer::untokenize (const vguard<FastSeq>& tokSeq) const
     FastSeq fs;
     fs.name = tfs.name;
     fs.comment = tfs.comment;
-    fs.seq = untokenize (tfs.seq);
+    fs.seq = detokenize (tfs.seq);
     gappedSeq.push_back (fs);
   }
   return gappedSeq;
 }
 
-Stockholm CodonTokenizer::untokenize (const Stockholm& tokStock) const {
+Stockholm CodonTokenizer::detokenize (const Stockholm& tokStock) const {
   Stockholm stock;
-  stock.gapped = untokenize (tokStock.gapped);
+  stock.gapped = detokenize (tokStock.gapped);
   stock.gf = tokStock.gf;
   stock.gs = tokStock.gs;
   return stock;

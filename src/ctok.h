@@ -19,9 +19,9 @@ public:
   vguard<FastSeq> tokenize (const vguard<FastSeq>& gappedSeq, bool allowStopCodons = false) const;
   Stockholm tokenize (const Stockholm& stock, bool allowStopCodons = false) const;
 
-  string untokenize (const string& gappedSeq) const;
-  vguard<FastSeq> untokenize (const vguard<FastSeq>& gappedSeq) const;
-  Stockholm untokenize (const Stockholm& stock) const;
+  string detokenize (const string& gappedSeq) const;
+  vguard<FastSeq> detokenize (const vguard<FastSeq>& gappedSeq) const;
+  Stockholm detokenize (const Stockholm& stock) const;
 
   inline static bool isStopCodon (const char c) {
     return c == '0' || c == '1' || c == '2';

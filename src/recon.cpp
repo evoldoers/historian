@@ -836,7 +836,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
   Tree t (tree);
   vguard<FastSeq> g (gapped);
   if (tokenizeCodons)
-    g = codonTokenizer.untokenize (g);
+    g = codonTokenizer.detokenize (g);
   switch (outputFormat) {
   case FastaFormat:
     writeFastaSeqs (out, gapped);
