@@ -54,7 +54,8 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
   map<size_t,SeqIdx> pos;
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
     if (seq.find(r) != seq.end()) {
-      gappedCol[r] = seq.at(r);
+      const char c = seq.at(r);
+      gappedCol[r] = model.isValidSymbol(c) ? c : Alignment::wildcardChar;
       ungappedRows.push_back(r);
     }
 

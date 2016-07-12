@@ -62,6 +62,10 @@ UnvalidatedAlphTok AlphabetOwner::tokenize (char c) const {
   return ::tokenize (c, alphabet);
 }
 
+bool AlphabetOwner::isValidSymbol (char c) const {
+  return tokenize(c) >= 0;
+}
+
 AlphTok AlphabetOwner::tokenizeOrDie (char c) const {
   UnvalidatedAlphTok tok = tokenize (c);
   if (tok >= 0 && tok < alphabetSize())
@@ -376,8 +380,11 @@ double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterati
   for (size_t col = 0; col < x.length(); ++col) {
     const char ci = x.seq[col];
     const char cj = y.seq[col];
-    if (!Alignment::isGap(ci) && !Alignment::isGap(cj) && !Alignment::isWildcard(ci) && !Alignment::isWildcard(cj))
-      ++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
+    if (!Alignment::isGap(ci) && !Alignment::isGap(cj) && !Alignment::isWildcard(ci) && !Alignment::isWildcard(cj)) {
+      const UnvalidatedAlphTok toki = tokenize(ci), tokj = tokenize(cj);
+      if (toki >= 0 && tokj >= 0)
+	++pairCount[pair<AlphTok,AlphTok> (tokenizeOrDie(ci), tokenizeOrDie(cj))];
+    }
   }
   if (LoggingThisAt(7)) {
     LogThisAt(7,"Counts:");

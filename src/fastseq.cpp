@@ -30,12 +30,14 @@ TokSeq validTokenize (const string& s, const string& alphabet, const char* seqna
   }
   const AlphTok mostFrequentTok = (AlphTok) (max_element (freq.begin(), freq.end()) - freq.begin());
   for (auto c: s) {
-    const UnvalidatedAlphTok t = Alignment::isWildcard(c) ? mostFrequentTok : tokenize (c, alphabet);
+    UnvalidatedAlphTok t = Alignment::isWildcard(c) ? mostFrequentTok : tokenize (c, alphabet);
     if (t < 0) {
       cerr << "Unknown symbol " << c << " in sequence"
 	   << (seqname ? ((string(" ") + seqname)) : string())
-	   << " (alphabet is " << alphabet << ")" << endl;
-      throw;
+	   << " (alphabet is " << alphabet << "). Replacing with most frequent symbol "
+	   << alphabet[mostFrequentTok] << endl;
+      t = mostFrequentTok;
+      //      throw;
     }
     tok.push_back ((AlphTok) t);
   }
