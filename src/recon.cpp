@@ -719,15 +719,32 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 
       LogThisAt(2,"Aligning " << lProf.name << " (" << plural(lProf.state.size(),"state") << ", " << plural(lProf.trans.size(),"transition") << ") and " << rProf.name << " (" << plural(rProf.state.size(),"state") << ", " << plural(rProf.trans.size(),"transition") << ")" << endl);
 
-      ForwardMatrix forward (lProf, rProf, hmm, node, dataset.guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (dataset.guide, dataset.closestLeaf[lChildNode], dataset.closestLeaf[rChildNode], maxDistanceFromGuide), sumProd);
+      ForwardMatrix* forward = NULL;
+      int maxDist = maxDistanceFromGuide;
+      while (true) {
+	forward = new ForwardMatrix (lProf, rProf, hmm, node, dataset.guide.empty() ? GuideAlignmentEnvelope() : GuideAlignmentEnvelope (dataset.guide, dataset.closestLeaf[lChildNode], dataset.closestLeaf[rChildNode], maxDist), sumProd);
+	if (forward->lpEnd > -numeric_limits<double>::infinity())
+	  break;
+	if (maxDist < 0)
+	  Abort ("Zero forward likelihood even in the absence of guide alignment constraints - this is not good");
+	if (maxDist*2 > alignPathColumns(dataset.guide)) {
+	  LogThisAt(2,"Zero forward likelihood with guide alignment band " << maxDist << "; removing guide alignment constraint" << endl);
+	  maxDist = -1;
+	} else {
+	  LogThisAt(2,"Zero forward likelihood; doubling guide alignment band from " << maxDist << " to " << (maxDist*2) << endl);
+	  maxDist *= 2;
+	}
+	delete forward;
+	forward = NULL;
+      }
 
       if (reconstructRoot)
-	LogThisAt(5,"Best alignment of " << lProf.name << " and " << rProf.name << ":\n" << makeAlignmentString (dataset, forward.bestAlignPath(), node, true));
+	LogThisAt(5,"Best alignment of " << lProf.name << " and " << rProf.name << ":\n" << makeAlignmentString (dataset, forward->bestAlignPath(), node, true));
 
       BackwardMatrix *backward = NULL;
       if (((accumulateSubstCounts || accumulateIndelCounts || !dotSaveFilename.empty()) && node == dataset.tree.root())
 	  || (usePosteriorsForProfile && node != dataset.tree.root()))
-	backward = new BackwardMatrix (forward);
+	backward = new BackwardMatrix (*forward);
 
       Profile& nodeProf = prof[node];
       if (node == dataset.tree.root()) {
@@ -747,13 +764,13 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	}
 
 	if (reconstructRoot) {
-	  path = forward.bestAlignPath();
-	  nodeProf = forward.bestProfile();
+	  path = forward->bestAlignPath();
+	  nodeProf = forward->bestProfile();
 	}
       } else if (usePosteriorsForProfile)
 	nodeProf = backward->postProbProfile (minPostProb, profileNodeLimit, strategy);
       else
-	nodeProf = forward.sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
+	nodeProf = forward->sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
 
       if ((accumulateSubstCounts || accumulateIndelCounts) && node == dataset.tree.root())
 	dataset.eigenCounts = backward->getCounts();
@@ -762,17 +779,19 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	delete backward;
       
       if (node == dataset.tree.root())
-	lpFinalFwd = forward.lpEnd;
+	lpFinalFwd = forward->lpEnd;
 
       if (nodeProf.size()) {
 	const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
-	LogThisAt(3,"Forward log-likelihood is " << forward.lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
+	LogThisAt(3,"Forward log-likelihood is " << forward->lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
 
 	if (node == dataset.tree.root())
 	  lpFinalTrace = lpTrace;
 
 	LogThisAt(7,nodeProf.toJson());
       }
+
+      delete forward;
     }
   }
 
