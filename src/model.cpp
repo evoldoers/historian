@@ -88,59 +88,89 @@ RateModel::RateModel()
 { }
 
 RateModel::RateModel (const RateModel& model)
-  : subRate(NULL),
-    insProb(NULL)
 {
   *this = model;
 }
 
 RateModel::~RateModel()
 {
-  if (subRate)
-    gsl_matrix_free (subRate);
-  if (insProb)
-    gsl_vector_free (insProb);
+  clear();
 }
 
 RateModel& RateModel::operator= (const RateModel& model) {
-  if (subRate)
-    gsl_matrix_free (subRate);
-  if (insProb)
-    gsl_vector_free (insProb);
+  clear();
 
   initAlphabet (model.alphabet);
   insRate = model.insRate;
   delRate = model.delRate;
   insExtProb = model.insExtProb;
   delExtProb = model.delExtProb;
-  insProb = newAlphabetVector();
-  subRate = newAlphabetMatrix();
-  CheckGsl (gsl_vector_memcpy (insProb, model.insProb));
-  CheckGsl (gsl_matrix_memcpy (subRate, model.subRate));
+  cptWeight = model.cptWeight;
+  for (int c = 0; c < model.components(); ++c) {
+    auto ip = newAlphabetVector();
+    auto sr = newAlphabetMatrix();
+    CheckGsl (gsl_vector_memcpy (ip, model.insProb[c]));
+    CheckGsl (gsl_matrix_memcpy (sr, model.subRate[c]));
+    insProb.push_back (ip);
+    subRate.push_back (sr);
+  }
   return *this;
 }
 
-void RateModel::init (const string& alph) {
-  if (subRate)
-    gsl_matrix_free (subRate);
-  if (insProb)
-    gsl_vector_free (insProb);
+void RateModel::clear (const string& alph) {
+  for (auto& sr: subRate)
+    if (sr)
+      gsl_matrix_free (sr);
+  subRate.clear();
 
+  for (auto& ip: insProb)
+    if (ip)
+      gsl_vector_free (ip);
+  insProb.clear();
+
+  cptWeight.clear();
+}
+
+void RateModel::init (const string& alph) {
+  clear();
   initAlphabet (alph);
-  
-  insProb = newAlphabetVector();
-  subRate = newAlphabetMatrix();
+
+  for (int c = 0; c < model.components(); ++c) {
+    insProb.push_back (newAlphabetVector());
+    subRate.push_back (newAlphabetMatrix());
+    cptWeight.push_back (1. / model.components());
+  }
 }
 
 void RateModel::read (const JsonValue& json) {
-  Assert (subRate == NULL, "RateModel already initialized");
+  Assert (subRate.empty(), "RateModel already initialized");
 
   readAlphabet (json);
 
-  subRate = newAlphabetMatrix();
-  gsl_matrix_set_zero (subRate);
-
   const JsonMap jm (json);
+  insRate = jm.getNumber("insrate");
+  insExtProb = jm.getNumber("insextprob");
+  delRate = jm.getNumber("delrate");
+  delExtProb = jm.getNumber("delextprob");
+
+  if (jm.containsType("mixture",JSON_ARRAY)) {
+    JsonValue jmix = jm.getType ("mixture", JSON_ARRAY);
+    for (JsonIterator iter = begin(jmix); iter != end(jmix); ++iter) {
+      const JsonMap jmcpt (iter->value);
+      readComponent (jmcpt);
+    }
+  } else
+    readComponent (jm);
+
+  const double norm = accumulate (cptWeight.begin(), cptWeight.end(), 0.);
+  for (auto& cw: cptWeight)
+    cw /= norm;
+}
+
+void RateModel::readComponent (const JsonMap& jm) {
+  gsl_matrix* sr = newAlphabetMatrix();
+  gsl_matrix_set_zero (sr);
+
   const JsonMap rateMatrix = jm.getObject ("subrate");
   for (auto ci : alphabet) {
     AlphTok i = (AlphTok) tokenize (ci);
@@ -153,31 +183,31 @@ void RateModel::read (const JsonValue& json) {
 	  const string sj (1, cj);
 	  if (rateMatrixRow.contains (sj)) {
 	    const double rate = rateMatrixRow.getNumber (string (1, cj));
-	    *(gsl_matrix_ptr (subRate, i, j)) += rate;
-	    *(gsl_matrix_ptr (subRate, i, i)) -= rate;
+	    *(gsl_matrix_ptr (sr, i, j)) += rate;
+	    *(gsl_matrix_ptr (sr, i, i)) -= rate;
 	  }
 	}
     }
   }
 
+  gsl_vector* ip;
   if (jm.contains("rootprob")) {
     const JsonMap insVec = jm.getObject ("rootprob");
-    insProb = newAlphabetVector();
-    gsl_vector_set_zero (insProb);
+    ip = newAlphabetVector();
+    gsl_vector_set_zero (ip);
 
     for (auto ci : alphabet) {
       AlphTok i = (AlphTok) tokenize (ci);
       const string si (1, ci);
       if (insVec.contains (si))
-	gsl_vector_set (insProb, i, insVec.getNumber(si));
+	gsl_vector_set (ip, i, insVec.getNumber(si));
     }
   } else
-    insProb = getEqmProbVector();
+    ip = getEqmProbVector();
 
-  insRate = jm.getNumber("insrate");
-  insExtProb = jm.getNumber("insextprob");
-  delRate = jm.getNumber("delrate");
-  delExtProb = jm.getNumber("delextprob");
+  cptWeight.push_back (jm.containsType("weight",JSON_NUMBER) ? jm.getNumber("weight") : 1);
+  insProb.push_back (ip);
+  subRate.push_back (sr);
 }
 
 void RateModel::write (ostream& out) const {
@@ -187,82 +217,109 @@ void RateModel::write (ostream& out) const {
   out << " \"insextprob\": " << insExtProb << "," << endl;
   out << " \"delrate\": " << delRate << "," << endl;
   out << " \"delextprob\": " << delExtProb << "," << endl;
-  out << " \"rootprob\":" << endl;
-  out << " {";
-  for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i>0 ? "," : "") << "\n  \"" << alphabet[i] << "\": " << gsl_vector_get(insProb,i);
-  out << endl;
-  out << " }," << endl;
-  out << " \"subrate\":" << endl;
-  out << " {" << endl;
-  for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << "  \"" << alphabet[i] << "\": {";
-    for (AlphTok j = 0; j < alphabetSize(); ++j)
-      if (i != j)
-	out << " \"" << alphabet[j] << "\": " << gsl_matrix_get(subRate,i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
-    out << " }" << (i < alphabetSize() - 1 ? "," : "") << endl;
-  }
-  out << " }" << endl;
+  if (components() > 1) {
+    out << " \"mixture\": [" << endl;
+    for (int c = 0; c < components(); ++c) {
+      out << "  {" << endl;
+      writeComponent (c, out);
+      out << "  }" << (c < components() - 1 ? "," : "") << endl;
+    }
+    out << " ]" << endl;
+  } else
+    writeComponent (0, out);
   out << "}" << endl;
 }
 
-gsl_vector* RateModel::getEqmProbVector() const {
-  // find eqm via QR decomposition
-  gsl_matrix* QR = gsl_matrix_alloc (alphabetSize() + 1, alphabetSize());
-  for (AlphTok j = 0; j < alphabetSize(); ++j) {
-    for (AlphTok i = 0; i < alphabetSize(); ++i)
-      gsl_matrix_set (QR, i, j, gsl_matrix_get (subRate, j, i));
-    gsl_matrix_set (QR, alphabetSize(), j, 1);
-  }
-
-  gsl_vector* tau = newAlphabetVector();
-
-  CheckGsl (gsl_linalg_QR_decomp (QR, tau));
-
-  gsl_vector* b = gsl_vector_alloc (alphabetSize() + 1);
-  gsl_vector_set_zero (b);
-  gsl_vector_set (b, alphabetSize(), 1);
-
-  gsl_vector* residual = gsl_vector_alloc (alphabetSize() + 1);
-  gsl_vector* eqm = newAlphabetVector();
-  
-  CheckGsl (gsl_linalg_QR_lssolve (QR, tau, b, eqm, residual));
-
-  // make sure no "probabilities" have become negative & (re-)normalize
-  double eqmNorm = 0;
+void RateModel::writeComponent (int cpt, ostream& out) const {
+  const string indent (components() > 1 ? "   " : " ");
+  if (components() > 1)
+    out << indent << "\"weight\": " << cptWeight[cpt] << "," << endl;
+  out << indent << "\"rootprob\":" << endl;
+  out << indent << "{";
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    out << (i>0 ? "," : "") << "\n  \"" << alphabet[i] << "\": " << gsl_vector_get(insProb[cpt],i);
+  out << endl;
+  out << indent << "}," << endl;
+  out << indent << "\"subrate\":" << endl;
+  out << indent << "{" << endl;
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    const double eqm_i = max (0., gsl_vector_get (eqm, i));
-    gsl_vector_set (eqm, i, eqm_i);
-    eqmNorm += eqm_i;
+    out << indent << " \"" << alphabet[i] << "\": {";
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      if (i != j)
+	out << indent << "\"" << alphabet[j] << "\": " << gsl_matrix_get(subRate[cpt],i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
+    out << indent << "}" << (i < alphabetSize() - 1 ? "," : "") << endl;
   }
-  CheckGsl (gsl_vector_scale (eqm, 1 / eqmNorm));
-
-  gsl_vector_free (tau);
-  gsl_vector_free (b);
-  gsl_vector_free (residual);
-  gsl_matrix_free (QR);
-  
-  return eqm;
+  out << indent << "}" << endl;
 }
 
-gsl_matrix* RateModel::getSubProbMatrix (double t) const {
-  gsl_matrix* m = newAlphabetMatrix();
-  gsl_matrix* rt = newAlphabetMatrix();
-  CheckGsl (gsl_matrix_memcpy (rt, subRate));
-  CheckGsl (gsl_matrix_scale (rt, t));
-  CheckGsl (gsl_linalg_exponential_ss (rt, m, GSL_PREC_DOUBLE));
-  gsl_matrix_free (rt);
-  return m;
+vguard<gsl_vector*> RateModel::getEqmProbVector() const {
+  vguard<gsl_vector*> v;
+  for (int c = 0; c < components(); ++c) {
+    // find eqm via QR decomposition
+    gsl_matrix* QR = gsl_matrix_alloc (alphabetSize() + 1, alphabetSize());
+    for (AlphTok j = 0; j < alphabetSize(); ++j) {
+      for (AlphTok i = 0; i < alphabetSize(); ++i)
+	gsl_matrix_set (QR, i, j, gsl_matrix_get (subRate, j, i));
+      gsl_matrix_set (QR, alphabetSize(), j, 1);
+    }
+
+    gsl_vector* tau = newAlphabetVector();
+
+    CheckGsl (gsl_linalg_QR_decomp (QR, tau));
+
+    gsl_vector* b = gsl_vector_alloc (alphabetSize() + 1);
+    gsl_vector_set_zero (b);
+    gsl_vector_set (b, alphabetSize(), 1);
+
+    gsl_vector* residual = gsl_vector_alloc (alphabetSize() + 1);
+    gsl_vector* eqm = newAlphabetVector();
+  
+    CheckGsl (gsl_linalg_QR_lssolve (QR, tau, b, eqm, residual));
+
+    // make sure no "probabilities" have become negative & (re-)normalize
+    double eqmNorm = 0;
+    for (AlphTok i = 0; i < alphabetSize(); ++i) {
+      const double eqm_i = max (0., gsl_vector_get (eqm, i));
+      gsl_vector_set (eqm, i, eqm_i);
+      eqmNorm += eqm_i;
+    }
+    CheckGsl (gsl_vector_scale (eqm, 1 / eqmNorm));
+
+    gsl_vector_free (tau);
+    gsl_vector_free (b);
+    gsl_vector_free (residual);
+    gsl_matrix_free (QR);
+  
+    v.push_back (eqm);
+  }
+
+  return v;
+}
+
+vguard<gsl_matrix*> RateModel::getSubProbMatrix (double t) const {
+  vguard<gsl_matrix*> v;
+  for (int c = 0; c < components(); ++c) {
+    gsl_matrix* m = newAlphabetMatrix();
+    gsl_matrix* rt = newAlphabetMatrix();
+    CheckGsl (gsl_matrix_memcpy (rt, subRate));
+    CheckGsl (gsl_matrix_scale (rt, t));
+    CheckGsl (gsl_linalg_exponential_ss (rt, m, GSL_PREC_DOUBLE));
+    gsl_matrix_free (rt);
+    v.push_back (m);
+  }
+  return v;
 }
 
 double RateModel::expectedSubstitutionRate() const {
-  gsl_vector* eqm = getEqmProbVector();
+  vguard<gsl_vector*> v = getEqmProbVector();
   double R = 0;
-  for (AlphTok i = 0; i < alphabetSize(); ++i)
-    for (AlphTok j = 0; j < alphabetSize(); ++j)
-      if (i != j)
-	R += gsl_vector_get (eqm, i) * gsl_matrix_get (subRate, i, j);
-  gsl_vector_free (eqm);
+  for (int c = 0; c < components(); ++c)
+    for (AlphTok i = 0; i < alphabetSize(); ++i)
+      for (AlphTok j = 0; j < alphabetSize(); ++j)
+	if (i != j)
+	  R += cptWeight[c] * gsl_vector_get (v[c], i) * gsl_matrix_get (subRate[c], i, j);
+  for (auto& eqm: v)
+    gsl_vector_free (eqm);
   return R;
 }
 
@@ -275,15 +332,21 @@ ProbModel::ProbModel (const RateModel& model, double t)
     delExt (model.delExtProb),
     insWait (IndelCounts::decayWaitTime (model.insRate, t)),
     delWait (IndelCounts::decayWaitTime (model.delRate, t)),
-    insVec (model.newAlphabetVector()),
+    cptWeight (model.cptWeight),
+    insVec (model.components()),
     subMat (model.getSubProbMatrix (t))
 {
-  CheckGsl (gsl_vector_memcpy (insVec, model.insProb));
+  for (int c = 0; c < model.components(); ++c) {
+    insVec[c] = model.newAlphabetVector();
+    CheckGsl (gsl_vector_memcpy (insVec[c], model.insProb[c]));
+  }
 }
 
 ProbModel::~ProbModel() {
-  gsl_matrix_free (subMat);
-  gsl_vector_free (insVec);
+  for (auto& sr: subMat)
+    gsl_matrix_free (sr);
+  for (auto& iv: insVec)
+    gsl_vector_free (iv);
 }
 
 double ProbModel::transProb (State src, State dest) const {
@@ -342,19 +405,34 @@ void ProbModel::write (ostream& out) const {
   out << " \"insExtend\": " << insExt << "," << endl;
   out << " \"delBegin\": " << del << "," << endl;
   out << " \"delExtend\": " << delExt << "," << endl;
-  out << " \"insVec\": {" << endl;
-  for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << "  \"" << alphabet[i] << "\": " << gsl_vector_get(insVec,i) << (i < alphabetSize() - 1 ? ",\n" : "");
-  out << endl << " }," << endl;
-  out << " \"subMat\": {" << endl;
-  for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << "  \"" << alphabet[i] << "\": {" << endl;
-    for (AlphTok j = 0; j < alphabetSize(); ++j)
-      out << "   \"" << alphabet[j] << "\": " << gsl_matrix_get(subMat,i,j) << (j < alphabetSize() - 1 ? ",\n" : "");
-    out << endl << "  }" << (i < alphabetSize() - 1 ? "," : "") << endl;
-  }
-  out << " }" << endl;
+
+  if (components() > 1) {
+    out << " \"mixture\": [" << endl;
+    for (int c = 0; c < components(); ++c) {
+      out << "  {" << endl;
+      writeComponent (c, out);
+      out << "  }" << (c < components() - 1 ? "," : "") << endl;
+    }
+    out << " ]" << endl;
+  } else
+    writeComponent (0, out);
   out << "}" << endl;
+}
+
+void ProbModel::writeComponent (ostream& out) const {
+  const string indent (components() > 1 ? "   " : " ");
+  out << indent << "\"insVec\": {" << endl;
+  for (AlphTok i = 0; i < alphabetSize(); ++i)
+    out << indent << " \"" << alphabet[i] << "\": " << gsl_vector_get(insVec,i) << (i < alphabetSize() - 1 ? ",\n" : "");
+  out << endl << indent << "}," << endl;
+  out << indent << "\"subMat\": {" << endl;
+  for (AlphTok i = 0; i < alphabetSize(); ++i) {
+    out << indent << " \"" << alphabet[i] << "\": {" << endl;
+    for (AlphTok j = 0; j < alphabetSize(); ++j)
+      out << indent << "  \"" << alphabet[j] << "\": " << gsl_matrix_get(subMat,i,j) << (j < alphabetSize() - 1 ? ",\n" : "");
+    out << endl << indent << " }" << (i < alphabetSize() - 1 ? "," : "") << endl;
+  }
+  out << indent << "}" << endl;
 }
 
 ProbModel::State ProbModel::getState (bool parentUngapped, bool childUngapped) {
@@ -364,13 +442,17 @@ ProbModel::State ProbModel::getState (bool parentUngapped, bool childUngapped) {
 }
 
 LogProbModel::LogProbModel (const ProbModel& pm)
-  : logInsProb (pm.alphabetSize()),
-    logSubProb (pm.alphabetSize(), vguard<LogProb> (pm.alphabetSize()))
+  : logCptWeight (pm.components()),
+    logInsProb (pm.components(), vguard<LogProb> (pm.alphabetSize())),
+    logSubProb (pm.components(), vguard<vguard<LogProb> > (pm.alphabetSize(), vguard<LogProb> (pm.alphabetSize())))
 {
-  logInsProb = log_gsl_vector (pm.insVec);
-  for (AlphTok i = 0; i < pm.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < pm.alphabetSize(); ++j)
-      logSubProb[i][j] = log (gsl_matrix_get (pm.subMat, i, j));
+  for (int c = 0; c < components(); ++c) {
+    logCptWeight[c] = log (pm.cptWeight[c]);
+    logInsProb[c] = log_gsl_vector (pm.insVec);
+    for (AlphTok i = 0; i < pm.alphabetSize(); ++i)
+      for (AlphTok j = 0; j < pm.alphabetSize(); ++j)
+	logSubProb[c][i][j] = log (gsl_matrix_get (pm.subMat[c], i, j));
+  }
 }
 
 double RateModel::mlDistance (const FastSeq& x, const FastSeq& y, int maxIterations) const {
@@ -420,11 +502,13 @@ vguard<vguard<double> > RateModel::distanceMatrix (const vguard<FastSeq>& gapped
 
 double distanceMatrixNegLogLike (double t, void *params) {
   const DistanceMatrixParams& dmp = *(const DistanceMatrixParams*) params;
-  gsl_matrix* sub = dmp.model.getSubProbMatrix (t);
+  vguard<gsl_matrix*> sub = dmp.model.getSubProbMatrix (t);
   double ll = 0;
-  for (auto& pc : dmp.pairCount)
-    ll += log (gsl_matrix_get(sub,pc.first.first,pc.first.second)) * (double) pc.second;
-  gsl_matrix_free (sub);
+  for (int c = 0; c < dmp.model.components(); ++c)
+    for (auto& pc : dmp.pairCount)
+      ll += log (dmp.model.cptWeight[c] * gsl_matrix_get(sub,pc.first.first,pc.first.second)) * (double) pc.second;
+  for (auto& sr: sub)
+    gsl_matrix_free (sr);
   return -ll;
 }
 
@@ -519,7 +603,24 @@ double DistanceMatrixParams::tML (int maxIterations) const {
   return t;
 }
 
-void AlphabetOwner::writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) const {
+void AlphabetOwner::writeSubCounts (ostream& out, const vguard<vguard<double> >& rootCounts, const vguard<vguard<vguard<double> > >& subCountsAndWaitTimes, size_t indent) const {
+  const string ind (indent, ' ');
+  if (rootCounts.size() > 1) {
+    out << ind << "{" << endl;
+    out << ind << " \"mixture\": [" << endl;
+    for (int c = 0; c < (int) rootCounts.size(); ++c) {
+      writeSubCountsComponent (out, rootCounts[c], subCountsAndWaitTimes[c], indent + 2);
+      if (c < rootCounts.size() - 1)
+	out << ",";
+      out << endl;
+    }
+    out << ind << " ]" << endl;
+    out << ind << "}";
+  } else
+    writeSubCountsComponent (out, rootCounts[0], subCountsAndWaitTimes[0], indent);
+}
+
+void AlphabetOwner::writeSubCountsComponent (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent) const {
   const string ind (indent, ' ');
   out << ind << "{" << endl;
   out << ind << " \"root\":" << endl;
@@ -591,30 +692,30 @@ IndelCounts IndelCounts::operator* (double w) const {
   return result;
 }
 
-EigenCounts::EigenCounts (size_t alphabetSize)
+EigenCounts::EigenCounts()
+{ }
+
+EigenCounts::EigenCounts (size_t components, size_t alphabetSize)
   : indelCounts(),
-    rootCount (alphabetSize, 0),
-    eigenCount (alphabetSize, vguard<gsl_complex> (alphabetSize, gsl_complex_rect(0,0)))
+    rootCount (components, vguard<double> (alphabetSize, 0)),
+    eigenCount (components, vguard<vguard<gsl_complex> > (alphabetSize, vguard<gsl_complex> (alphabetSize, gsl_complex_rect(0,0))))
 { }
 
 EigenCounts& EigenCounts::operator+= (const EigenCounts& c) {
   indelCounts += c.indelCounts;
 
-  if (c.rootCount.size()) {
-    if (rootCount.size())
-      for (size_t n = 0; n < rootCount.size(); ++n)
-	rootCount[n] += c.rootCount.at(n);
-    else
-      rootCount = c.rootCount;
-  }
+  if (components() == 0) {
+    rootCount = c.rootCount;
+    eigenCount = c.eigenCount;
+  } else if (c.components() > 0) {
+    for (int cpt = 0; cpt < components(); ++cpt) {
+      for (size_t n = 0; n < rootCount[cpt].size(); ++n)
+	rootCount[cpt][n] += c.rootCount.at(cpt).at(n);
 
-  if (c.eigenCount.size()) {
-    if (eigenCount.size())
-      for (size_t i = 0; i < eigenCount.size(); ++i)
-	for (size_t j = 0; j < eigenCount[i].size(); ++j)
-	  eigenCount[i][j] = gsl_complex_add (eigenCount[i][j], c.eigenCount.at(i).at(j));
-    else
-      eigenCount = c.eigenCount;
+      for (size_t i = 0; i < eigenCount[cpt].size(); ++i)
+	for (size_t j = 0; j < eigenCount[cpt][i].size(); ++j)
+	  eigenCount[cpt][i][j] = gsl_complex_add (eigenCount[cpt][i][j], c.eigenCount.at(cpt).at(i).at(j));
+    }
   }
 
   return *this;
@@ -622,11 +723,13 @@ EigenCounts& EigenCounts::operator+= (const EigenCounts& c) {
 
 EigenCounts& EigenCounts::operator*= (double w) {
   indelCounts *= w;
-  for (auto& c : rootCount)
-    c *= w;
-  for (auto& sc : eigenCount)
-    for (auto& c : sc)
-      c = gsl_complex_mul_real (c, w);
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    for (auto& c : rootCount[cpt])
+      c *= w;
+    for (auto& sc : eigenCount[cpt])
+      for (auto& c : sc)
+	c = gsl_complex_mul_real (c, w);
+  }
   return *this;
 }
 
@@ -642,11 +745,11 @@ EigenCounts EigenCounts::operator* (double w) const {
   return result;
 }
 
-EventCounts::EventCounts (const AlphabetOwner& alph, double pseudo)
+EventCounts::EventCounts (const AlphabetOwner& alph, int components, double pseudo)
   : AlphabetOwner (alph),
     indelCounts (pseudo, pseudo),
-    rootCount (alph.alphabetSize(), pseudo),
-    subCount (alph.alphabetSize(), vguard<double> (alph.alphabetSize(), pseudo))
+    rootCount (components, vguard<double> (alph.alphabetSize(), pseudo)),
+    subCount (components, vguard<double> (alph.alphabetSize(), vguard<double> (alph.alphabetSize(), pseudo)))
 { }
 
 EventCounts& EventCounts::operator+= (const EventCounts& c) {
@@ -654,23 +757,27 @@ EventCounts& EventCounts::operator+= (const EventCounts& c) {
 
   indelCounts += c.indelCounts;
 
-  for (size_t n = 0; n < rootCount.size(); ++n)
-    rootCount[n] += c.rootCount.at(n);
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    for (size_t n = 0; n < rootCount[cpt].size(); ++n)
+      rootCount[cpt][n] += c.rootCount.at(cpt).at(n);
 
-  for (size_t i = 0; i < subCount.size(); ++i)
-    for (size_t j = 0; j < subCount[i].size(); ++j)
-      subCount[i][j] += c.subCount.at(i).at(j);
+    for (size_t i = 0; i < subCount[cpt].size(); ++i)
+      for (size_t j = 0; j < subCount[cpt][i].size(); ++j)
+	subCount[cpt][i][j] += c.subCount.at(cpt).at(i).at(j);
+  }
 
   return *this;
 }
 
 EventCounts& EventCounts::operator*= (double w) {
   indelCounts *= w;
-  for (auto& c : rootCount)
-    c *= w;
-  for (auto& sc : subCount)
-    for (auto& c : sc)
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    for (auto& c : rootCount[cpt])
       c *= w;
+    for (auto& sc : subCount[cpt])
+      for (auto& c : sc)
+	c *= w;
+  }
   return *this;
 }
 
@@ -740,7 +847,7 @@ void IndelCounts::accumulateIndelCounts (const RateModel& model, const Tree& tre
 void EigenCounts::accumulateSubstitutionCounts (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, double weight) {
   AlignColSumProduct colSumProd (model, tree, gapped);
 
-  EigenCounts c (model.alphabetSize());
+  EigenCounts c (model.components(), model.alphabetSize());
 
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();
@@ -808,25 +915,42 @@ void IndelCounts::read (const JsonValue& json) {
 void EventCounts::read (const JsonValue& json) {
   AlphabetOwner alph;
   alph.readAlphabet (json);
-  *this = EventCounts (alph);
+  rootCount.clear();
+  subCount.clear();
   JsonMap jm (json);
   indelCounts.read (jm.getType("indel",JSON_OBJECT));
   indelCounts.lp = jm.getNumber("logLikelihood");
+
+  if (jm.containsType("mixture",JSON_ARRAY)) {
+    JsonValue jmix = jm.getType ("mixture", JSON_ARRAY);
+    for (JsonIterator iter = begin(jmix); iter != end(jmix); ++iter) {
+      const JsonMap jmcpt (iter->value);
+      readComponent (jmcpt);
+    }
+  } else
+    readComponent (jm);
+}
+
+void EventCounts::readComponent (const JsonMap& jm) {
+  vguard<double> rc (alphabetSize(), 0.);
+  vguard<vguard<double> > sc (alphabetSize(), 0.);
   JsonMap subBlock = jm.getObject("sub");
   JsonMap root = subBlock.getObject("root");
   JsonMap sub = subBlock.getObject("sub");
   JsonMap wait = subBlock.getObject("wait");
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
     const string si (1, alphabet[i]);
-    rootCount[i] = root.getNumber(si);
-    subCount[i][i] = wait.getNumber(si);
+    rc[i] = root.getNumber(si);
+    sc[i][i] = wait.getNumber(si);
     JsonMap sub_i = sub.getObject(si);
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j) {
 	const string sj (1, alphabet[j]);
-	subCount[i][j] = sub_i.getNumber(sj);
+	sc[i][j] = sub_i.getNumber(sj);
       }
   }
+  rootCount.push_back (rc);
+  subCount.push_back (sc);
 }
 
 void EventCounts::optimize (RateModel& model, bool fitIndelRates, bool fitSubstRates) const {
@@ -834,20 +958,28 @@ void EventCounts::optimize (RateModel& model, bool fitIndelRates, bool fitSubstR
     model.init (alphabet);
 
   if (fitSubstRates) {
-    const double insNorm = accumulate (rootCount.begin(), rootCount.end(), 0.);
-    for (AlphTok i = 0; i < alphabetSize(); ++i)
-      gsl_vector_set (model.insProb, i, rootCount[i] / insNorm);
+    vguard<double> cptCount;
+    double totalCptCount = 0;
+    for (int cpt = 0; cpt < components(); ++cpt) {
+      const double insNorm = accumulate (rootCount[cpt].begin(), rootCount[cpt].end(), 0.);
+      for (AlphTok i = 0; i < alphabetSize(); ++i)
+	gsl_vector_set (model.insProb[cpt], i, rootCount[cpt][i] / insNorm);
 
-    for (AlphTok i = 0; i < alphabetSize(); ++i) {
-      double r_ii = 0;
-      for (AlphTok j = 0; j < alphabetSize(); ++j)
-	if (j != i) {
-	  const double r_ij = subCount[i][j] / subCount[i][i];
-	  gsl_matrix_set (model.subRate, i, j, r_ij);
-	  r_ii -= r_ij;
-	}
-      gsl_matrix_set (model.subRate, i, i, r_ii);
+      for (AlphTok i = 0; i < alphabetSize(); ++i) {
+	double r_ii = 0;
+	for (AlphTok j = 0; j < alphabetSize(); ++j)
+	  if (j != i) {
+	    const double r_ij = subCount[cpt][i][j] / subCount[cpt][i][i];
+	    gsl_matrix_set (model.subRate[cpt], i, j, r_ij);
+	    r_ii -= r_ij;
+	  }
+	gsl_matrix_set (model.subRate[cpt], i, i, r_ii);
+      }
+      cptCount.push_back (insNorm);
+      totalCptCount += insNorm;
     }
+    for (int cpt = 0; cpt < components(); ++cpt)
+      model.cptWeight[cpt] = cptCount[cpt] / totalCptCount;
   }
 
   if (fitIndelRates) {
@@ -865,13 +997,14 @@ double EventCounts::logPrior (const RateModel& model, bool includeIndelRates, bo
       + logGammaPdf (model.delRate, indelCounts.del, indelCounts.delTime)
       + logBetaPdf (model.insExtProb, indelCounts.insExt, indelCounts.ins)
       + logBetaPdf (model.delExtProb, indelCounts.delExt, indelCounts.del);
-  if (includeSubstRates) {
-    lp += logDirichletPdf (gsl_vector_to_stl(model.insProb), rootCount);
-    for (AlphTok i = 0; i < alphabetSize(); ++i)
-      for (AlphTok j = 0; j < alphabetSize(); ++j)
-	if (i != j)
-	  lp += logGammaPdf (gsl_matrix_get (model.subRate, i, j), subCount[i][j], subCount[i][i]);
-  }
+  if (includeSubstRates)
+    for (int cpt = 0; cpt < components(); ++cpt) {
+      lp += logDirichletPdf (gsl_vector_to_stl(model.insProb[cpt]), rootCount);
+      for (AlphTok i = 0; i < alphabetSize(); ++i)
+	for (AlphTok j = 0; j < alphabetSize(); ++j)
+	  if (i != j)
+	    lp += logGammaPdf (gsl_matrix_get (model.subRate[cpt], i, j), subCount[cpt][i][j], subCount[cpt][i][i]);
+    }
   return lp;
 }
 
@@ -888,14 +1021,17 @@ double EventCounts::expectedLogLikelihood (const RateModel& model) const {
     + xlogy (indelCounts.ins, 1 - model.insExtProb)
     + xlogy (indelCounts.delExt, model.delExtProb)
     + xlogy (indelCounts.del, 1 - model.delExtProb);
-  for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    const double exit_i = -gsl_matrix_get (model.subRate, i, i);
-    lp += xlogy (rootCount[i], gsl_vector_get (model.insProb, i));
-    lp -= exit_i * subCount[i][i];
-    for (AlphTok j = 0; j < alphabetSize(); ++j)
-      if (i != j)
-	lp += xlogy (subCount[i][j], gsl_matrix_get (model.subRate, i, j));
-  }
+  
+  for (int cpt = 0; cpt < components(); ++cpt)
+    for (AlphTok i = 0; i < alphabetSize(); ++i) {
+      const double exit_i = -gsl_matrix_get (model.subRate[cpt], i, i);
+      lp += xlogy (rootCount[cpt][i], gsl_vector_get (model.insProb[cpt], i));
+      lp -= exit_i * subCount[cpt][i][i];
+      for (AlphTok j = 0; j < alphabetSize(); ++j)
+	if (i != j)
+	  lp += xlogy (subCount[cpt][i][j], gsl_matrix_get (model.subRate[cpt], i, j));
+    }
+
   return lp;
 }
 
@@ -905,9 +1041,9 @@ double IndelCounts::decayWaitTime (double decayRate, double timeInterval) {
 
 EigenModel::EigenModel (const EigenModel& eigen)
   : model (eigen.model),
-    eval (gsl_vector_complex_alloc (eigen.model.alphabetSize())),
-    evec (gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize())),
-    evecInv (gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize())),
+    eval (eigen.components()),
+    evec (eigen.components()),
+    evecInv (eigen.components()),
     ev (eigen.ev),
     ev_t (eigen.ev_t),
     exp_ev_t (eigen.exp_ev_t),
@@ -918,96 +1054,113 @@ EigenModel::EigenModel (const EigenModel& eigen)
     real_ev_t (eigen.real_ev_t),
     real_exp_ev_t (eigen.real_exp_ev_t)
 {
-  CheckGsl (gsl_vector_complex_memcpy (eval, eigen.eval));
-  CheckGsl (gsl_matrix_complex_memcpy (evec, eigen.evec));
-  CheckGsl (gsl_matrix_complex_memcpy (evecInv, eigen.evecInv));
+  for (int cpt = 0; cpt < eigen.components(); ++cpt) {
+    eval[cpt] = gsl_vector_complex_alloc (eigen.model.alphabetSize());
+    evec[cpt] = gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize());
+    evecInv[cpt] = gsl_matrix_complex_alloc (eigen.model.alphabetSize(), eigen.model.alphabetSize());
+    CheckGsl (gsl_vector_complex_memcpy (eval[cpt], eigen.eval[cpt]));
+    CheckGsl (gsl_matrix_complex_memcpy (evec[cpt], eigen.evec[cpt]));
+    CheckGsl (gsl_matrix_complex_memcpy (evecInv[cpt], eigen.evecInv[cpt]));
+  }
 }
 
 EigenModel::EigenModel (const RateModel& model)
   : model (model),
-    eval (gsl_vector_complex_alloc (model.alphabetSize())),
-    evec (gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize())),
-    evecInv (gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize())),
-    ev (model.alphabetSize()),
-    ev_t (model.alphabetSize()),
-    exp_ev_t (model.alphabetSize()),
-    isReal (false),
-    realEval (model.alphabetSize()),
-    realEvec (model.alphabetSize(), vguard<double> (model.alphabetSize())),
-    realEvecInv (model.alphabetSize(), vguard<double> (model.alphabetSize())),
-    real_ev_t (model.alphabetSize()),
-    real_exp_ev_t (model.alphabetSize())
+    eval (model.components()),
+    evec (model.components()),
+    evecInv (model.components()),
+    ev (model.components(), vguard<gsl_complex> (model.alphabetSize())),
+    ev_t (model.components(), vguard<gsl_complex> (model.alphabetSize())),
+    exp_ev_t (model.components(), vguard<gsl_complex> (model.alphabetSize())),
+    isReal (model.components(), false),
+    realEval (model.components(), vguard<double> (model.alphabetSize())),
+    realEvec (model.components(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize()))),
+    realEvecInv (model.components(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize()))),
+    real_ev_t (model.components(), vguard<double> (model.alphabetSize())),
+    real_exp_ev_t (model.components(), vguard<double> (model.alphabetSize()))
 {
-  gsl_matrix *R = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
-  gsl_matrix_memcpy (R, model.subRate);
+  for (int cpt = 0; cpt < model.components(); ++cpt) {
+    eval[cpt] = gsl_vector_complex_alloc (model.alphabetSize());
+    evec[cpt] = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+    evecInv[cpt] = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+
+    gsl_matrix *R = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
+    gsl_matrix_memcpy (R, model.subRate);
   
-  gsl_eigen_nonsymmv_workspace *workspace = gsl_eigen_nonsymmv_alloc (model.alphabetSize());
-  CheckGsl (gsl_eigen_nonsymmv (R, eval, evec, workspace));
-  gsl_eigen_nonsymmv_free (workspace);
-  gsl_matrix_free (R);
+    gsl_eigen_nonsymmv_workspace *workspace = gsl_eigen_nonsymmv_alloc (model.alphabetSize());
+    CheckGsl (gsl_eigen_nonsymmv (R, eval[cpt], evec[cpt], workspace));
+    gsl_eigen_nonsymmv_free (workspace);
+    gsl_matrix_free (R);
 
-  gsl_matrix_complex *LU = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
-  gsl_permutation *perm = gsl_permutation_alloc (model.alphabetSize());
-  int permSig = 0;
-  gsl_matrix_complex_memcpy (LU, evec);
-  CheckGsl (gsl_linalg_complex_LU_decomp (LU, perm, &permSig));
-  CheckGsl (gsl_linalg_complex_LU_invert (LU, perm, evecInv));
-  gsl_matrix_complex_free (LU);
-  gsl_permutation_free (perm);
+    gsl_matrix_complex *LU = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+    gsl_permutation *perm = gsl_permutation_alloc (model.alphabetSize());
+    int permSig = 0;
+    gsl_matrix_complex_memcpy (LU, evec[cpt]);
+    CheckGsl (gsl_linalg_complex_LU_decomp (LU, perm, &permSig));
+    CheckGsl (gsl_linalg_complex_LU_invert (LU, perm, evecInv[cpt]));
+    gsl_matrix_complex_free (LU);
+    gsl_permutation_free (perm);
 
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    ev[i] = gsl_vector_complex_get (eval, i);
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      ev[cpt][i] = gsl_vector_complex_get (eval[cpt], i);
 
-  isReal = true;
-  for (AlphTok i = 0; isReal && i < model.alphabetSize(); ++i) {
-    isReal = isReal && EIGENMODEL_NEAR_REAL(ev[i]);
-    for (AlphTok j = 0; isReal && j < model.alphabetSize(); ++j)
-      isReal = isReal && EIGENMODEL_NEAR_REAL(gsl_matrix_complex_get(evec,i,j))
-	&& EIGENMODEL_NEAR_REAL(gsl_matrix_complex_get(evecInv,i,j));
-  }
-
-  if (isReal)
-    for (AlphTok i = 0; isReal && i < model.alphabetSize(); ++i) {
-      realEval[i] = GSL_REAL (ev[i]);
-      for (AlphTok j = 0; isReal && j < model.alphabetSize(); ++j) {
-	realEvec[i][j] = GSL_REAL (gsl_matrix_complex_get (evec, i, j));
-	realEvecInv[i][j] = GSL_REAL (gsl_matrix_complex_get (evecInv, i, j));
-      }
+    isReal[cpt] = true;
+    for (AlphTok i = 0; isReal[cpt] && i < model.alphabetSize(); ++i) {
+      isReal[cpt] = isReal[cpt] && EIGENMODEL_NEAR_REAL(ev[cpt][i]);
+      for (AlphTok j = 0; isReal[cpt] && j < model.alphabetSize(); ++j)
+	isReal[cpt] = isReal[cpt] && EIGENMODEL_NEAR_REAL(gsl_matrix_complex_get(evec[cpt],i,j))
+	  && EIGENMODEL_NEAR_REAL(gsl_matrix_complex_get(evecInv[cpt],i,j));
     }
 
-  LogThisAt(8,"Eigenvalues:" << complexVectorToString(ev) << endl
-	    << "Right eigenvector matrix, V:" << endl << complexMatrixToString(evec)
-	    << "Left eigenvector matrix, V^{-1}:" << endl << complexMatrixToString(evecInv)
-	    << "Product V^{-1} * V:" << endl << tempComplexMatrixToString (evecInv_evec())
-	    << "Reconstituted rate matrix:" << endl << tempComplexMatrixToString (getRateMatrix()));
+    if (isReal[cpt])
+      for (AlphTok i = 0; isReal && i < model.alphabetSize(); ++i) {
+	realEval[cpt][i] = GSL_REAL (ev[cpt][i]);
+	for (AlphTok j = 0; isReal && j < model.alphabetSize(); ++j) {
+	  realEvec[cpt][i][j] = GSL_REAL (gsl_matrix_complex_get (evec[cpt], i, j));
+	  realEvecInv[cpt][i][j] = GSL_REAL (gsl_matrix_complex_get (evecInv[cpt], i, j));
+	}
+      }
+  
+    LogThisAt(8,"Component #" << cpt << endl
+	      << "Eigenvalues:" << complexVectorToString(ev[cpt]) << endl
+	      << "Right eigenvector matrix, V:" << endl << complexMatrixToString(evec[cpt])
+	      << "Left eigenvector matrix, V^{-1}:" << endl << complexMatrixToString(evecInv[cpt])
+	      << "Product V^{-1} * V:" << endl << tempComplexMatrixToString (evecInv_evec(cpt))
+	      << "Reconstituted rate matrix:" << endl << tempComplexMatrixToString (getRateMatrix(cpt)));
+  }
 }
 
 EigenModel::~EigenModel() {
-  if (eval)
-    gsl_vector_complex_free (eval);
-  if (evec)
-    gsl_matrix_complex_free (evec);
-  if (evecInv)
-    gsl_matrix_complex_free (evecInv);
+  for (auto& e: eval)
+    if (e)
+      gsl_vector_complex_free (e);
+  for (auto& e: evec)
+    if (e)
+      gsl_matrix_complex_free (e);
+  for (auto& e: evecInv)
+    if (e)
+      gsl_matrix_complex_free (e);
 }
 
 void EigenModel::compute_exp_ev_t (double t, bool forceComplex) {
-  if (isReal && !forceComplex) {
-    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-      real_ev_t[i] = realEval[i] * t;
-      real_exp_ev_t[i] = exp (real_ev_t[i]);
+  for (int cpt = 0; cpt < model.components(); ++cpt) {
+    if (isReal[cpt] && !forceComplex) {
+      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	real_ev_t[cpt][i] = realEval[cpt][i] * t;
+	real_exp_ev_t[cpt][i] = exp (real_ev_t[cpt][i]);
+      }
+      LogThisAt(9,"Component #" << cpt << " exp(eigenvalue*" << t << "):" << join(real_exp_ev_t," ") << endl);
+    } else {
+      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	ev_t[cpt][i] = gsl_complex_mul_real (ev[cpt][i], t);
+	exp_ev_t[cpt][i] = gsl_complex_exp (ev_t[cpt][i]);
+      }
+      LogThisAt(9,"Component #" << cpt << " exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
     }
-    LogThisAt(9,"exp(eigenvalue*" << t << "):" << join(real_exp_ev_t," ") << endl);
-  } else {
-    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-      ev_t[i] = gsl_complex_mul_real (ev[i], t);
-      exp_ev_t[i] = gsl_complex_exp (ev_t[i]);
-    }
-    LogThisAt(9,"exp(eigenvalue*" << t << "):" << complexVectorToString(exp_ev_t));
   }
 }
 
-gsl_matrix_complex* EigenModel::getRateMatrix() const {
+gsl_matrix_complex* EigenModel::getRateMatrix (int cpt) const {
   gsl_matrix_complex* r = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
@@ -1015,15 +1168,15 @@ gsl_matrix_complex* EigenModel::getRateMatrix() const {
       for (AlphTok k = 0; k < model.alphabetSize(); ++k)
 	rij = gsl_complex_add
 	  (rij,
-	   gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
-					     gsl_matrix_complex_get (evecInv, k, j)),
-			    ev[k]));
+	   gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec[cpt], i, k),
+					     gsl_matrix_complex_get (evecInv[cpt], k, j)),
+			    ev[cpt][k]));
       gsl_matrix_complex_set (r, i, j, rij);
     }
   return r;
 }
 
-gsl_matrix_complex* EigenModel::evecInv_evec() const {
+gsl_matrix_complex* EigenModel::evecInv_evec (int cpt) const {
   gsl_matrix_complex* e = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
@@ -1031,48 +1184,52 @@ gsl_matrix_complex* EigenModel::evecInv_evec() const {
       for (AlphTok k = 0; k < model.alphabetSize(); ++k)
 	eij = gsl_complex_add
 	  (eij,
-	   gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
-			    gsl_matrix_complex_get (evecInv, k, j)));
+	   gsl_complex_mul (gsl_matrix_complex_get (evec[cpt], i, k),
+			    gsl_matrix_complex_get (evecInv[cpt], k, j)));
       gsl_matrix_complex_set (e, i, j, eij);
     }
   return e;
 }
 
-double EigenModel::getSubProb (double t, AlphTok i, AlphTok j) const {
+double EigenModel::getSubProb (int cpt, double t, AlphTok i, AlphTok j) const {
   ((EigenModel&) *this).compute_exp_ev_t (t);
-  return getSubProbInner (t, i, j);
+  return getSubProbInner (cpt, t, i, j);
 }
 
-double EigenModel::getSubProbInner (double t, AlphTok i, AlphTok j) const {
-  if (isReal) {
+double EigenModel::getSubProbInner (int cpt, double t, AlphTok i, AlphTok j) const {
+  if (isReal[cpt]) {
     double p = 0;
     for (AlphTok k = 0; k < model.alphabetSize(); ++k)
-      p += realEvec[i][k] * realEvecInv[k][j] * real_exp_ev_t[k];
+      p += realEvec[cpt][i][k] * realEvecInv[cpt][k][j] * real_exp_ev_t[cpt][k];
     return min (1., max (0., p));
   }
   gsl_complex p = gsl_complex_rect (0, 0);
   for (AlphTok k = 0; k < model.alphabetSize(); ++k)
     p = gsl_complex_add
       (p,
-       gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec, i, k),
-					 gsl_matrix_complex_get (evecInv, k, j)),
-			exp_ev_t[k]));
+       gsl_complex_mul (gsl_complex_mul (gsl_matrix_complex_get (evec[cpt], i, k),
+					 gsl_matrix_complex_get (evecInv[cpt], k, j)),
+			exp_ev_t[cpt][k]));
   Assert (EIGENMODEL_NEAR_REAL(p), "Probability has imaginary part: p=(%g,%g)", GSL_REAL(p), GSL_IMAG(p));
   return min (1., max (0., GSL_REAL(p)));
 }
 
-gsl_matrix* EigenModel::getSubProbMatrix (double t) const {
-  gsl_matrix* sub = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
-  ((EigenModel&) *this).compute_exp_ev_t (t);
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-      gsl_matrix_set (sub, i, j, getSubProbInner (t, i, j));
-  return sub;
+vguard<gsl_matrix*> EigenModel::getSubProbMatrix (double t) const {
+  vguard<gsl_matrix*> v;
+  for (int cpt = 0; cpt < model.components(); ++cpt) {
+    gsl_matrix* sub = gsl_matrix_alloc (model.alphabetSize(), model.alphabetSize());
+    ((EigenModel&) *this).compute_exp_ev_t (t);
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+	gsl_matrix_set (sub, i, j, getSubProbInner (t, i, j));
+    v.push_back (sub);
+  }
+  return v;
 }
 
-double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
+double EigenModel::getSubCount (int cpt, AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
   const double p_ab = gsl_matrix_get (sub, a, b);
-  const double r_ij = gsl_matrix_get (model.subRate, i, j);
+  const double r_ij = gsl_matrix_get (model.subRate[cpt], i, j);
   gsl_complex c_ij = gsl_complex_rect (0, 0);
   for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
     gsl_complex c_ijk = gsl_complex_rect (0, 0);
@@ -1081,14 +1238,14 @@ double EigenModel::getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, cons
 	(c_ijk,
 	 gsl_complex_mul
 	 (gsl_complex_mul
-	  (gsl_matrix_complex_get (evec, j, l),
-	   gsl_matrix_complex_get (evecInv, l, b)),
+	  (gsl_matrix_complex_get (evec[cpt], j, l),
+	   gsl_matrix_complex_get (evecInv[cpt], l, b)),
 	  gsl_matrix_complex_get (eSubCount, k, l)));
     c_ij = gsl_complex_add (c_ij,
 			    gsl_complex_mul
 			    (gsl_complex_mul
-			     (gsl_matrix_complex_get (evec, a, k),
-			      gsl_matrix_complex_get (evecInv, k, i)),
+			     (gsl_matrix_complex_get (evec[cpt], a, k),
+			      gsl_matrix_complex_get (evecInv[cpt], k, i)),
 			     c_ijk));
   }
   Assert (EIGENMODEL_NEAR_REAL(c_ij), "Count has imaginary part: c=(%g,%g)", GSL_REAL(c_ij), GSL_IMAG(c_ij));
@@ -1101,46 +1258,54 @@ void EigenModel::accumSubCounts (vguard<vguard<double> >& count, AlphTok a, Alph
       count[i][j] += getSubCount (a, b, i, j, sub, eSubCount) * weight;
 }
 
-gsl_matrix_complex* EigenModel::eigenSubCount (double t) const {
-  gsl_matrix_complex* esub = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+vguard<gsl_matrix_complex*> EigenModel::eigenSubCount (double t) const {
+  vguard<gsl_matrix_complex*> v;
   ((EigenModel&) *this).compute_exp_ev_t (t, true);
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      const bool ev_eq = i == j || EIGENMODEL_NEAR_EQ_COMPLEX (ev[i], ev[j]);
-      gsl_matrix_complex_set
-	(esub, i, j,
-	 ev_eq
-	 ? gsl_complex_mul_real (exp_ev_t[i], t)
-	 : gsl_complex_div (gsl_complex_sub (exp_ev_t[i], exp_ev_t[j]),
-			    gsl_complex_sub (ev[i], ev[j])));
-    }
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    gsl_matrix_complex* esub = gsl_matrix_complex_alloc (model.alphabetSize(), model.alphabetSize());
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+	const bool ev_eq = i == j || EIGENMODEL_NEAR_EQ_COMPLEX (ev[cpt][i], ev[cpt][j]);
+	gsl_matrix_complex_set
+	  (esub, i, j,
+	   ev_eq
+	   ? gsl_complex_mul_real (exp_ev_t[cpt][i], t)
+	   : gsl_complex_div (gsl_complex_sub (exp_ev_t[cpt][i], exp_ev_t[cpt][j]),
+			      gsl_complex_sub (ev[cpt][i], ev[cpt][j])));
+      }
 
-  LogThisAt(8,endl << "Eigensubstitution matrix at time t=" << t << ":" << endl << complexMatrixToString(esub));
+    LogThisAt(8,endl << "Component #" << cpt << " eigensubstitution matrix at time t=" << t << ":" << endl << complexMatrixToString(esub));
+    v.push_back (esub);
+  }
 
-  return esub;
+  return v;
 }
 
-vguard<vguard<double> > EigenModel::getSubCounts (const vguard<vguard<gsl_complex> >& eigenCounts) const {
-  LogThisAt(8,"Eigencounts matrix:" << endl << complexMatrixToString(eigenCounts) << endl);
-  vguard<vguard<double> > counts (model.alphabetSize(), vguard<double> (model.alphabetSize(), 0));
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-      gsl_complex c = gsl_complex_rect (0, 0);
-      for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
-	gsl_complex ck = gsl_complex_rect (0, 0);
-	for (AlphTok l = 0; l < model.alphabetSize(); ++l)
-	  ck = gsl_complex_add
-	    (ck,
-	     gsl_complex_mul (eigenCounts[k][l],
-			      gsl_matrix_complex_get (evec, j, l)));
-	c = gsl_complex_add
-	  (c,
-	   gsl_complex_mul (gsl_matrix_complex_get (evecInv, k, i),
-			    ck));
+vguard<vguard<vguard<double> > > EigenModel::getSubCounts (const vguard<vguard<vguard<gsl_complex> > >& eigenCounts) const {
+  vguard<vguard<vguard<double> > > v;
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    LogThisAt(8,"Component #" << cpt << " eigencounts matrix:" << endl << complexMatrixToString(eigenCounts[cpt]) << endl);
+    vguard<vguard<double> > counts (model.alphabetSize(), vguard<double> (model.alphabetSize(), 0));
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+	gsl_complex c = gsl_complex_rect (0, 0);
+	for (AlphTok k = 0; k < model.alphabetSize(); ++k) {
+	  gsl_complex ck = gsl_complex_rect (0, 0);
+	  for (AlphTok l = 0; l < model.alphabetSize(); ++l)
+	    ck = gsl_complex_add
+	      (ck,
+	       gsl_complex_mul (eigenCounts[cpt][k][l],
+				gsl_matrix_complex_get (evec[cpt], j, l)));
+	  c = gsl_complex_add
+	    (c,
+	     gsl_complex_mul (gsl_matrix_complex_get (evecInv[cpt], k, i),
+			      ck));
+	}
+	counts[i][j] = GSL_REAL(c) * (i == j ? 1 : gsl_matrix_get (model.subRate[cpt], i, j));
       }
-      counts[i][j] = GSL_REAL(c) * (i == j ? 1 : gsl_matrix_get (model.subRate, i, j));
-    }
-  return counts;
+    v.push_back (counts);
+  }
+  return v;
 }
 
 string tempComplexMatrixToString (gsl_matrix_complex* mx) {
@@ -1206,22 +1371,27 @@ string CachingRateModel::timeKey (double t) const {
   return o.str();
 }
 
-gsl_matrix* CachingRateModel::getSubProbMatrix (double t) const {
+vguard<gsl_matrix*> CachingRateModel::getSubProbMatrix (double t) const {
   CachingRateModel* mutableThis = (CachingRateModel*) this;  // cast away const
   auto& mutableCache = mutableThis->cache;
   auto& mutableCount = mutableThis->count;
   const string k = timeKey (t);
-  gsl_matrix *m;
-  if (cache.count (k))
-    m = stl_to_gsl_matrix (cache.at(k));
-  else {
+  vguard<gsl_matrix*> m;
+  if (cache.count (k)) {
+    const auto& c = cache.at(k);
+    for (int cpt = 0; cpt < components(); ++cpt)
+      m.push_back (stl_to_gsl_matrix (c[cpt]));
+  } else {
     m = eigen.getSubProbMatrix (t);
     if (mutableCount[k]++) {  // wait until the 2nd evaluation to start caching
       if (mutableCache.size() >= flushSize) {
 	mutableCache.clear();
 	mutableCount.clear();
       }
-      mutableCache[k] = gsl_matrix_to_stl (m);
+      vector<vector<vector<double> > > c;
+      for (int cpt = 0; cpt < components(); ++cpt)
+	c.push_back (gsl_matrix_to_stl (m[cpt]));
+      mutableCache[k] = c;
     }
   }
   return m;

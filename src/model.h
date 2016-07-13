@@ -32,13 +32,15 @@ struct AlphabetOwner {
   gsl_matrix* newAlphabetMatrix() const;
   gsl_vector* newAlphabetVector() const;
 
-  void writeSubCounts (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent = 0) const;
+  void writeSubCounts (ostream& out, const vguard<vguard<double> >& rootCounts, const vguard<vguard<vguard<double> > >& subCountsAndWaitTimes, size_t indent = 0) const;
+  void writeSubCountsComponent (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent = 0) const;
 };
 
 struct RateModel : AlphabetOwner {
   double insRate, delRate, insExtProb, delExtProb;
-  gsl_vector* insProb;
-  gsl_matrix* subRate;
+  vguard<double> cptWeight;
+  vguard<gsl_vector*> insProb;
+  vguard<gsl_matrix*> subRate;
 
   RateModel();
   RateModel(const RateModel& model);
@@ -46,12 +48,17 @@ struct RateModel : AlphabetOwner {
 
   RateModel& operator= (const RateModel& model);
 
+  int components() const { return cptWeight.size(); }
+
+  void clear();
   void init (const string& alphabet);
   void read (const JsonValue& json);
   void write (ostream& out) const;
+  void readComponent (const JsonMap& jm);
+  void writeComponent (int cpt, ostream& out);
 
-  gsl_vector* getEqmProbVector() const;
-  virtual gsl_matrix* getSubProbMatrix (double t) const;
+  vguard<gsl_vector*> getEqmProbVector() const;
+  virtual vguard<gsl_matrix*> getSubProbMatrix (double t) const;
 
   double expectedSubstitutionRate() const;
   
@@ -63,35 +70,38 @@ class EigenModel {
 public:
   const RateModel& model;
 
-  gsl_vector_complex *eval;
-  gsl_matrix_complex *evec;  // right eigenvectors
-  gsl_matrix_complex *evecInv;  // left eigenvectors
+  // indexed by component:
+  vguard<gsl_vector_complex*> eval;
+  vguard<gsl_matrix_complex*> evec;  // right eigenvectors
+  vguard<gsl_matrix_complex*> evecInv;  // left eigenvectors
 
   EigenModel (const EigenModel& eigen);
   EigenModel (const RateModel& model);
   ~EigenModel();
 
-  gsl_matrix_complex* eigenSubCount (double t) const;
-  double getSubCount (AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
+  int components() const { return eval.size(); }
+
+  vguard<gsl_matrix_complex*> eigenSubCount (double t) const;
+  double getSubCount (int component, AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
   void accumSubCounts (vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
 
-  double getSubProb (double t, AlphTok i, AlphTok j) const;
-  gsl_matrix* getSubProbMatrix (double t) const;
-  gsl_matrix_complex* getRateMatrix() const;
-  gsl_matrix_complex* evecInv_evec() const;
+  double getSubProb (int component, double t, AlphTok i, AlphTok j) const;
+  vguard<gsl_matrix*> getSubProbMatrix (double t) const;
+  gsl_matrix_complex* getRateMatrix (int component) const;
+  gsl_matrix_complex* evecInv_evec (int component) const;
 
-  vguard<vguard<double> > getSubCounts (const vguard<vguard<gsl_complex> >& eigenCounts) const;
+  vguard<vguard<vguard<double> > > getSubCounts (const vguard<vguard<vguard<gsl_complex> > >& eigenCounts) const;
   
 private:
-  vguard<gsl_complex> ev, ev_t, exp_ev_t;
+  vguard<vguard<gsl_complex> > ev, ev_t, exp_ev_t;
 
-  bool isReal;
-  vguard<double> realEval;
-  vguard<vguard<double> > realEvec, realEvecInv;
-  vguard<double> real_ev_t, real_exp_ev_t;
+  vguard<bool> isReal;
+  vguard<vguard<double> > realEval;
+  vguard<vguard<vguard<double> > > realEvec, realEvecInv;
+  vguard<vguard<double> > real_ev_t, real_exp_ev_t;
 
   void compute_exp_ev_t (double t, bool forceComplex = false);
-  double getSubProbInner (double t, AlphTok i, AlphTok j) const;
+  double getSubProbInner (int component, double t, AlphTok i, AlphTok j) const;
   
   EigenModel& operator= (const EigenModel&) = delete;
 };
@@ -100,12 +110,12 @@ class CachingRateModel : public RateModel {
 private:
   const size_t precision, flushSize;
   map<string,int> count;
-  map<string,vector<vector<double> > > cache;
+  map<string,vector<vector<vector<double> > > > cache;
   string timeKey (double t) const;
   EigenModel eigen;
 public:
   CachingRateModel (const RateModel& model, size_t precision = DefaultCachingRateModelPrecision, size_t flushSize = DefaultCachingRateModelFlushSize);
-  gsl_matrix* getSubProbMatrix (double t) const;
+  vguard<gsl_matrix*> getSubProbMatrix (double t) const;
 };
 
 class ProbModel : public AlphabetOwner {
@@ -115,12 +125,15 @@ public:
 		 End = 3 } State;
   double t, ins, del, insExt, delExt;
   double insWait, delWait;
-  gsl_vector* insVec;
-  gsl_matrix* subMat;
+  vguard<double> cptWeight;
+  vguard<gsl_vector*> insVec;
+  vguard<gsl_matrix*> subMat;
   ProbModel (const RateModel& model, double t);
   ~ProbModel();
+  int components() const { return cptWeight.size(); }
   double transProb (State src, State dest) const;
   void write (ostream& out) const;
+  void writeComponent (int cpt, ostream& out) const;
   static State getState (bool parentUngapped, bool childUngapped);
 private:
   ProbModel (const ProbModel&) = delete;
@@ -130,9 +143,11 @@ private:
 struct LogProbModel {
   typedef vguard<LogProb> LogProbVector;
   typedef vguard<vguard<LogProb> > LogProbMatrix;
-  LogProbVector logInsProb;
-  LogProbMatrix logSubProb;
+  vguard<LogProb> logCptWeight;
+  vguard<LogProbVector> logInsProb;
+  vguard<LogProbMatrix> logSubProb;
   LogProbModel (const ProbModel& pm);
+  int components() const { return logCptWeight.size(); }
 };
 
 struct IndelCounts {
@@ -155,11 +170,13 @@ struct IndelCounts {
 
 struct EventCounts : AlphabetOwner {
   IndelCounts indelCounts;
-  vguard<double> rootCount;
-  vguard<vguard<double> > subCount;
+  vguard<vguard<double> > rootCount;
+  vguard<vguard<vguard<double> > > subCount;
 
   EventCounts() { }
-  EventCounts (const AlphabetOwner& alph, double pseudo = 0);
+  EventCounts (const AlphabetOwner& alph, int components, double pseudo = 0);
+
+  int components() const { return rootCount.size(); }
 
   EventCounts operator+ (const EventCounts& c) const;
   EventCounts operator* (double w) const;
@@ -170,6 +187,7 @@ struct EventCounts : AlphabetOwner {
   
   void writeJson (ostream& out) const;
   void read (const JsonValue& json);
+  void readComponent (const JsonMap& jm);
 
   double logPrior (const RateModel& model, bool includeIndelRates = true, bool includeSubstRates = true) const;
   double expectedLogLikelihood (const RateModel& model) const;
@@ -177,10 +195,13 @@ struct EventCounts : AlphabetOwner {
 
 struct EigenCounts {
   IndelCounts indelCounts;
-  vguard<double> rootCount;
-  vguard<vguard<gsl_complex> > eigenCount;
+  vguard<vguard<double> > rootCount;
+  vguard<vguard<vguard<gsl_complex> > > eigenCount;
 
-  EigenCounts (size_t alphabetSize = 0);
+  EigenCounts();
+  EigenCounts (size_t components, size_t alphabetSize);
+
+  int components() const { return rootCount.size(); }
 
   EigenCounts operator+ (const EigenCounts& c) const;
   EigenCounts operator* (double w) const;
