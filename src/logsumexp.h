@@ -105,6 +105,13 @@ inline double log_sum_exp (const vector<double>& v) {
   return lpTot;
 }
 
+inline double log_sum_exp (const vector<vector<double> >& v) {
+  double lpTot = -numeric_limits<double>::infinity();
+  for (auto lp : v)
+    log_accum_exp (lpTot, log_sum_exp (lp));
+  return lpTot;
+}
+
 double log_sum_exp_slow (double a, double b);  /* does not use lookup table */
 double log_sum_exp_slow (double a, double b, double c);
 double log_sum_exp_slow (double a, double b, double c, double d);

@@ -16,7 +16,7 @@ struct SimpleTreePrior {
 };
 
 struct TreeAlignFuncs {
-  typedef vguard<vguard<LogProb> > PosWeightMatrix;
+  typedef vguard<vguard<vguard<LogProb> > > PosWeightMatrix;  // pwm[pos][cpt][tok]
 
   // TreeAlignFuncs::History
   struct History {
@@ -30,7 +30,7 @@ struct TreeAlignFuncs {
 
   static string branchConditionalDump (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, TreeNodeIndex parent, TreeNodeIndex node);
 
-  static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat);
+  static PosWeightMatrix preMultiply (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbMatrix>& submat);
 
   static AlignPath cladePath (const AlignPath& path, const Tree& tree, TreeNodeIndex cladeRoot, TreeNodeIndex cladeRootParent, TreeNodeIndex exclude = -1);
   static AlignPath pairPath (const AlignPath& path, TreeNodeIndex node1, TreeNodeIndex node2);
@@ -48,7 +48,7 @@ struct TreeAlignFuncs {
 
   static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
   static double rootExtProb (const RateModel& model) { return model.insExtProb; }
-  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec);
+  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbVector>& insvec);
 
   static LogProb rootLogLikelihood (const RateModel& model, const History& history);
   static LogProb indelLogLikelihood (const RateModel& model, const History& history);

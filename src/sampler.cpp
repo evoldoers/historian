@@ -1717,10 +1717,11 @@ string Sampler::sampleSeq (const PosWeightMatrix& profile, random_engine& genera
   string seq (profile.size(), Alignment::wildcardChar);
   for (SeqIdx pos = 0; pos < profile.size(); ++pos) {
     const LogProb norm = log_sum_exp (profile[pos]);
-    vguard<double> p (model.alphabetSize());
-    for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
-      p[tok] = exp (profile[pos][tok] - norm);
-    discrete_distribution<AlphTok> posDistrib (p.begin(), p.end());
+    vguard<double> p (model.alphabetSize(), 0.);
+    for (int cpt = 0; cpt < model.components(); ++cpt)
+      for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
+	p[tok] += exp (profile[pos][cpt][tok] - norm);
+    discrete_distribution<AlphTok> tokDistrib (p.begin(), p.end());
     seq[pos] = model.alphabet[posDistrib(generator)];
   }
   return seq;
@@ -1736,7 +1737,10 @@ LogProb Sampler::logSeqPostProb (const string& seq, const PosWeightMatrix& profi
       if (tok < 0)
 	return -numeric_limits<double>::infinity();
       const LogProb norm = log_sum_exp (profile[pos]);
-      lp += profile[pos][tok] - norm;
+      double lpTok = -numeric_limits<double>::infinity();
+      for (int cpt = 0; cpt < model.components(); ++cpt)
+	log_accum_exp (lpTok, profile[pos][cpt][tok] - norm);
+      lp += lpTok;
     }
   }
   return lp;
