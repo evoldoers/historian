@@ -156,7 +156,7 @@ void Profile::writeJson (ostream& out) const {
 	  out << (a > 0 ? ", " : " ") << JsonUtil::toString (state[s].lpAbsorb[cpt][a]);
 	out << " ]";
       }
-      out << " ]," << endl;
+      out << "]," << endl;
     }
     out << "   \"trans\": [";
     set<ProfileTransitionIndex> s_out (state[s].nullOut.begin(), state[s].nullOut.end());

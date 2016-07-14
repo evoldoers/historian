@@ -35,14 +35,14 @@ int main (int argc, char **argv) {
 
   ProbModel xprobs (rates, atof (argv[5]));
   ProbModel yprobs (rates, atof (argv[argc > 6 ? 6 : 5]));
-  gsl_vector* eqm = rates.insProb;
+  vguard<gsl_vector*> eqm = rates.insProb;
   PairHMM hmm (xprobs, yprobs, eqm);
 
-  Profile xprof (rates.alphabet, seqs[0], 1);
-  Profile yprof (rates.alphabet, seqs[1], 2);
+  Profile xprof (1, rates.alphabet, seqs[0], 1);
+  Profile yprof (1, rates.alphabet, seqs[1], 2);
   ForwardMatrix forward (xprof, yprof, hmm, 0, GuideAlignmentEnvelope());
 
-  Profile prof(0);
+  Profile prof;
   if (useMatrix) {
     set<ForwardMatrix::CellCoords> allCells;
     allCells.insert (forward.startCell);
@@ -62,7 +62,7 @@ int main (int argc, char **argv) {
     prof = forward.sampleProfile (generator, nPaths, 0, strategy);
   }
     
-  prof.calcSumPathAbsorbProbs (hmm.logRoot);
+  prof.calcSumPathAbsorbProbs (vguard<LogProb>(1,0), hmm.logRoot);
   prof.writeJson (cout);
 
   exit (EXIT_SUCCESS);

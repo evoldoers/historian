@@ -25,17 +25,19 @@ int main (int argc, char **argv) {
   
   EigenModel eigen (rates);
 
-  gsl_matrix *sub = eigen.getSubProbMatrix(t);
-  gsl_matrix_complex *esub = eigen.eigenSubCount(t);
-  vguard<vguard<double> > count (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0));
+  vguard<gsl_matrix*> sub = eigen.getSubProbMatrix(t);
+  vguard<gsl_matrix_complex*> esub = eigen.eigenSubCount(t);
+  vguard<vguard<vguard<double> > > count (1, vguard<vguard<double> > (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0)));
 
-  eigen.accumSubCounts (count, src, dest, 1, sub, esub);
+  eigen.accumSubCounts (0, count[0], src, dest, 1, sub[0], esub[0]);
 
-  gsl_matrix_free (sub);
-  gsl_matrix_complex_free (esub);
+  for (auto& s: sub)
+    gsl_matrix_free (s);
+  for (auto& e: esub)
+    gsl_matrix_complex_free (e);
 
-  vguard<double> root (rates.alphabetSize(), 0);
-  root[src] = 1;
+  vguard<vguard<double> > root (1, vguard<double> (rates.alphabetSize(), 0));
+  root[0][src] = 1;
 
   rates.writeSubCounts (cout, root, count);
   cout << endl;

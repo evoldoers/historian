@@ -12,7 +12,7 @@
    "name": "A1",
    "path": [ [ 0, "*" ] ],
    "seqPos": [ [ 0, 1 ] ],
-   "lpAbsorb": [ 0.000000, "-inf", "-inf", "-inf" ],
+   "lpAbsorb": [[ 0.000000, "-inf", "-inf", "-inf" ]],
    "trans": [ { "to": 2, "lpTrans": 0.000000 } ]
   },
   {
@@ -20,7 +20,7 @@
    "name": "A2",
    "path": [ [ 0, "*" ] ],
    "seqPos": [ [ 0, 2 ] ],
-   "lpAbsorb": [ 0.000000, "-inf", "-inf", "-inf" ],
+   "lpAbsorb": [[ 0.000000, "-inf", "-inf", "-inf" ]],
    "trans": [ { "to": 3, "lpTrans": 0.000000 } ]
   },
   {
@@ -28,7 +28,7 @@
    "name": "G3",
    "path": [ [ 0, "*" ] ],
    "seqPos": [ [ 0, 3 ] ],
-   "lpAbsorb": [ "-inf", "-inf", 0.000000, "-inf" ],
+   "lpAbsorb": [[ "-inf", "-inf", 0.000000, "-inf" ]],
    "trans": [ { "to": 4, "lpTrans": 0.000000 } ]
   },
   {
@@ -36,7 +36,7 @@
    "name": "C4",
    "path": [ [ 0, "*" ] ],
    "seqPos": [ [ 0, 4 ] ],
-   "lpAbsorb": [ "-inf", 0.000000, "-inf", "-inf" ],
+   "lpAbsorb": [[ "-inf", 0.000000, "-inf", "-inf" ]],
    "trans": [ { "to": 5, "lpTrans": 0.000000 } ]
   },
   {
@@ -44,7 +44,7 @@
    "name": "T5",
    "path": [ [ 0, "*" ] ],
    "seqPos": [ [ 0, 5 ] ],
-   "lpAbsorb": [ "-inf", "-inf", "-inf", 0.000000 ],
+   "lpAbsorb": [[ "-inf", "-inf", "-inf", 0.000000 ]],
    "trans": [ { "to": 6, "lpTrans": 0.000000 } ]
   },
   {

@@ -13,7 +13,7 @@ int main (int argc, char **argv) {
   FastSeq fs;
   fs.seq = (argv[2]);
 
-  Profile prof (alphabet, fs, 0);
+  Profile prof (1, alphabet, fs, 0);
   prof.writeJson (cout);
   
   exit (EXIT_SUCCESS);

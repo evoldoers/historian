@@ -19,7 +19,7 @@ int main (int argc, char **argv) {
 
   ProbModel xprobs (rates, atof (argv[2]));
   ProbModel yprobs (rates, atof (argv[argc > 3 ? 3 : 2]));
-  gsl_vector* eqm = rates.insProb;
+  vguard<gsl_vector*> eqm = rates.insProb;
   PairHMM hmm (xprobs, yprobs, eqm);
 
   FastSeq x, y;
@@ -29,8 +29,8 @@ int main (int argc, char **argv) {
   y.name = "y";
   y.seq = "cag";
   
-  Profile xprof (rates.alphabet, x, 1);
-  Profile yprof (rates.alphabet, y, 2);
+  Profile xprof (1, rates.alphabet, x, 1);
+  Profile yprof (1, rates.alphabet, y, 2);
 
   xprof.state[2].lpAbsorb.clear();
 
@@ -48,7 +48,7 @@ int main (int argc, char **argv) {
 	  allCells.insert (ForwardMatrix::CellCoords (xpos, ypos, s));
 
   Profile prof = forward.makeProfile (allCells, ForwardMatrix::KeepAll);
-  prof.calcSumPathAbsorbProbs (hmm.logRoot);
+  prof.calcSumPathAbsorbProbs (vguard<LogProb>(1,0), hmm.logRoot);
   prof.writeJson (cout);
 
   exit (EXIT_SUCCESS);

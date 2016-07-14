@@ -907,8 +907,7 @@ void IndelCounts::read (const JsonValue& json) {
 }
 
 void EventCounts::read (const JsonValue& json) {
-  AlphabetOwner alph;
-  alph.readAlphabet (json);
+  readAlphabet (json);
   rootCount.clear();
   subCount.clear();
   JsonMap jm (json);
@@ -927,7 +926,7 @@ void EventCounts::read (const JsonValue& json) {
 
 void EventCounts::readComponent (const JsonMap& jm) {
   vguard<double> rc (alphabetSize(), 0.);
-  vguard<vguard<double> > sc (alphabetSize(), 0.);
+  vguard<vguard<double> > sc (alphabetSize(), vguard<double> (alphabetSize(), 0.));
   JsonMap subBlock = jm.getObject("sub");
   JsonMap root = subBlock.getObject("root");
   JsonMap sub = subBlock.getObject("sub");

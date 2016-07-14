@@ -18,7 +18,7 @@ DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, cons
     subx (x.leftMultiply (hmm.l.subMat)),
     suby (y.leftMultiply (hmm.r.subMat)),
     cellStorage (x.size()),
-    absorbScratch (hmm.alphabetSize()),
+    absorbScratch (hmm.components(), vguard<LogProb> (hmm.alphabetSize())),
     insx (x.size(), -numeric_limits<double>::infinity()),
     insy (y.size(), -numeric_limits<double>::infinity()),
     rootsubx (x.size(), -numeric_limits<double>::infinity()),

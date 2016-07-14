@@ -32,9 +32,9 @@ int main (int argc, char **argv) {
   
   AlignColSumProduct colSumProd (rates, tree, gapped);
 
-  vguard<vguard<gsl_complex> > eigenCount (rates.alphabetSize(), vguard<gsl_complex> (rates.alphabetSize(), gsl_complex_rect(0,0)));
-  vguard<vguard<double> > count (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0));
-  vguard<double> root (rates.alphabetSize(), 0);
+  vguard<vguard<vguard<gsl_complex> > > eigenCount (1, vguard<vguard<gsl_complex> > (rates.alphabetSize(), vguard<gsl_complex> (rates.alphabetSize(), gsl_complex_rect(0,0))));
+  vguard<vguard<vguard<double> > > count (1, vguard<vguard<double> > (rates.alphabetSize(), vguard<double> (rates.alphabetSize(), 0)));
+  vguard<vguard<double> > root (1, vguard<double> (rates.alphabetSize(), 0));
 
   while (!colSumProd.alignmentDone()) {
     colSumProd.fillUp();

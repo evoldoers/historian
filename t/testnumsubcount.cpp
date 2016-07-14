@@ -32,17 +32,17 @@ int main (int argc, char **argv) {
   
   EigenModel eigen (rates);
 
-  gsl_matrix *sub = eigen.getSubProbMatrix(T);
-  gsl_matrix_complex *esub = eigen.eigenSubCount(T);
+  vguard<gsl_matrix*> sub = eigen.getSubProbMatrix(T);
+  vguard<gsl_matrix_complex*> esub = eigen.eigenSubCount(T);
 
-  const double count = eigen.getSubCount (a, b, i, j, sub, esub);
+  const double count = eigen.getSubCount (0, a, b, i, j, sub[0], esub[0]);
 
   const double nSteps = 1e5;
   const double tStep = T / nSteps;
   double numCount = 0;
   for (double t = 0; t < T; t += tStep)
-    numCount += eigen.getSubProb(t,a,i) * eigen.getSubProb(T-t-tStep,j,b);
-  numCount *= gsl_matrix_get (rates.subRate, i, j) * tStep / eigen.getSubProb(T,a,b);
+    numCount += eigen.getSubProb(0,t,a,i) * eigen.getSubProb(0,T-t-tStep,j,b);
+  numCount *= gsl_matrix_get (rates.subRate[0], i, j) * tStep / eigen.getSubProb(0,T,a,b);
 
   cout << "Eigenvector method: " << count << endl;
   cout << "Numerical integration: " << numCount << endl;
@@ -63,19 +63,21 @@ int main (int argc, char **argv) {
     jcNumCount /= jcProb(lambda,T,a,b);
     cout << "Jukes-Cantor numerical (lambda=" << lambda << "): " << jcNumCount << endl;
 
-    cout << "Rate(i->j): " << gsl_matrix_get (rates.subRate, i, j) << endl;
+    cout << "Rate(i->j): " << gsl_matrix_get (rates.subRate[0], i, j) << endl;
 
-    cout << "Eigen: P(a->i|T/3): " << eigen.getSubProb(T/3,a,i) << endl;
-    cout << "Eigen: P(j->b|2T/3): " << eigen.getSubProb(2*T/3,j,b) << endl;
-    cout << "Eigen: P(a->b|T): " << eigen.getSubProb(T,a,b) << endl;
+    cout << "Eigen: P(a->i|T/3): " << eigen.getSubProb(0,T/3,a,i) << endl;
+    cout << "Eigen: P(j->b|2T/3): " << eigen.getSubProb(0,2*T/3,j,b) << endl;
+    cout << "Eigen: P(a->b|T): " << eigen.getSubProb(0,T,a,b) << endl;
     
     cout << "JC exact: P(a->i|T/3): " << jcProb(lambda,T/3,a,i) << endl;
     cout << "JC exact: P(j->b|2T/3): " << jcProb(lambda,2*T/3,j,b) << endl;
     cout << "JC exact: P(a->b|T): " << jcProb(lambda,T,a,b) << endl;
   }
 
-  gsl_matrix_free (sub);
-  gsl_matrix_complex_free (esub);
+  for (auto& s: sub)
+    gsl_matrix_free (s);
+  for (auto& e: esub)
+    gsl_matrix_complex_free (e);
   
   exit (EXIT_SUCCESS);
 }

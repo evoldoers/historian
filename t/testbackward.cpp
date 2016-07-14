@@ -21,11 +21,11 @@ int main (int argc, char **argv) {
 
   ProbModel xprobs (rates, atof (argv[3]));
   ProbModel yprobs (rates, atof (argv[argc > 4 ? 4 : 3]));
-  gsl_vector* eqm = rates.insProb;
+  vguard<gsl_vector*> eqm = rates.insProb;
   PairHMM hmm (xprobs, yprobs, eqm);
 
-  Profile xprof (rates.alphabet, seqs[0], 1);
-  Profile yprof (rates.alphabet, seqs[1], 2);
+  Profile xprof (1, rates.alphabet, seqs[0], 1);
+  Profile yprof (1, rates.alphabet, seqs[1], 2);
   ForwardMatrix forward (xprof, yprof, hmm, 0, GuideAlignmentEnvelope());
   BackwardMatrix backward (forward);
 
