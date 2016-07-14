@@ -10,13 +10,17 @@ ProfileTransition::ProfileTransition()
   : lpTrans(-numeric_limits<double>::infinity())
 { }
 
-ProfileState::ProfileState (AlphTok alphSize)
-  : lpAbsorb(alphSize,-numeric_limits<double>::infinity())
+ProfileState::ProfileState()
 { }
 
-Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowIndex)
-  : alphSize ((AlphTok) alphabet.size()),
-    state (seq.length() + 2, ProfileState ((AlphTok) alphabet.size())),
+ProfileState::ProfileState (size_t components, AlphTok alphSize)
+  : lpAbsorb (components, vguard<LogProb> (alphSize, -numeric_limits<double>::infinity()))
+{ }
+
+Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq, AlignRowIndex rowIndex)
+  : components (components),
+    alphSize ((AlphTok) alphabet.size()),
+    state (seq.length() + 2, ProfileState (components, (AlphTok) alphabet.size())),
     trans (seq.length() + 1)
 {
   name = seq.name;
@@ -41,26 +45,28 @@ Profile::Profile (const string& alphabet, const FastSeq& seq, AlignRowIndex rowI
       state[pos+1].alignPath[rowIndex].push_back (true);
       state[pos+1].seqCoords[rowIndex] = pos + 1;
       auto& lpAbsorb = state[pos+1].lpAbsorb;
-      if (Alignment::isWildcard (seq.seq[pos]))
-	fill (lpAbsorb.begin(), lpAbsorb.end(), 0);
-      else
-	lpAbsorb[dsq[pos]] = 0;
+      for (auto& lpa: lpAbsorb)
+	if (Alignment::isWildcard (seq.seq[pos]))
+	  fill (lpa.begin(), lpa.end(), 0);
+	else
+	  lpa[dsq[pos]] = 0;
     }
   }
   this->seq[rowIndex] = seq.seq;
 }
 
-Profile Profile::leftMultiply (gsl_matrix* sub) const {
+Profile Profile::leftMultiply (const vguard<gsl_matrix*>& sub) const {
   Profile prof (*this);
   for (ProfileStateIndex i = 0; i < size(); ++i)
-    if (!state[i].isNull()) {
-      for (AlphTok c = 0; c < alphSize; ++c) {
-	LogProb lp = -numeric_limits<double>::infinity();
-	for (AlphTok d = 0; d < alphSize; ++d)
-	  lp = log_sum_exp (lp, log (gsl_matrix_get(sub,c,d)) + state[i].lpAbsorb[d]);
-	prof.state[i].lpAbsorb[c] = lp;
+    if (!state[i].isNull())
+      for (int cpt = 0; cpt < components; ++cpt) {
+	for (AlphTok c = 0; c < alphSize; ++c) {
+	  LogProb lp = -numeric_limits<double>::infinity();
+	  for (AlphTok d = 0; d < alphSize; ++d)
+	    lp = log_sum_exp (lp, log (gsl_matrix_get(sub[cpt],c,d)) + state[i].lpAbsorb[cpt][d]);
+	  prof.state[i].lpAbsorb[cpt][c] = lp;
+	}
       }
-    }
   return prof;
 }
 
@@ -83,11 +89,16 @@ map<AlignRowIndex,char> Profile::alignColumn (ProfileStateIndex s) const {
   return col;
 }
 
-LogProb Profile::calcSumPathAbsorbProbs (const vguard<LogProb>& input, const char* tag) {
+LogProb Profile::calcSumPathAbsorbProbs (const vguard<LogProb>& logCptWeight, const vguard<vguard<LogProb> >& logInsProb, const char* tag) {
   vguard<LogProb> lpCumAbs (state.size(), -numeric_limits<double>::infinity());
   lpCumAbs[0] = 0;
   for (ProfileStateIndex pos = 1; pos < state.size(); ++pos) {
-    const LogProb lpAbs = state[pos].isNull() ? 0 : logInnerProduct (input, state[pos].lpAbsorb);
+    LogProb lpAbs = 0;
+    if (!state[pos].isNull()) {
+      lpAbs = -numeric_limits<double>::infinity();
+      for (int cpt = 0; cpt < components; ++cpt)
+	log_accum_exp (lpAbs, logCptWeight[cpt] + logInnerProduct (logInsProb[cpt], state[pos].lpAbsorb[cpt]));
+    }
     for (auto ti : state[pos].in) {
       const ProfileTransition& t = trans[ti];
       Assert (t.src < pos, "Transition #%u from %u -> %u is not toposorted", ti, t.src, t.dest);
