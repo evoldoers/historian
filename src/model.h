@@ -83,7 +83,7 @@ public:
 
   vguard<gsl_matrix_complex*> eigenSubCount (double t) const;
   double getSubCount (int component, AlphTok a, AlphTok b, AlphTok i, AlphTok j, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
-  void accumSubCounts (vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
+  void accumSubCounts (int component, vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const;
 
   double getSubProb (int component, double t, AlphTok i, AlphTok j) const;
   vguard<gsl_matrix*> getSubProbMatrix (double t) const;

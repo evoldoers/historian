@@ -1252,10 +1252,10 @@ double EigenModel::getSubCount (int cpt, AlphTok a, AlphTok b, AlphTok i, AlphTo
   return max (0., (i == j ? 1. : r_ij) * GSL_REAL(c_ij) / p_ab);
 }
 
-void EigenModel::accumSubCounts (vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
+void EigenModel::accumSubCounts (int cpt, vguard<vguard<double> >& count, AlphTok a, AlphTok b, double weight, const gsl_matrix* sub, const gsl_matrix_complex* eSubCount) const {
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-      count[i][j] += getSubCount (a, b, i, j, sub, eSubCount) * weight;
+      count[i][j] += getSubCount (cpt, a, b, i, j, sub, eSubCount) * weight;
 }
 
 vguard<gsl_matrix_complex*> EigenModel::eigenSubCount (double t) const {

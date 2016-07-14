@@ -16,15 +16,16 @@ struct SumProductStorage {
   // E_n(x_p): function->variable, tip->root messages
   // G_n(x_n): function->variable, root->tip messages
   // G_p(x_p)*E_s(x_p): variable->function, root->tip messages
-  vguard<vguard<double> > E, F, G;
-  vguard<LogProb> logE, logF, logG;  // logs of rescaling factors, used to prevent underflow
+  vguard<vguard<vguard<double> > > E, F, G;
+  vguard<vguard<LogProb> > logE, logF, logG;  // logs of rescaling factors, used to prevent underflow
   
   vguard<char> gappedCol;
   vguard<AlignRowIndex> ungappedRows, roots;
 
+  vguard<LogProb> cptLogLike;
   LogProb colLogLike;  // marginal likelihood, all unobserved states summed out
 
-  SumProductStorage (size_t nodes, size_t alphabetSize);
+  SumProductStorage (size_t components, size_t nodes, size_t alphabetSize);
   SumProductStorage() { }
 };
 
@@ -38,8 +39,8 @@ public:
 
   vguard<TreeNodeIndex> preorder, postorder;  // modify these to visit only subsets of nodes. postorder for fillUp(), preorder for fillDown()
   
-  vguard<double> insProb;
-  vguard<vguard<vguard<double> > > branchSubProb;  // branchSubProb[node][parentState][nodeState]
+  vguard<vguard<double> > insProb;  // insProb[cpt][state]
+  vguard<vguard<vguard<vguard<double> > > > branchSubProb;  // branchSubProb[cpt][node][parentState][nodeState]
 
   EigenModel eigen;
   vguard<gsl_matrix_complex*> branchEigenSubCount;
@@ -62,19 +63,17 @@ public:
   void fillUp();  // E, F
   void fillDown();  // G
   
-  vguard<LogProb> logNodePostProb (AlignRowIndex node) const;
-  vguard<LogProb> logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude, bool normalize = true) const;
-  LogProb logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
-  AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction
+  vguard<LogProb> logNodePostProb (AlignRowIndex node) const;  // marginalizes out component
+  vguard<vguard<LogProb> > logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude, bool normalize = true) const;
+  LogProb logBranchPostProb (int component, AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const;
+  AlphTok maxPostState (AlignRowIndex node) const;  // maximum a posteriori reconstruction, component marginalized
 
-  void accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguard<gsl_complex> >& eigenCounts, double weight = 1.) const;
-  vguard<vguard<double> > getSubCounts (vguard<vguard<gsl_complex> >& eigenCounts) const;  // wait times on diagonal
-
-  void accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight = 1) const;
+  void accumulateEigenCounts (vguard<vguard<double> >& rootCounts, vguard<vguard<vguard<gsl_complex> > >& eigenCounts, double weight = 1.) const;
+  void accumulateSubCounts (vguard<vguard<double> >& rootCounts, vguard<vguard<vguard<double> > >& subCounts, double weight = 1) const;
 
 private:
   void initColumn();  // populates ungappedRows
-  void accumulateRootCounts (vguard<double>& rootCounts, double weight = 1) const;
+  void accumulateRootCounts (vguard<vguard<double> >& rootCounts, double weight = 1) const;
   
   SumProduct (const SumProduct&) = delete;
   SumProduct& operator= (const SumProduct&) = delete;
