@@ -7,43 +7,50 @@
 
 #define SUMPROD_RESCALE_THRESHOLD 1e-30
 
-SumProductStorage::SumProductStorage (size_t nodes, size_t alphabetSize)
+SumProductStorage::SumProductStorage (size_t components, size_t nodes, size_t alphabetSize)
   : gappedCol (nodes),
-    E (nodes, vguard<double> (alphabetSize)),
-    F (nodes, vguard<double> (alphabetSize)),
-    G (nodes, vguard<double> (alphabetSize)),
-    logE (nodes),
-    logF (nodes),
-    logG (nodes)
+    E (components, vguard<vguard<double> > (nodes, vguard<double> (alphabetSize))),
+    F (components, vguard<vguard<double> > (nodes, vguard<double> (alphabetSize))),
+    G (components, vguard<vguard<double> > (nodes, vguard<double> (alphabetSize))),
+    logE (components, vguard<double> (nodes)),
+    logF (components, vguard<double> (nodes)),
+    logG (components, vguard<double> (nodes))
 { }
 
 SumProduct::SumProduct (const RateModel& model, const Tree& tree)
-  : SumProductStorage (tree.nodes(), model.alphabetSize()),
+  : SumProductStorage (model.components(), tree.nodes(), model.alphabetSize()),
     model (model),
     tree (tree),
     preorder (tree.preorderSort()),
     postorder (tree.postorderSort()),
     eigen (model),
-    insProb (model.alphabetSize()),
-    branchSubProb (tree.nodes(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize()))),
-    branchEigenSubCount (tree.nodes())
+    insProb (model.components(), vguard<double> (model.alphabetSize())),
+    branchSubProb (model.components(), vguard<vguard<vguard<double> > > (tree.nodes(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize())))),
+    branchEigenSubCount (model.components(), vguard<gsl_matrix_complex*> (tree.nodes()))
 {
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    insProb[i] = gsl_vector_get (model.insProb, i);
-  for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r) {
-    ProbModel pm (model, tree.branchLength(r));
+  for (int cpt = 0; cpt < components(); ++cpt)
     for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-      for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-	branchSubProb[r][i][j] = gsl_matrix_get (pm.subMat, i, j);
+      insProb[cpt][i] = gsl_vector_get (model.insProb[cpt], i);
+
+  for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r) {
+      ProbModel pm (model, tree.branchLength(r));
+      for (int cpt = 0; cpt < components(); ++cpt)
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+	    branchSubProb[cpt][r][i][j] = gsl_matrix_get (pm.subMat[cpt], i, j);
   }
 
-  for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r)
-    branchEigenSubCount[r] = eigen.eigenSubCount (tree.branchLength(r));
+  for (AlignRowIndex r = 0; r < tree.nodes() - 1; ++r) {
+    vguard<gsl_matrix_complex*> esc = eigen.eigenSubCount (tree.branchLength(r));
+    for (int cpt = 0; cpt < components(); ++cpt)
+      branchEigenSubCount[cpt][r] = esc[cpt];
+  }
 }
 
 SumProduct::~SumProduct() {
-  for (auto m : branchEigenSubCount)
-    gsl_matrix_complex_free (m);
+  for (int cpt = 0; cpt < components(); ++cpt)
+    for (auto m : branchEigenSubCount[cpt])
+      gsl_matrix_complex_free (m);
 }
 
 void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
@@ -63,8 +70,10 @@ void SumProduct::initColumn (const map<AlignRowIndex,char>& seq) {
   
   for (TreeNodeIndex r = 0; r < tree.nodes(); ++r)
     if (isGap(r)) {
-      fill (E[r].begin(), E[r].end(), 1);
-      logE[r] = 0;
+      for (int cpt = 0; cpt < components(); ++cpt) {
+	fill (E[cpt][r].begin(), E[cpt][r].end(), 1);
+	logE[cpt][r] = 0;
+      }
     } else {
       //      Require (isWild(r) || ungappedKids[r] == 0, "At node %u (%s), char %c: internal node sequences must be wildcards (%c)", r, tree.seqName(r).c_str(), seq.at(r), Alignment::wildcardChar);
       const TreeNodeIndex rp = tree.parentNode(r);

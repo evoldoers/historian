@@ -43,7 +43,7 @@ public:
   vguard<vguard<vguard<vguard<double> > > > branchSubProb;  // branchSubProb[cpt][node][parentState][nodeState]
 
   EigenModel eigen;
-  vguard<gsl_matrix_complex*> branchEigenSubCount;
+  vguard<vguard<gsl_matrix_complex*> > branchEigenSubCount;
   
   SumProduct (const RateModel& model, const Tree& tree);
   ~SumProduct();
@@ -51,6 +51,8 @@ public:
   void initColumn (const map<AlignRowIndex,char>& seq);
   AlignRowIndex columnRoot() const;
 
+  inline int components() const { return model.components(); }
+  
   inline const vguard<AlignRowIndex>& ungappedRowIndices() const { return ungappedRows; }
   inline LogProb columnLogLikelihood() const { return colLogLike; }
   
