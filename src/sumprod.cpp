@@ -205,51 +205,53 @@ LogProb SumProduct::computeColumnLogLikelihoodAt (AlignRowIndex node) const {
   return lp;
 }
 
-// TODO: REFACTOR FROM HERE
 vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   assertSingleRoot();
-  vguard<LogProb> lpp (model.alphabetSize());
+  vguard<LogProb> lpp (model.alphabetSize(), -numeric_limits<double>::infinity());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    lpp[i] = logF[node] + log(F[node][i]) + logG[node] + log(G[node][i]) - colLogLike;
+    for (int cpt = 0; cpt < components(); ++cpt)
+      log_accum_exp (lpp[i], logF[cpt][node] + log(F[cpt][node][i]) + logG[cpt][node] + log(G[cpt][node][i]) - colLogLike);
   return lpp;
 }
 
-vguard<LogProb> SumProduct::logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude, bool normalize) const {
+vguard<vguard<LogProb> > SumProduct::logNodeExcludedPostProb (TreeNodeIndex node, TreeNodeIndex exclude, bool normalize) const {
   Require (!isGap(node), "Attempt to find posterior probability of sequence at gapped position");
-  if (!isWild(node)) {
-    if (!normalize)
-      Warn ("non-normalized profile unimplemented when sequence is specified!");
-    vguard<LogProb> lpDelta (model.alphabetSize(), -numeric_limits<double>::infinity());
-    lpDelta[model.tokenize(gappedCol[node])] = 0;
-    return lpDelta;
-  }
-  vguard<LogProb> lpp (model.alphabetSize(), 0);
-  for (size_t nc = 0; nc < tree.nChildren(node); ++nc) {
-    const TreeNodeIndex child = tree.getChild(node,nc);
-    if (child != exclude)
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	lpp[i] += log (E[child][i]);
-  }
-  const TreeNodeIndex parent = tree.parentNode (node);
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    lpp[i] += parent == exclude
-      ? 0 // to add a prior for orphaned nodes, this should be log(insProb[i]), but that complicates MCMC etc
-      : log(G[node][i]);
-  if (normalize) {
-    LogProb norm = -numeric_limits<double>::infinity();
-    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-      log_accum_exp (norm, lpp[i]);
+  const UnvalidatedAlphTok tok = isWild(node) ? -1 : model.tokenize(gappedCol[node]);
+  vguard<LogProb> lppInit (model.alphabetSize(), isWild(node) ? 0 : -numeric_limits<double>::infinity());
+  if (!isWild(node))
+    lppInit[tok] = 0;
+  vguard<vguard<LogProb> > v (model.components(), lppInit);
+  LogProb norm = -numeric_limits<double>::infinity();
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    vguard<LogProb>& lpp = v[cpt];
     for (auto& lp: lpp)
-      lp -= norm;
+      lp += logCptWeight[cpt];
+    for (size_t nc = 0; nc < tree.nChildren(node); ++nc) {
+      const TreeNodeIndex child = tree.getChild(node,nc);
+      if (child != exclude)
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  lpp[i] += log (E[cpt][child][i]) + logE[cpt][child];
+    }
+    const TreeNodeIndex parent = tree.parentNode (node);
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+      lpp[i] += parent == exclude
+	? 0 // to add a prior for orphaned nodes, this should be log(insProb[i]), but that complicates MCMC etc
+	: (log(G[cpt][node][i]) + logG[cpt][node]);
+      log_accum_exp (norm, lpp[i]);
+    }
   }
-  return lpp;
+  if (normalize)
+    for (auto& lpp: v)
+      for (auto& lp: lpp)
+	lp -= norm;
+  return v;
 }
 
-LogProb SumProduct::logBranchPostProb (AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const {
+LogProb SumProduct::logBranchPostProb (int cpt, AlignRowIndex node, AlphTok parentState, AlphTok nodeState) const {
   assertSingleRoot();
   const TreeNodeIndex parent = tree.parentNode(node);
   const TreeNodeIndex sibling = tree.getSibling(node);
-  return logG[parent] + log(G[parent][parentState]) + log(branchSubProb[node][parentState][nodeState]) + logF[node] + log(F[node][nodeState]) + logE[sibling] + log(E[sibling][parentState]) - colLogLike;
+  return logCptWeight[cpt] + logG[cpt][parent] + log(G[cpt][parent][parentState]) + log(branchSubProb[cpt][node][parentState][nodeState]) + logF[cpt][node] + log(F[cpt][node][nodeState]) + logE[cpt][sibling] + log(E[cpt][sibling][parentState]) - colLogLike;
 }
 
 AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
@@ -257,14 +259,16 @@ AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
   return (AlphTok) (max_element(lpp.begin(),lpp.end()) - lpp.begin());
 }
 
-void SumProduct::accumulateRootCounts (vguard<double>& rootCounts, double weight) const {
+void SumProduct::accumulateRootCounts (vguard<vguard<double> >& rootCounts, double weight) const {
   const auto rootNode = columnRoot();
-  const double norm = exp (logF[rootNode] - colLogLike);
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    rootCounts[i] += weight * insProb[i] * F[rootNode][i] * norm;
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    const double norm = exp (logF[cpt][rootNode] - colLogLike);
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      rootCounts[cpt][i] += weight * insProb[cpt][i] * F[cpt][rootNode][i] * norm;
+  }
 }
 
-void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<double> >& subCounts, double weight) const {
+void SumProduct::accumulateSubCounts (vguard<vguard<double> >& rootCounts, vguard<vguard<vguard<double> > >& subCounts, double weight) const {
   LogThisAt(8,"Accumulating substitution counts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts, weight);
 
@@ -273,11 +277,15 @@ void SumProduct::accumulateSubCounts (vguard<double>& rootCounts, vguard<vguard<
     if (node != rootNode) {
       LogThisAt(9,"Accumulating substitution counts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
-      gsl_matrix* submat = model.getSubProbMatrix (tree.branchLength(node));
-      for (AlphTok a = 0; a < model.alphabetSize(); ++a)
-	for (AlphTok b = 0; b < model.alphabetSize(); ++b)
-	  eigen.accumSubCounts (subCounts, a, b, weight * exp (logBranchPostProb (node, a, b)), submat, branchEigenSubCount[node]);
-      gsl_matrix_free (submat);
+      vguard<gsl_matrix*> submat = model.getSubProbMatrix (tree.branchLength(node));
+      for (int cpt = 0; cpt < components(); ++cpt) {
+	LogThisAt(9,"Accumulating substitution counts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << " component #" << cpt << endl);
+	for (AlphTok a = 0; a < model.alphabetSize(); ++a)
+	  for (AlphTok b = 0; b < model.alphabetSize(); ++b)
+	    eigen.accumSubCounts (cpt, subCounts[cpt], a, b, weight * exp (logBranchPostProb (cpt, node, a, b)), submat[cpt], branchEigenSubCount[cpt][node]);
+      }
+      for (auto& sm: submat)
+	gsl_matrix_free (sm);
     }
 }
 
@@ -295,63 +303,66 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
       LogThisAt(9,"Accumulating eigencounts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << endl);
       const TreeNodeIndex parent = tree.parentNode(node);
       const TreeNodeIndex sibling = tree.getSibling(node);
-      const vguard<double>& U0 = F[node];
-      for (AlphTok i = 0; i < A; ++i)
-	D0[i] = G[parent][i] * E[sibling][i];
-      const double maxU0 = *max_element (U0.begin(), U0.end());
-      const double maxD0 = *max_element (D0.begin(), D0.end());
-      const double norm = exp (colLogLike - logF[node] - logG[parent] - logE[sibling]) / (maxU0 * maxD0);
+      for (int cpt = 0; cpt < components(); ++cpt) {
+	LogThisAt(9,"Accumulating eigencounts, column " << join(gappedCol,"") << " node " << tree.seqName(node) << " component #" << cpt << endl);
+	const vguard<double>& U0 = F[cpt][node];
+	for (AlphTok i = 0; i < A; ++i)
+	  D0[i] = G[cpt][parent][i] * E[cpt][sibling][i];
+	const double maxU0 = *max_element (U0.begin(), U0.end());
+	const double maxD0 = *max_element (D0.begin(), D0.end());
+	const double norm = exp (colLogLike - logF[cpt][node] - logG[cpt][parent] - logE[cpt][sibling]) / (maxU0 * maxD0);
 
-      // U[b] = U0[b] / maxU0; Ubasis[l] = sum_b U[b] * evecInv[l][b]
-      for (AlphTok b = 0; b < A; ++b)
-	U[b] = U0[b] / maxU0;
-
-      for (AlphTok l = 0; l < A; ++l) {
-	Ubasis[l] = gsl_complex_rect (0, 0);
+	// U[b] = U0[b] / maxU0; Ubasis[l] = sum_b U[b] * evecInv[l][b]
 	for (AlphTok b = 0; b < A; ++b)
-	  Ubasis[l] = gsl_complex_add
-	    (Ubasis[l],
-	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv, l, b),
-				   U[b]));
-      }
+	  U[b] = U0[b] / maxU0;
 
-      // D[a] = D0[a] / maxD0; Dbasis[k] = sum_a D[a] * evec[a][k]
-      for (AlphTok a = 0; a < A; ++a)
-	D[a] = D0[a] / maxD0;
+	for (AlphTok l = 0; l < A; ++l) {
+	  Ubasis[l] = gsl_complex_rect (0, 0);
+	  for (AlphTok b = 0; b < A; ++b)
+	    Ubasis[l] = gsl_complex_add
+	      (Ubasis[l],
+	       gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv, l, b),
+				     U[b]));
+	}
 
-      for (AlphTok k = 0; k < A; ++k) {
-	Dbasis[k] = gsl_complex_rect (0, 0);
+	// D[a] = D0[a] / maxD0; Dbasis[k] = sum_a D[a] * evec[a][k]
 	for (AlphTok a = 0; a < A; ++a)
-	  Dbasis[k] = gsl_complex_add
-	    (Dbasis[k],
-	     gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec, a, k),
-				   D[a]));
-      }
+	  D[a] = D0[a] / maxD0;
 
-      // R = evec * evals * evecInv
-      // exp(RT) = evec * exp(evals T) * evecInv
-      // count(i,j|a,b,T) = Q / exp(RT)_ab
-      // where...
-      // Q = \sum_a \sum_b \int_{t=0}^T D_a exp(Rt)_ai R_ij exp(R(T-t))_jb U_b dt
-      //   = \sum_a \sum_b \int_{t=0}^T D_a (\sum_k evec_ak exp(eval_k t) evecInv_ki) R_ij (\sum_l evec_jl exp(eval_l (T-t)) evecInv_lb) U_b dt
-      //   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b \int_{t=0}^T exp(eval_k t) exp(eval_l (T-t)) dt
-      //   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b eigenSubCount(k,l,T)
-      //   = R_ij \sum_k evecInv_ki \sum_l evec_jl (\sum_a D_a evec_ak) (\sum_b U_b evecInv_lb) eigenSubCount(k,l,T)
-      //   = R_ij \sum_k evecInv_ki \sum_l evec_jl Dbasis_k Ubasis_l eigenSubCount(k,l,T)
-
-      // eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
-      for (AlphTok k = 0; k < A; ++k)
-	for (AlphTok l = 0; l < A; ++l)
-	  eigenCounts[k][l] =
-	    gsl_complex_add
-	    (eigenCounts[k][l],
-	     gsl_complex_mul_real
-	     (gsl_complex_mul
+	for (AlphTok k = 0; k < A; ++k) {
+	  Dbasis[k] = gsl_complex_rect (0, 0);
+	  for (AlphTok a = 0; a < A; ++a)
+	    Dbasis[k] = gsl_complex_add
 	      (Dbasis[k],
-	       gsl_complex_mul
-	       (gsl_matrix_complex_get (branchEigenSubCount[node], k, l),
-		Ubasis[l])),
-	      weight / norm));
+	       gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec, a, k),
+				     D[a]));
+	}
+
+	// R = evec * evals * evecInv
+	// exp(RT) = evec * exp(evals T) * evecInv
+	// count(i,j|a,b,T) = Q / exp(RT)_ab
+	// where...
+	// Q = \sum_a \sum_b \int_{t=0}^T D_a exp(Rt)_ai R_ij exp(R(T-t))_jb U_b dt
+	//   = \sum_a \sum_b \int_{t=0}^T D_a (\sum_k evec_ak exp(eval_k t) evecInv_ki) R_ij (\sum_l evec_jl exp(eval_l (T-t)) evecInv_lb) U_b dt
+	//   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b \int_{t=0}^T exp(eval_k t) exp(eval_l (T-t)) dt
+	//   = \sum_a \sum_b D_a \sum_k evec_ak evecInv_ki R_ij \sum_l evec_jl evecInv_lb U_b eigenSubCount(k,l,T)
+	//   = R_ij \sum_k evecInv_ki \sum_l evec_jl (\sum_a D_a evec_ak) (\sum_b U_b evecInv_lb) eigenSubCount(k,l,T)
+	//   = R_ij \sum_k evecInv_ki \sum_l evec_jl Dbasis_k Ubasis_l eigenSubCount(k,l,T)
+
+	// eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
+	for (AlphTok k = 0; k < A; ++k)
+	  for (AlphTok l = 0; l < A; ++l)
+	    eigenCounts[k][l] =
+	      gsl_complex_add
+	      (eigenCounts[k][l],
+	       gsl_complex_mul_real
+	       (gsl_complex_mul
+		(Dbasis[k],
+		 gsl_complex_mul
+		 (gsl_matrix_complex_get (branchEigenSubCount[cpt][node], k, l),
+		  Ubasis[l])),
+		weight / norm));
+      }
     }
 }
 
