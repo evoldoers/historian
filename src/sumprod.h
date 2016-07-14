@@ -38,7 +38,8 @@ public:
   const Tree& tree;
 
   vguard<TreeNodeIndex> preorder, postorder;  // modify these to visit only subsets of nodes. postorder for fillUp(), preorder for fillDown()
-  
+
+  vguard<LogProb> logCptWeight;  // logCptWeight[cpt]
   vguard<vguard<double> > insProb;  // insProb[cpt][state]
   vguard<vguard<vguard<vguard<double> > > > branchSubProb;  // branchSubProb[cpt][node][parentState][nodeState]
 

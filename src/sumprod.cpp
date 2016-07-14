@@ -14,7 +14,8 @@ SumProductStorage::SumProductStorage (size_t components, size_t nodes, size_t al
     G (components, vguard<vguard<double> > (nodes, vguard<double> (alphabetSize))),
     logE (components, vguard<double> (nodes)),
     logF (components, vguard<double> (nodes)),
-    logG (components, vguard<double> (nodes))
+    logG (components, vguard<double> (nodes)),
+    cptLogLike (components)
 { }
 
 SumProduct::SumProduct (const RateModel& model, const Tree& tree)
@@ -26,7 +27,8 @@ SumProduct::SumProduct (const RateModel& model, const Tree& tree)
     eigen (model),
     insProb (model.components(), vguard<double> (model.alphabetSize())),
     branchSubProb (model.components(), vguard<vguard<vguard<double> > > (tree.nodes(), vguard<vguard<double> > (model.alphabetSize(), vguard<double> (model.alphabetSize())))),
-    branchEigenSubCount (model.components(), vguard<gsl_matrix_complex*> (tree.nodes()))
+    branchEigenSubCount (model.components(), vguard<gsl_matrix_complex*> (tree.nodes())),
+    logCptWeight (log_vector (model.cptWeight))
 {
   for (int cpt = 0; cpt < components(); ++cpt)
     for (AlphTok i = 0; i < model.alphabetSize(); ++i)
@@ -95,107 +97,115 @@ void SumProduct::assertSingleRoot() const {
 }
   
 void SumProduct::fillUp() {
-  LogThisAt(8,"Sending tip-to-root messages, column " << join(gappedCol,"") << endl);
-  colLogLike = 0;
-  for (auto r : postorder) {
-    logF[r] = 0;
-    for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
-      logF[r] += logE[tree.getChild(r,nc)];
-    if (!isGap(r)) {
-      const char c = gappedCol[r];
-      if (Alignment::isWildcard(c)) {
-	double Fmax = 0;
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	  double Fi = 1;
+  colLogLike = -numeric_limits<double>::infinity();
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    LogThisAt(8,"Sending tip-to-root messages, component #" << cpt << " column " << join(gappedCol,"") << endl);
+    cptLogLike[cpt] = 0;
+    for (auto r : postorder) {
+      logF[cpt][r] = 0;
+      for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
+	logF[cpt][r] += logE[tree.getChild(r,nc)];
+      if (!isGap(r)) {
+	const char c = gappedCol[r];
+	if (Alignment::isWildcard(c)) {
+	  double Fmax = 0;
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	    double Fi = 1;
+	    for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
+	      Fi *= E[cpt][tree.getChild(r,nc)][i];
+	    F[cpt][r][i] = Fi;
+	    if (Fi > Fmax)
+	      Fmax = Fi;
+	  }
+	  if (Fmax < SUMPROD_RESCALE_THRESHOLD) {
+	    for (auto& Fi: F[cpt][r])
+	      Fi /= Fmax;
+	    logF[cpt][r] += log (Fmax);
+	  }
+	} else {  // !isWild(r)
+	  const AlphTok tok = model.tokenize(c);
+	  double Ftok = 1;
 	  for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
-	    Fi *= E[tree.getChild(r,nc)][i];
-	  F[r][i] = Fi;
-	  if (Fi > Fmax)
-	    Fmax = Fi;
-	}
-	if (Fmax < SUMPROD_RESCALE_THRESHOLD) {
-	  for (auto& Fi: F[r])
-	    Fi /= Fmax;
-	  logF[r] += log (Fmax);
-	}
-      } else {  // !isWild(r)
-	const AlphTok tok = model.tokenize(c);
-	double Ftok = 1;
-	for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
-	  Ftok *= E[tree.getChild(r,nc)][tok];
+	    Ftok *= E[cpt][tree.getChild(r,nc)][tok];
 
-	if (Ftok < SUMPROD_RESCALE_THRESHOLD) {
-	  logF[r] += log (Ftok);
-	  Ftok = 1;
+	  if (Ftok < SUMPROD_RESCALE_THRESHOLD) {
+	    logF[cpt][r] += log (Ftok);
+	    Ftok = 1;
+	  }
+
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	    F[cpt][r][i] = 0;
+	  F[cpt][r][tok] = Ftok;
 	}
 
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	  F[r][i] = 0;
-	F[r][tok] = Ftok;
-      }
+	LogThisAt(10,"Row " << setw(3) << r << " " << c << " " << cpt
+		  << " logF=" << setw(9) << setprecision(3) << logF[cpt][r]
+		  << " F=(" << to_string_join(F[cpt][r]," ",9,3) << ")" << endl);
 
-      LogThisAt(10,"Row " << setw(3) << r << " " << c
-		<< " logF=" << setw(9) << setprecision(3) << logF[r]
-		<< " F=(" << to_string_join(F[r]," ",9,3) << ")" << endl);
-
-      const TreeNodeIndex rp = tree.parentNode(r);
-      if (rp < 0 || isGap(rp))
-	colLogLike += logF[r] + log (inner_product (F[r].begin(), F[r].end(), insProb.begin(), 0.));
-      else {
-	logE[r] = logF[r];
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	  double Ei = 0;
-	  for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-	    Ei += branchSubProb[r][i][j] * F[r][j];
-	  E[r][i] = Ei;
+	const TreeNodeIndex rp = tree.parentNode(r);
+	if (rp < 0 || isGap(rp))
+	  cptLogLike[cpt] += logF[cpt][r] + log (inner_product (F[cpt][r].begin(), F[cpt][r].end(), insProb[cpt].begin(), 0.));
+	else {
+	  logE[cpt][r] = logF[cpt][r];
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	    double Ei = 0;
+	    for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+	      Ei += branchSubProb[cpt][r][i][j] * F[cpt][r][j];
+	    E[cpt][r][i] = Ei;
+	  }
 	}
       }
     }
+    log_accum_exp (colLogLike, logCptWeight[cpt] + cptLogLike[cpt]);
   }
 }
 
 void SumProduct::fillDown() {
-  LogThisAt(8,"Sending root-to-tip messages, column " << join(gappedCol,"") << endl);
-  if (!columnEmpty()) {
-    for (auto r: preorder) {
-      if (!isGap(r)) {
-	const TreeNodeIndex rp = tree.parentNode(r);
-	if (rp < 0 || isGap(rp)) {
-	  G[r] = insProb;
-	  logG[r] = 0;
-	} else {
-	  const vguard<TreeNodeIndex> rsibs = tree.getSiblings(r);
-	  logG[r] = logG[rp];
-	  for (auto rs: rsibs)
-	    logG[r] += logE[rs];
-	  for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
-	    double Gj = 0;
-	    for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	      double p = G[rp][i] * branchSubProb[r][i][j];
-	      for (auto rs: rsibs)
-		if (!isGap(rs))
-		  p *= E[rs][i];
-	      Gj += p;
+  for (int cpt = 0; cpt < components(); ++cpt) {
+    LogThisAt(8,"Sending root-to-tip messages, component #" << cpt << " column " << join(gappedCol,"") << endl);
+    if (!columnEmpty()) {
+      for (auto r: preorder) {
+	if (!isGap(r)) {
+	  const TreeNodeIndex rp = tree.parentNode(r);
+	  if (rp < 0 || isGap(rp)) {
+	    G[cpt][r] = insProb[cpt];
+	    logG[cpt][r] = 0;
+	  } else {
+	    const vguard<TreeNodeIndex> rsibs = tree.getSiblings(r);
+	    logG[cpt][r] = logG[cpt][rp];
+	    for (auto rs: rsibs)
+	      logG[cpt][r] += logE[cpt][rs];
+	    for (AlphTok j = 0; j < model.alphabetSize(); ++j) {
+	      double Gj = 0;
+	      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+		double p = G[cpt][rp][i] * branchSubProb[cpt][r][i][j];
+		for (auto rs: rsibs)
+		  if (!isGap(rs))
+		    p *= E[cpt][rs][i];
+		Gj += p;
+	      }
+	      G[cpt][r][j] = Gj;
 	    }
-	    G[r][j] = Gj;
 	  }
 	}
-      }
 
-      LogThisAt(10,"Row " << setw(3) << r << " " << gappedCol[r]
-		<< " logG=" << setw(9) << setprecision(3) << logG[r]
-		<< " G=(" << to_string_join(G[r]," ",9,3) << ")" << endl);
+	LogThisAt(10,"Row " << setw(3) << r << " " << cpt << " " << gappedCol[r]
+		  << " logG=" << setw(9) << setprecision(3) << logG[cpt][r]
+		  << " G=(" << to_string_join(G[cpt][r]," ",9,3) << ")" << endl);
+      }
     }
   }
 }
 
 LogProb SumProduct::computeColumnLogLikelihoodAt (AlignRowIndex node) const {
   LogProb lp = -numeric_limits<double>::infinity();
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-    log_accum_exp (lp, logF[node] + log(F[node][i]) + logG[node] + log(G[node][i]));
+  for (int cpt = 0; cpt < components(); ++cpt)
+    for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+      log_accum_exp (lp, logCptWeight[cpt] + logF[cpt][node] + log(F[cpt][node][i]) + logG[cpt][node] + log(G[cpt][node][i]));
   return lp;
 }
 
+// TODO: REFACTOR FROM HERE
 vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   assertSingleRoot();
   vguard<LogProb> lpp (model.alphabetSize());
