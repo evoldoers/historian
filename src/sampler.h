@@ -231,7 +231,7 @@ struct Sampler : TreeAlignFuncs {
     const RateModel& model;
     const ProbModel lProbModel, rProbModel;
     const LogProbModel lLogProbModel, rLogProbModel;
-    const vguard<LogProb> logRoot;
+    const vguard<vguard<LogProb> > logRoot;  // log(cptWeight) factored in
     
     // Transition log-probabilities.
     // The null cycle idd->wxx->idd is prevented by eliminating the state wxx.
@@ -311,7 +311,10 @@ struct Sampler : TreeAlignFuncs {
     inline LogProb rNoDelExt() const { return log (1 - rProbModel.delExt); }
 
     inline LogProb logMatch (SeqIdx xpos, SeqIdx ypos) const {
-      return logInnerProduct (logRoot, lSub[xpos-1], rSub[ypos-1]);
+      LogProb lp = -numeric_limits<double>::infinity();
+      for (int cpt = 0; cpt < model.components(); ++cpt)
+	log_accum_exp (lp, logInnerProduct (logRoot[cpt], lSub[xpos-1][cpt], rSub[ypos-1][cpt]));
+      return lp;
     }
 
     LogProb lpEmit (const CellCoords& coords) const;

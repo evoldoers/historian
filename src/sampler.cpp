@@ -327,11 +327,12 @@ string TreeAlignFuncs::branchConditionalDump (const RateModel& model, const Tree
       const auto pCond = colSumProdBranch.logNodeExcludedPostProb (parent, node, false);
       const auto nCond = colSumProdBranch.logNodeExcludedPostProb (node, parent, false);
 
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
-	log_accum_exp (lp, pSeq[pCol][i] + nPre[nCol][i]);
-	for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-	  log_accum_exp (lpc, pCond[i] + submat[i][j] + nCond[j]);
-      }
+      for (int cpt = 0; cpt < model.components(); ++cpt)
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
+	  log_accum_exp (lp, pSeq[pCol][cpt][i] + nPre[nCol][cpt][i]);
+	  for (AlphTok j = 0; j < model.alphabetSize(); ++j)
+	    log_accum_exp (lpc, pCond[cpt][i] + submat[cpt][i][j] + nCond[cpt][j]);
+	}
     }
 
     out << "Column #" << col << " (parent #" << pCol << ", node #" << nCol << ") "
@@ -438,25 +439,27 @@ LogProb TreeAlignFuncs::logBranchPathLikelihood (const ProbModel& probModel, con
   return lp;
 }
 
-TreeAlignFuncs::PosWeightMatrix TreeAlignFuncs::preMultiply (const PosWeightMatrix& child, const LogProbModel::LogProbMatrix& submat) {
-  PosWeightMatrix pwm (child.size(), vguard<LogProb> (submat.size(), -numeric_limits<double>::infinity()));
+TreeAlignFuncs::PosWeightMatrix TreeAlignFuncs::preMultiply (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbMatrix>& submat) {
+  PosWeightMatrix pwm (child.size(), vguard<vguard<LogProb> > (submat.size(), vguard<LogProb> (submat.front().size(), -numeric_limits<double>::infinity())));
   size_t n = 0;
   for (const auto& lpp : child) {
     auto& pre = pwm[n++];
-    for (AlphTok i = 0; i < pre.size(); ++i)
-      for (AlphTok j = 0; j < lpp.size(); ++j)
-	log_accum_exp (pre[i], submat[i][j] + lpp[j]);
+    for (int cpt = 0; cpt < (int) submat.size(); ++cpt)
+      for (AlphTok i = 0; i < pre[cpt].size(); ++i)
+	for (AlphTok j = 0; j < lpp[cpt].size(); ++j)
+	  log_accum_exp (pre[i][cpt], submat[cpt][i][j] + lpp[cpt][j]);
   }
   return pwm;
 }
 
-vguard<LogProb> TreeAlignFuncs::calcInsProbs (const PosWeightMatrix& child, const LogProbModel::LogProbVector& insvec) {
+vguard<LogProb> TreeAlignFuncs::calcInsProbs (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbVector>& insvec) {
   vguard<LogProb> ins;
   ins.reserve (child.size());
   for (const auto& lpp : child) {
     LogProb lp = -numeric_limits<double>::infinity();
-    for (AlphTok i = 0; i < lpp.size(); ++i)
-      log_accum_exp (lp, insvec[i] + lpp[i]);
+    for (int cpt = 0; cpt < (int) insvec.size(); ++cpt)
+      for (AlphTok i = 0; i < lpp[cpt].size(); ++i)
+	log_accum_exp (lp, insvec[cpt][i] + lpp[i][cpt]);
     ins.push_back (lp);
   }
   return ins;
@@ -1176,7 +1179,7 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
     rProbModel (model, max (Tree::minBranchLength, prDist)),
     lLogProbModel (lProbModel),
     rLogProbModel (rProbModel),
-    logRoot (log_gsl_vector (model.insProb)),
+    logRoot (log_vector_gsl_vector (model.insProb)),
     lRow (l),
     rRow (r),
     pRow (p),
@@ -1185,6 +1188,10 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
     lEmit (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb)),
     rEmit (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb))
 {
+  for (int cpt = 0; cpt < model.components(); ++cpt)
+    for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
+      ((vguard<vguard<LogProb> >&)logRoot)[cpt][tok] += log (model.cptWeight[cpt]);
+
   imm_www = lpTransElimSelfLoopIDD (IMM, WWW);
   imm_imi = lpTransElimSelfLoopIDD (IMM, IMI);
   imm_iiw = lpTransElimSelfLoopIDD (IMM, IIW);
@@ -1563,22 +1570,26 @@ Sampler::PosWeightMatrix Sampler::SiblingMatrix::parentSeq (const AlignPath& lrp
   SeqIdx lPos = 0, rPos = 0;
   for (AlignColIndex col = 0; col < cols; ++col)
     if (lrpPath.at(pRow)[col]) {
-      vguard<LogProb> prof (model.alphabetSize(), 0);
+      vguard<vguard<LogProb> > prof (model.components(), vguard<LogProb> (model.alphabetSize(), 0));
       if (lrpPath.at(lRow)[col]) {
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	  prof[i] += lSub[lPos][i];
+	for (int cpt = 0; cpt < model.components(); ++cpt)
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	    prof[cpt][i] += lSub[lPos][cpt][i];
 	++lPos;
       }
       if (lrpPath.at(rRow)[col]) {
-	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	  prof[i] += rSub[rPos][i];
+	for (int cpt = 0; cpt < model.components(); ++cpt)
+	  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	    prof[cpt][i] += rSub[rPos][cpt][i];
 	++rPos;
       }
       LogProb norm = -numeric_limits<double>::infinity();
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	log_accum_exp (norm, prof[i]);
-      for (AlphTok i = 0; i < model.alphabetSize(); ++i)
-	prof[i] -= norm;
+      for (int cpt = 0; cpt < model.components(); ++cpt)
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  log_accum_exp (norm, prof[cpt][i]);
+      for (int cpt = 0; cpt < model.components(); ++cpt)
+	for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+	  prof[cpt][i] -= norm;
       pwm.push_back (prof);
     }
   return pwm;
@@ -1722,7 +1733,7 @@ string Sampler::sampleSeq (const PosWeightMatrix& profile, random_engine& genera
       for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
 	p[tok] += exp (profile[pos][cpt][tok] - norm);
     discrete_distribution<AlphTok> tokDistrib (p.begin(), p.end());
-    seq[pos] = model.alphabet[posDistrib(generator)];
+    seq[pos] = model.alphabet[tokDistrib(generator)];
   }
   return seq;
 }
@@ -1749,8 +1760,9 @@ LogProb Sampler::logSeqPostProb (const string& seq, const PosWeightMatrix& profi
 string Sampler::profileToString (const PosWeightMatrix& profile) {
   ostringstream out;
   for (const auto& wm: profile) {
-    for (AlphTok i = 0; i < wm.size(); ++i)
-      out << setw(10) << wm[i];
+    for (int cpt = 0; cpt < (int) wm.size(); ++cpt)
+      for (AlphTok i = 0; i < wm[cpt].size(); ++i)
+	out << setw(10) << wm[cpt][i];
     out << endl;
   }
   return out.str();

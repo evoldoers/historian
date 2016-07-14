@@ -104,7 +104,7 @@ void SumProduct::fillUp() {
     for (auto r : postorder) {
       logF[cpt][r] = 0;
       for (size_t nc = 0; nc < tree.nChildren(r); ++nc)
-	logF[cpt][r] += logE[tree.getChild(r,nc)];
+	logF[cpt][r] += logE[cpt][tree.getChild(r,nc)];
       if (!isGap(r)) {
 	const char c = gappedCol[r];
 	if (Alignment::isWildcard(c)) {
@@ -289,7 +289,7 @@ void SumProduct::accumulateSubCounts (vguard<vguard<double> >& rootCounts, vguar
     }
 }
 
-void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguard<gsl_complex> >& eigenCounts, double weight) const {
+void SumProduct::accumulateEigenCounts (vguard<vguard<double> >& rootCounts, vguard<vguard<vguard<gsl_complex> > >& eigenCounts, double weight) const {
   LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << endl);
   accumulateRootCounts (rootCounts, weight);
 
@@ -321,7 +321,7 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
 	  for (AlphTok b = 0; b < A; ++b)
 	    Ubasis[l] = gsl_complex_add
 	      (Ubasis[l],
-	       gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv, l, b),
+	       gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evecInv[cpt], l, b),
 				     U[b]));
 	}
 
@@ -334,7 +334,7 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
 	  for (AlphTok a = 0; a < A; ++a)
 	    Dbasis[k] = gsl_complex_add
 	      (Dbasis[k],
-	       gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec, a, k),
+	       gsl_complex_mul_real (gsl_matrix_complex_get (eigen.evec[cpt], a, k),
 				     D[a]));
 	}
 
@@ -352,9 +352,9 @@ void SumProduct::accumulateEigenCounts (vguard<double>& rootCounts, vguard<vguar
 	// eigenCounts[k][l] += Dbasis[k] * eigenSub[k][l] * Ubasis[l] / norm
 	for (AlphTok k = 0; k < A; ++k)
 	  for (AlphTok l = 0; l < A; ++l)
-	    eigenCounts[k][l] =
+	    eigenCounts[cpt][k][l] =
 	      gsl_complex_add
-	      (eigenCounts[k][l],
+	      (eigenCounts[cpt][k][l],
 	       gsl_complex_mul_real
 	       (gsl_complex_mul
 		(Dbasis[k],

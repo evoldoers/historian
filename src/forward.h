@@ -98,11 +98,12 @@ public:
   
 protected:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
-    const vguard<LogProb>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
-    const vguard<LogProb>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
-    for (auto& as: absorbScratch)
+    for (int cpt = 0; cpt < components(); ++cpt) {
+      const vguard<LogProb>::const_iterator xbegin = subx.state[xpos].lpAbsorb[cpt].begin();
+      const vguard<LogProb>::const_iterator ybegin = suby.state[ypos].lpAbsorb[cpt].begin();
       for (size_t n = 0; n < hmm.alphabetSize(); ++n)
-	as[n] = xbegin[n] + ybegin[n];
+	absorbScratch[cpt][n] = xbegin[n] + ybegin[n];
+    }
   }
 
   inline LogProb computeLogProbAbsorb (ProfileStateIndex xpos, ProfileStateIndex ypos) {

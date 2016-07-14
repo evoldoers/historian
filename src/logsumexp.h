@@ -3,8 +3,8 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
-#include <vector>
 #include <cmath>
+#include "vguard.h"
 
 using namespace std;
 
@@ -98,14 +98,14 @@ inline double log_sum_exp (double a, double b, double c, double d, double e) {
     return log_sum_exp (log_sum_exp (log_sum_exp (log_sum_exp (a, b), c), d), e);
 }
 
-inline double log_sum_exp (const vector<double>& v) {
+inline double log_sum_exp (const vguard<double>& v) {
   double lpTot = -numeric_limits<double>::infinity();
   for (auto lp : v)
     log_accum_exp (lpTot, lp);
   return lpTot;
 }
 
-inline double log_sum_exp (const vector<vector<double> >& v) {
+inline double log_sum_exp (const vguard<vguard<double> >& v) {
   double lpTot = -numeric_limits<double>::infinity();
   for (auto lp : v)
     log_accum_exp (lpTot, log_sum_exp (lp));
@@ -118,39 +118,39 @@ double log_sum_exp_slow (double a, double b, double c, double d);
 
 void log_accum_exp_slow (double& a, double b);
 
-vector<LogProb> log_vector (const vector<double>& v);
+vguard<LogProb> log_vector (const vguard<double>& v);
 
-vector<LogProb> log_gsl_vector (gsl_vector* v);
-vector<double> gsl_vector_to_stl (gsl_vector* v);
+vguard<LogProb> log_gsl_vector (gsl_vector* v);
+vguard<double> gsl_vector_to_stl (gsl_vector* v);
 
-vector<vector<LogProb> > log_vector_gsl_vector (const vector<gsl_vector*>& v);
+vguard<vguard<LogProb> > log_vector_gsl_vector (const vguard<gsl_vector*>& v);
 
-vector<vector<double> > gsl_matrix_to_stl (gsl_matrix* m);
-gsl_matrix* stl_to_gsl_matrix (const vector<vector<double> >& m);
+vguard<vguard<double> > gsl_matrix_to_stl (gsl_matrix* m);
+gsl_matrix* stl_to_gsl_matrix (const vguard<vguard<double> >& m);
 
-inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>& v2) {
+inline LogProb logInnerProduct (const vguard<LogProb>& v1, const vguard<LogProb>& v2) {
   LogProb lip = -numeric_limits<double>::infinity();
-  for (vector<LogProb>::const_iterator iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v1.end(); ++iter1, ++iter2)
+  for (vguard<LogProb>::const_iterator iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v1.end(); ++iter1, ++iter2)
     lip = log_sum_exp (lip, *iter1 + *iter2);
   return lip;
 }
 
-inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>& v2, const vector<LogProb>& v3) {
+inline LogProb logInnerProduct (const vguard<LogProb>& v1, const vguard<LogProb>& v2, const vguard<LogProb>& v3) {
   LogProb lip = -numeric_limits<double>::infinity();
-  for (vector<LogProb>::const_iterator iter1 = v1.begin(), iter2 = v2.begin(), iter3 = v3.begin(); iter1 != v1.end(); ++iter1, ++iter2, ++iter3)
+  for (vguard<LogProb>::const_iterator iter1 = v1.begin(), iter2 = v2.begin(), iter3 = v3.begin(); iter1 != v1.end(); ++iter1, ++iter2, ++iter3)
     lip = log_sum_exp (lip, *iter1 + *iter2 + *iter3);
   return lip;
 }
 
-inline LogProb logInnerProduct (const vector<vector<LogProb> >& v1, const vector<vector<LogProb> >& v2) {
+inline LogProb logInnerProduct (const vguard<vguard<LogProb> >& v1, const vguard<vguard<LogProb> >& v2) {
   LogProb lip = -numeric_limits<double>::infinity();
-  for (vector<vector<LogProb> >::const_iterator iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v1.end(); ++iter1, ++iter2)
+  for (vguard<vguard<LogProb> >::const_iterator iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v1.end(); ++iter1, ++iter2)
     lip = log_sum_exp (lip, logInnerProduct (*iter1, *iter2));
   return lip;
 }
 
 double logBetaPdf (double prob, double yesCount, double noCount);
 double logGammaPdf (double rate, double eventCount, double waitTime);
-double logDirichletPdf (const vector<double>& prob, const vector<double>& count);
+double logDirichletPdf (const vguard<double>& prob, const vguard<double>& count);
 
 #endif /* LOGSUMEXP_INCLUDED */

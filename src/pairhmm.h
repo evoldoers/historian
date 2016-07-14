@@ -9,7 +9,7 @@ struct PairHMM : AlphabetOwner {
   const ProbModel& l;
   const ProbModel& r;
   const LogProbModel logl, logr;
-  vector<vector<LogProb> > logRoot;  // log(cptWeight) factored in
+  vguard<vguard<LogProb> > logRoot;  // log(cptWeight) factored in
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IIW = 4,
 		 TotalStates = 5,

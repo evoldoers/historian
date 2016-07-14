@@ -50,40 +50,40 @@ void log_accum_exp_slow (double& a, double b) {
   a = log_sum_exp_slow (a, b);
 }
 
-vector<LogProb> log_vector (const vector<double>& v) {
-  return transform_container<double,vector<double> > (v, log);
+vguard<LogProb> log_vector (const vguard<double>& v) {
+  return transform_container<double,vguard<double> > (v, log);
 }
 
-vector<LogProb> log_gsl_vector (gsl_vector* v) {
-  vector<LogProb> l (v->size);
+vguard<LogProb> log_gsl_vector (gsl_vector* v) {
+  vguard<LogProb> l (v->size);
   for (size_t i = 0; i < v->size; ++i)
     l[i] = log (gsl_vector_get (v, i));
   return l;
 }
 
-vector<double> gsl_vector_to_stl (gsl_vector* v) {
-  vector<double> stlv (v->size);
+vguard<double> gsl_vector_to_stl (gsl_vector* v) {
+  vguard<double> stlv (v->size);
   for (size_t i = 0; i < v->size; ++i)
     stlv[i] = gsl_vector_get (v, i);
   return stlv;
 }
 
-vector<vector<LogProb> > log_vector_gsl_vector (const vector<gsl_vector*>& v) {
-  vector<vector<LogProb> > result (v.size());
+vguard<vguard<LogProb> > log_vector_gsl_vector (const vguard<gsl_vector*>& v) {
+  vguard<vguard<LogProb> > result (v.size());
   for (size_t i = 0; i < v.size(); ++i)
     result[i] = log_gsl_vector (v[i]);
   return result;
 }
 
-vector<vector<double> > gsl_matrix_to_stl (gsl_matrix* m) {
-  vector<vector<double> > vv (m->size1, vector<double> (m->size2));
+vguard<vguard<double> > gsl_matrix_to_stl (gsl_matrix* m) {
+  vguard<vguard<double> > vv (m->size1, vguard<double> (m->size2));
   for (size_t i = 0; i < m->size1; ++i)
     for (size_t j = 0; j < m->size2; ++j)
       vv[i][j] = gsl_matrix_get (m, i, j);
   return vv;
 }
 
-gsl_matrix* stl_to_gsl_matrix (const vector<vector<double> >& vv) {
+gsl_matrix* stl_to_gsl_matrix (const vguard<vguard<double> >& vv) {
   Assert (vv.size() > 0, "Matrix has no rows");
   Assert (vv.front().size() > 0, "Matrix has no columns");
   const size_t rows = vv.size(), cols = vv.front().size();
@@ -104,9 +104,9 @@ double logGammaPdf (double rate, double eventCount, double waitTime) {
   return log (gsl_ran_gamma_pdf (rate, eventCount + 1, 1. / waitTime));
 }
 
-double logDirichletPdf (const vector<double>& prob, const vector<double>& count) {
-  Assert (prob.size() == count.size(), "Dimensionality of Dirichlet counts vector does not match that of probability parameter vector");
-  vector<double> countPlusOne (count);
+double logDirichletPdf (const vguard<double>& prob, const vguard<double>& count) {
+  Assert (prob.size() == count.size(), "Dimensionality of Dirichlet counts vguard does not match that of probability parameter vguard");
+  vguard<double> countPlusOne (count);
   for (auto& c : countPlusOne)
     ++c;
   return log (gsl_ran_dirichlet_pdf (prob.size(), countPlusOne.data(), prob.data()));

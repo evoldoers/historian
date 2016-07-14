@@ -23,7 +23,7 @@ struct SeqGraph {
   set<Edge> edge;
   
   SeqGraph() { }
-  SeqGraph (const Profile& prof, const string& alphabet, const vguard<LogProb>& logInsProb, double minPostProb);
+  SeqGraph (const Profile& prof, const string& alphabet, const vguard<LogProb>& logCptWeight, const vguard<vguard<LogProb> >& logInsProb, double minPostProb);
 
   void buildIndices();
   

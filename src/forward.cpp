@@ -48,7 +48,7 @@ DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, cons
     if (!y.state[j].isNull())
       for (int cpt = 0; cpt < components(); ++cpt) {
 	log_accum_exp (insy[j], hmm.logr.logCptWeight[cpt] + logInnerProduct (hmm.logr.logInsProb[cpt], y.state[j].lpAbsorb[cpt]));
-	log_accum_exp (rootsuby[j], logInnerProduct (hmm.logRoot[cpt], suby.state[j].lpAbsorb[cpt]);
+	log_accum_exp (rootsuby[j], logInnerProduct (hmm.logRoot[cpt], suby.state[j].lpAbsorb[cpt]));
       }
 }
 
@@ -621,7 +621,7 @@ AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
 }
 
 Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrategy strategy) {
-  Profile prof (alphSize);
+  Profile prof (hmm.components(), alphSize);
   prof.name = Tree::pairParentName (x.name, hmm.l.t, y.name, hmm.r.t);
   prof.meta["node"] = to_string(parentRowIndex);
 
@@ -805,7 +805,7 @@ Profile ForwardMatrix::bestProfile (ProfilingStrategy strategy) {
 }
 
 EigenCounts ForwardMatrix::cellEigenCounts (const CellCoords& cell, SumProduct& sumProd) const {
-  EigenCounts c (hmm.alphabetSize());
+  EigenCounts c (hmm.components(), hmm.alphabetSize());
   accumulateEigenCounts (c, cell, sumProd);
   return c;
 }
@@ -1083,7 +1083,7 @@ double BackwardMatrix::transPostProb (const CellCoords& src, const CellCoords& d
 }
 
 EigenCounts BackwardMatrix::getCounts() const {
-  EigenCounts counts (hmm.alphabetSize());
+  EigenCounts counts (hmm.components(), hmm.alphabetSize());
   counts.indelCounts.lp = fwd.lpEnd;
   
   const auto states = hmm.states();

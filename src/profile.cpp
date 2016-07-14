@@ -150,8 +150,12 @@ void Profile::writeJson (ostream& out) const {
     }
     if (!state[s].isNull()) {
       out << "   \"lpAbsorb\": [";
-      for (AlphTok a = 0; a < alphSize; ++a)
-	out << (a > 0 ? ", " : " ") << JsonUtil::toString (state[s].lpAbsorb[a]);
+      for (int cpt = 0; cpt < components; ++cpt) {
+	out << (cpt > 0 ? ", " : "") << "[";
+	for (AlphTok a = 0; a < alphSize; ++a)
+	  out << (a > 0 ? ", " : " ") << JsonUtil::toString (state[s].lpAbsorb[cpt][a]);
+	out << " ]";
+      }
       out << " ]," << endl;
     }
     out << "   \"trans\": [";

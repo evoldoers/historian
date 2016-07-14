@@ -5,7 +5,7 @@
 #include <gsl/gsl_vector.h>
 #include <string>
 
-#include "gason.h"
+#include "jsonutil.h"
 #include "fastseq.h"
 #include "logsumexp.h"
 #include "alignpath.h"
@@ -55,9 +55,9 @@ struct RateModel : AlphabetOwner {
   void read (const JsonValue& json);
   void write (ostream& out) const;
   void readComponent (const JsonMap& jm);
-  void writeComponent (int cpt, ostream& out);
+  void writeComponent (int cpt, ostream& out) const;
 
-  vguard<gsl_vector*> getEqmProbVector() const;
+  static gsl_vector* getEqmProbVector (gsl_matrix* subRateMatrix);
   virtual vguard<gsl_matrix*> getSubProbMatrix (double t) const;
 
   double expectedSubstitutionRate() const;
@@ -110,7 +110,7 @@ class CachingRateModel : public RateModel {
 private:
   const size_t precision, flushSize;
   map<string,int> count;
-  map<string,vector<vector<vector<double> > > > cache;
+  map<string,vguard<vguard<vguard<double> > > > cache;
   string timeKey (double t) const;
   EigenModel eigen;
 public:

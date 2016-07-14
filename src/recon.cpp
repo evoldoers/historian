@@ -489,7 +489,7 @@ void Reconstructor::loadModel() {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
   }
-  dataCounts = EventCounts (model);
+  dataCounts = EventCounts (model, model.components());
 
   if (modelSaveFilename.size()) {
     ofstream modelFile (modelSaveFilename);
@@ -690,7 +690,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
   if (!usePosteriorsForProfile)
     seedGenerator();  // re-seed generator, in case it was used during prealignment
 
-  gsl_vector* rootProb = model.insProb;
+  vguard<gsl_vector*> rootProb = model.insProb;
   LogProb lpFinalFwd = -numeric_limits<double>::infinity(), lpFinalTrace = -numeric_limits<double>::infinity();
   const ForwardMatrix::ProfilingStrategy strategy =
     (ForwardMatrix::ProfilingStrategy) (ForwardMatrix::CollapseChains
@@ -707,7 +707,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
   map<int,Profile> prof;
   for (TreeNodeIndex node = 0; node < dataset.tree.nodes(); ++node) {
     if (dataset.tree.isLeaf(node))
-      prof[node] = Profile (model.alphabet, dataset.seqs[dataset.nodeToSeqIndex[node]], node);
+      prof[node] = Profile (model.components(), model.alphabet, dataset.seqs[dataset.nodeToSeqIndex[node]], node);
     else {
       const int lChildNode = dataset.tree.getChild(node,0);
       const int rChildNode = dataset.tree.getChild(node,1);
@@ -758,7 +758,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	  Profile dotProf = usePosteriorsForDot
 	    ? backward->postProbProfile (minDotPostProb, 0, dotStrategy)
 	    : backward->bestProfile (dotStrategy);
-	  SeqGraph dotSeqGraph (dotProf, model.alphabet, log_gsl_vector(rootProb), useSeparateSubPosteriorsForDot ? minDotSubPostProb : (usePosteriorsForDot ? minDotPostProb : minPostProb));
+	  SeqGraph dotSeqGraph (dotProf, model.alphabet, log_vector(model.cptWeight), log_vector_gsl_vector(rootProb), useSeparateSubPosteriorsForDot ? minDotSubPostProb : (usePosteriorsForDot ? minDotPostProb : minPostProb));
 	  ofstream dotFile (dotSaveFilename);
 	  dotSeqGraph.simplify().writeDot (dotFile);
 	}
@@ -782,7 +782,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	lpFinalFwd = forward->lpEnd;
 
       if (nodeProf.size()) {
-	const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_gsl_vector(rootProb), NULL);
+	const LogProb lpTrace = nodeProf.calcSumPathAbsorbProbs (log_vector(model.cptWeight), log_vector_gsl_vector(rootProb), NULL);
 	LogThisAt(3,"Forward log-likelihood is " << forward->lpEnd << ", profile log-likelihood is " << lpTrace << " with " << nodeProf.size() << " states" << endl);
 
 	if (node == dataset.tree.root())
@@ -968,7 +968,7 @@ void Reconstructor::loadRecon() {
 
 void Reconstructor::loadCounts() {
   if (countFilenames.empty())
-    priorCounts = EventCounts (model);
+    priorCounts = EventCounts (model, model.components());
   else
     for (auto iter = countFilenames.begin(); iter != countFilenames.end(); ++iter) {
       ifstream in (*iter);
@@ -989,7 +989,7 @@ void Reconstructor::loadCounts() {
 }
 
 void Reconstructor::count (Dataset& dataset) {
-  dataset.eigenCounts = EigenCounts (model.alphabetSize());
+  dataset.eigenCounts = EigenCounts (model.components(), model.alphabetSize());
   dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree, 1, accumulateIndelCounts, accumulateSubstCounts);
   if (accumulateSubstCounts)
     dataCounts += dataset.eigenCounts.transform (model);
@@ -1072,7 +1072,7 @@ void Reconstructor::reconstructAll() {
 }
 
 void Reconstructor::countAll() {
-  dataCounts = EventCounts (model);
+  dataCounts = EventCounts (model, model.components());
   for (auto& ds : datasets)
     if (ds.hasReconstruction())
       count (ds);
