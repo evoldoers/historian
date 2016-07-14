@@ -38,16 +38,18 @@ DPMatrix::DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, cons
   }
 
   for (ProfileStateIndex i = 1; i < xSize - 1; ++i)
-    if (!x.state[i].isNull()) {
-      insx[i] = logInnerProduct (hmm.logl.logInsProb, x.state[i].lpAbsorb);
-      rootsubx[i] = logInnerProduct (hmm.logRoot, subx.state[i].lpAbsorb);
-    }
+    if (!x.state[i].isNull())
+      for (int cpt = 0; cpt < components(); ++cpt) {
+	log_accum_exp (insx[i], hmm.logl.logCptWeight[cpt] + logInnerProduct (hmm.logl.logInsProb[cpt], x.state[i].lpAbsorb[cpt]));
+	log_accum_exp (rootsubx[i], logInnerProduct (hmm.logRoot[cpt], subx.state[i].lpAbsorb[cpt]));
+      }
 
   for (ProfileStateIndex j = 1; j < ySize - 1; ++j)
-    if (!y.state[j].isNull()) {
-      insy[j] = logInnerProduct (hmm.logr.logInsProb, y.state[j].lpAbsorb);
-      rootsuby[j] = logInnerProduct (hmm.logRoot, suby.state[j].lpAbsorb);
-    }
+    if (!y.state[j].isNull())
+      for (int cpt = 0; cpt < components(); ++cpt) {
+	log_accum_exp (insy[j], hmm.logr.logCptWeight[cpt] + logInnerProduct (hmm.logr.logInsProb[cpt], y.state[j].lpAbsorb[cpt]));
+	log_accum_exp (rootsuby[j], logInnerProduct (hmm.logRoot[cpt], suby.state[j].lpAbsorb[cpt]);
+      }
 }
 
 ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, AlignRowIndex parentRowIndex, const GuideAlignmentEnvelope& env, SumProduct* sumProd)

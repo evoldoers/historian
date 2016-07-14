@@ -2,14 +2,18 @@
 #include "pairhmm.h"
 #include "util.h"
 
-PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root)
+PairHMM::PairHMM (const ProbModel& l, const ProbModel& r, const vector<gsl_vector*>& root)
   : AlphabetOwner (l),
     l (l),
     r (r),
     logl (l),
     logr (r),
-    logRoot (log_gsl_vector (root))
+    logRoot (log_vector_gsl_vector (root))
 {
+  for (int cpt = 0; cpt < l.components(); ++cpt)
+    for (auto& lr: logRoot[cpt])
+      lr += logl.logCptWeight[cpt];
+
   imm_imi = log (rIns());
   imm_iiw = log (lIns() * rNoIns());
   imm_imm = log (lNoIns() * rNoIns() * lNoDel() * rNoDel());

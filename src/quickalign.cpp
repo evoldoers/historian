@@ -22,10 +22,10 @@ QuickAlignMatrix::QuickAlignMatrix (const DiagonalEnvelope& env, const RateModel
   // compute scores
   ProbModel pm (model, time);
   LogProbModel lpm (pm);
-  submat = lpm.logSubProb;
+  submat = lpm.logSubProb.front();
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (AlphTok j = 0; j < model.alphabetSize(); ++j)
-      submat[i][j] -= lpm.logInsProb[j];
+      submat[i][j] -= lpm.logInsProb.front()[j];
 
   const double gapProb = pm.ins + (1 - pm.ins) * pm.del;
   const double noGapProb = 1 - gapProb;

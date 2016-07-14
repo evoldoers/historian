@@ -116,6 +116,8 @@ vector<LogProb> log_vector (const vector<double>& v);
 vector<LogProb> log_gsl_vector (gsl_vector* v);
 vector<double> gsl_vector_to_stl (gsl_vector* v);
 
+vector<vector<LogProb> > log_vector_gsl_vector (const vector<gsl_vector*>& v);
+
 vector<vector<double> > gsl_matrix_to_stl (gsl_matrix* m);
 gsl_matrix* stl_to_gsl_matrix (const vector<vector<double> >& m);
 
@@ -130,6 +132,13 @@ inline LogProb logInnerProduct (const vector<LogProb>& v1, const vector<LogProb>
   LogProb lip = -numeric_limits<double>::infinity();
   for (vector<LogProb>::const_iterator iter1 = v1.begin(), iter2 = v2.begin(), iter3 = v3.begin(); iter1 != v1.end(); ++iter1, ++iter2, ++iter3)
     lip = log_sum_exp (lip, *iter1 + *iter2 + *iter3);
+  return lip;
+}
+
+inline LogProb logInnerProduct (const vector<vector<LogProb> >& v1, const vector<vector<LogProb> >& v2) {
+  LogProb lip = -numeric_limits<double>::infinity();
+  for (vector<vector<LogProb> >::const_iterator iter1 = v1.begin(), iter2 = v2.begin(); iter1 != v1.end(); ++iter1, ++iter2)
+    lip = log_sum_exp (lip, logInnerProduct (*iter1, *iter2));
   return lip;
 }
 

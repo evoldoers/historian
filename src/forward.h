@@ -23,7 +23,7 @@ protected:
   XYCell emptyCell;  // always -inf
   vguard<LogProb> insx, insy;  // insert-on-branch probabilities by x & y indices
   vguard<LogProb> rootsubx, rootsuby;  // insert-at-root-then-substitute probabilities by x & y indices
-  vguard<LogProb> absorbScratch;  // scratch space for computing absorb profiles
+  vguard<vguard<LogProb> > absorbScratch;  // scratch space for computing absorb profiles
 
 public:
   struct CellCoords {
@@ -93,13 +93,16 @@ public:
   static random_engine newRNG();
 
   static size_t cellSize() { return sizeof(XYCell); }
+
+  inline int components() const { return hmm.components(); }
   
 protected:
   inline void initAbsorbScratch (ProfileStateIndex xpos, ProfileStateIndex ypos) {
     const vguard<LogProb>::const_iterator xbegin = subx.state[xpos].lpAbsorb.begin();
     const vguard<LogProb>::const_iterator ybegin = suby.state[ypos].lpAbsorb.begin();
-    for (size_t n = 0; n < hmm.alphabetSize(); ++n)
-      absorbScratch[n] = xbegin[n] + ybegin[n];
+    for (auto& as: absorbScratch)
+      for (size_t n = 0; n < hmm.alphabetSize(); ++n)
+	as[n] = xbegin[n] + ybegin[n];
   }
 
   inline LogProb computeLogProbAbsorb (ProfileStateIndex xpos, ProfileStateIndex ypos) {

@@ -68,6 +68,13 @@ vector<double> gsl_vector_to_stl (gsl_vector* v) {
   return stlv;
 }
 
+vector<vector<LogProb> > log_vector_gsl_vector (const vector<gsl_vector*>& v) {
+  vector<vector<LogProb> > result (v.size());
+  for (size_t i = 0; i < v.size(); ++i)
+    result[i] = log_gsl_vector (v[i]);
+  return result;
+}
+
 vector<vector<double> > gsl_matrix_to_stl (gsl_matrix* m) {
   vector<vector<double> > vv (m->size1, vector<double> (m->size2));
   for (size_t i = 0; i < m->size1; ++i)

@@ -9,7 +9,7 @@ struct PairHMM : AlphabetOwner {
   const ProbModel& l;
   const ProbModel& r;
   const LogProbModel logl, logr;
-  vector<LogProb> logRoot;
+  vector<vector<LogProb> > logRoot;  // log(cptWeight) factored in
 
   typedef enum { IMM = 0, IMD = 1, IDM = 2, IMI = 3, IIW = 4,
 		 TotalStates = 5,
@@ -18,6 +18,8 @@ struct PairHMM : AlphabetOwner {
   } State;
 
   // helper methods
+  inline int components() const { return logRoot.size(); }
+
   inline double lIns() const { return l.ins; }
   inline double lDel() const { return l.del; }
   inline double lInsExt() const { return l.insExt; }
@@ -52,7 +54,7 @@ struct PairHMM : AlphabetOwner {
   LogProb iiw_iiw, iiw_imm, iiw_idm, iiw_eee;
 
   // constructor
-  PairHMM (const ProbModel& l, const ProbModel& r, gsl_vector* root);
+  PairHMM (const ProbModel& l, const ProbModel& r, const vector<gsl_vector*>& root);
 
   // helpers
   static vguard<State> states();  // excludes EEE
