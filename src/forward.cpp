@@ -1057,16 +1057,22 @@ void BackwardMatrix::sourceDestTransTest() {
     for (int j = 0; j < ySize; ++j)
       if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j]))
 	for (auto s : states) {
-	  const CellCoords cell (i, j, s);
-	  for (const auto& src_lp : fwd.sourceTransitions (cell))
+	  const CellCoords testCell (i, j, s);
+	  for (const auto& src_lp : fwd.sourceTransitions (testCell))
 	    if (src_lp.second > -numeric_limits<double>::infinity()) {
 	      auto destTrans = destTransitions (src_lp.first);
-	      Test (gsl_fcmp (src_lp.second, destTrans[cell], FWD_BACK_ERROR_TOLERANCE) == 0, "Forward (%g) & Backward (%g) transitions between %s and %s don't match", src_lp.second, destTrans[cell], cellName(src_lp.first).c_str(), cellName(cell).c_str());
+	      if (!destTrans.count(testCell))
+		Warn ("Backward matrix is missing transition between %s and %s that is present in Forward matrix", cellName(src_lp.first).c_str(), cellName(testCell).c_str());
+	      else
+		Test (gsl_fcmp (src_lp.second, destTrans[testCell], FWD_BACK_ERROR_TOLERANCE) == 0, "Forward (%g) & Backward (%g) transitions between %s and %s don't match", src_lp.second, destTrans[testCell], cellName(src_lp.first).c_str(), cellName(testCell).c_str());
 	    }
-	  for (const auto& dest_lp : destTransitions (cell))
+	  for (const auto& dest_lp : destTransitions (testCell))
 	    if (dest_lp.second > -numeric_limits<double>::infinity()) {
 	      auto srcTrans = fwd.sourceTransitions (dest_lp.first);
-	      Test (gsl_fcmp (dest_lp.second, srcTrans[cell], FWD_BACK_ERROR_TOLERANCE) == 0, "Forward (%g) & Backward (%g) transitions between %s and %s don't match", srcTrans[cell], dest_lp.second, cellName(cell).c_str(), cellName(dest_lp.first).c_str());
+	      if (!srcTrans.count(testCell))
+		Warn ("Forward matrix is missing transition between %s and %s that is present in Backward matrix", cellName(testCell).c_str(), cellName(dest_lp.first).c_str());
+	      else
+		Test (gsl_fcmp (dest_lp.second, srcTrans[testCell], FWD_BACK_ERROR_TOLERANCE) == 0, "Forward (%g) & Backward (%g) transitions between %s and %s don't match", srcTrans[testCell], dest_lp.second, cellName(testCell).c_str(), cellName(dest_lp.first).c_str());
 	    }
 	}
 }
