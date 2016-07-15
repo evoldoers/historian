@@ -872,7 +872,6 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
   switch (outputFormat) {
   case FastaFormat:
     writeFastaSeqs (out, g);
-    out << endl;
     break;
   case NexusFormat:
     {
@@ -881,7 +880,6 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
       NexusData nexus (g, t);
       nexus.convertAlignmentToNexus();
       nexus.write (out);
-      out << endl;
     }
     break;
   case StockholmFormat:
