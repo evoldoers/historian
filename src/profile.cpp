@@ -53,6 +53,8 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
     }
   }
   this->seq[rowIndex] = seq.seq;
+
+  assertSeqCoordsConsistent();
 }
 
 Profile Profile::leftMultiply (const vguard<gsl_matrix*>& sub) const {
@@ -187,4 +189,31 @@ string Profile::toJson() const {
   ostringstream s;
   writeJson (s);
   return s.str();
+}
+
+void Profile::assertSeqCoordsConsistent() const {
+  for (const auto& t: trans)
+    ProfileState::assertSeqCoordsConsistent (state[t.src].seqCoords, state[t.dest], t.alignPath);
+}
+
+void ProfileState::assertSeqCoordsConsistent (const SeqCoords& srcCoords, const ProfileState& dest, const AlignPath& transPath) {
+  assertSeqCoordsConsistent (srcCoords, dest.seqCoords, transPath, dest.alignPath);
+}
+
+void ProfileState::assertSeqCoordsConsistent (const SeqCoords& srcCoords, const SeqCoords& destCoords, const AlignPath& transPath, const AlignPath& destPath) {
+  SeqCoords seqCoords = srcCoords;
+    for (const auto& rp: transPath)
+      seqCoords[rp.first] += alignPathResiduesInRow (rp.second);
+    for (const auto& rp: destPath)
+      seqCoords[rp.first] += alignPathResiduesInRow (rp.second);
+    for (const auto& sc: destCoords) {
+      Assert (seqCoords.count(sc.first), "Missing coordinate for sequence %d", sc.first);
+      Assert (seqCoords.at(sc.first) == sc.second,
+	      "Sequence coord %d: source state (%d) + transition path (%d) + dest state path (%d) != dest state (%d)",
+	      sc.first,
+	      srcCoords.count(sc.first) ? srcCoords.at(sc.first) : 0,
+	      transPath.count(sc.first) ? alignPathResiduesInRow(transPath.at(sc.first)) : 0,
+	      destPath.count(sc.first) ? alignPathResiduesInRow(destPath.at(sc.first)) : 0,
+	      sc.second);
+    }
 }

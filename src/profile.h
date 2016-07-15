@@ -20,15 +20,19 @@ struct ProfileTransition {
 };
 
 struct ProfileState {
+  typedef map<AlignRowIndex,SeqIdx> SeqCoords;
   string name;  // for debugging only
   map<string,string> meta;  // for debugging only
   vguard<ProfileTransitionIndex> in, nullOut, absorbOut;
   vguard<vguard<LogProb> > lpAbsorb;
   AlignPath alignPath;
-  map<AlignRowIndex,SeqIdx> seqCoords;
+  SeqCoords seqCoords;
   ProfileState();
   ProfileState (size_t components, AlphTok alphSize);
   inline bool isNull() const { return lpAbsorb.empty(); }
+
+  static void assertSeqCoordsConsistent (const SeqCoords& srcCoords, const ProfileState& dest, const AlignPath& transPath);
+  static void assertSeqCoordsConsistent (const SeqCoords& srcCoords, const SeqCoords& destCoords, const AlignPath& transPath, const AlignPath& destPath);
 };
 
 struct Profile {
@@ -53,6 +57,7 @@ struct Profile {
   LogProb calcSumPathAbsorbProbs (const vguard<LogProb>& logCptWeight, const vguard<vguard<LogProb> >& logInsProb, const char* tag = "cumLogProb");
   void writeJson (ostream& out) const;
   string toJson() const;
+  void assertSeqCoordsConsistent() const;
 };
 
 #endif /* PROFILE_INCLUDED */

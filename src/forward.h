@@ -171,7 +171,7 @@ private:
   AlignPath transitionAlignPath (const CellCoords& src, const CellCoords& dest) const;
   AlignPath traceAlignPath (const Path& path) const;
   
-  map<AlignRowIndex,SeqIdx> cellSeqCoords (const CellCoords& cell) const;
+  ProfileState::SeqCoords cellSeqCoords (const CellCoords& cell) const;
 };
 
 class BackwardMatrix : public DPMatrix {

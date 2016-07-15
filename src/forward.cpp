@@ -429,14 +429,14 @@ bool DPMatrix::isAbsorbing (const CellCoords& c) const {
 }
 
 bool DPMatrix::changesX (const CellCoords& c) const {
-  return (c.state == PairHMM::IMM && !y.state[c.ypos].isNull())
+  return (c.state == PairHMM::IMM && (x.state[c.xpos].isNull() || !y.state[c.ypos].isNull()))
     || c.state == PairHMM::IMD
     || c.state == PairHMM::IIW
     || c.state == PairHMM::EEE;
 }
 
 bool DPMatrix::changesY (const CellCoords& c) const {
-  return (c.state == PairHMM::IMM && (!x.state[c.xpos].isNull() || y.state[c.ypos].isNull()))
+  return (c.state == PairHMM::IMM && !x.state[c.xpos].isNull())
     || c.state == PairHMM::IDM
     || c.state == PairHMM::IMI
     || c.state == PairHMM::EEE;
@@ -485,8 +485,8 @@ ForwardMatrix::EffectiveTransition::EffectiveTransition()
     lpBestAlignPath (-numeric_limits<double>::infinity())
 { }
 
-map<AlignRowIndex,SeqIdx> ForwardMatrix::cellSeqCoords (const CellCoords& c) const {
-  map<AlignRowIndex,SeqIdx> coords = x.state[c.xpos].seqCoords;
+ProfileState::SeqCoords ForwardMatrix::cellSeqCoords (const CellCoords& c) const {
+  ProfileState::SeqCoords coords = x.state[c.xpos].seqCoords;
   for (const auto& s_c : y.state[c.ypos].seqCoords)
     coords[s_c.first] = s_c.second;
   return coords;
@@ -498,10 +498,10 @@ AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   case PairHMM::IMM:
     if (!x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
       alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
-    else if (!x.state[c.xpos].isNull() && y.state[c.ypos].isNull())
-      alignPath = y.state[c.ypos].alignPath;
-    else // x.state[c.xpos].isNull()
+    else if (!y.state[c.ypos].isNull() && x.state[c.xpos].isNull())
       alignPath = x.state[c.xpos].alignPath;
+    else // y.state[c.xpos].isNull()
+      alignPath = y.state[c.ypos].alignPath;
     break;
   case PairHMM::IMD:
   case PairHMM::IIW:
@@ -698,33 +698,35 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
   // passing through one or more eliminated-cells, and stopping at the destination retained-cell.
   map<CellCoords,map<ProfileStateIndex,EffectiveTransition> > effTrans;  // effTrans[srcCell][destStateIdx]
   for (auto iter = cells.crbegin(); iter != cells.crend(); ++iter) {
-    const CellCoords& cell = *iter;
-    const map<CellCoords,LogProb>& slp = sourceTransitionsWithoutEmitOrAbsorb (cell);
-    const LogProb cellLogProbInsert = eliminatedLogProbInsert (cell);
-    if (profStateIndex.find(cell) != profStateIndex.end()) {
-      // cell is to be retained. Incoming & outgoing paths can be kept separate
-      const ProfileStateIndex cellIdx = profStateIndex[cell];
+    const CellCoords& iterCell = *iter;
+    const map<CellCoords,LogProb>& slp = sourceTransitionsWithoutEmitOrAbsorb (iterCell);
+    const LogProb cellLogProbInsert = eliminatedLogProbInsert (iterCell);
+    if (profStateIndex.find(iterCell) != profStateIndex.end()) {
+      // iterCell is to be retained. Incoming & outgoing paths can be kept separate
+      const ProfileStateIndex cellIdx = profStateIndex[iterCell];
       for (const auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
 	EffectiveTransition& eff = effTrans[src][cellIdx];
 	eff.lpPath = eff.lpBestAlignPath = srcCellLogProbTrans + cellLogProbInsert;
-	eff.bestAlignPath = transitionAlignPath(src,cell);
+	eff.bestAlignPath = transitionAlignPath(src,iterCell);
 	if (strategy & (CountSubstEvents | CountIndelEvents))
-	  eff.counts = transitionEigenCounts(src,cell);
+	  eff.counts = transitionEigenCounts(src,iterCell);
+	// consistency check
+	ProfileState::assertSeqCoordsConsistent (cellSeqCoords(src), prof.state[cellIdx], eff.bestAlignPath);
       }
     } else {
-      // cell is to be eliminated. Connect incoming transitions & outgoing paths, summing cell out
-      const auto& cellEffTrans = effTrans[cell];
-      const AlignPath& cap = cellAlignPath (cell);
+      // iterCell is to be eliminated. Connect incoming transitions & outgoing paths, summing iterCell out
+      const auto& cellEffTrans = effTrans[iterCell];
+      const AlignPath& cap = cellAlignPath (iterCell);
       EigenCounts cellCounts, srcCellCounts;
       if ((strategy & CountSubstEvents) != 0 && sumProd != NULL)
-	cellCounts = cachedCellEigenCounts (cell, *sumProd);
+	cellCounts = cachedCellEigenCounts (iterCell, *sumProd);
       for (auto slpIter : slp) {
 	const CellCoords& src = slpIter.first;
 	const LogProb srcCellLogProbTrans = slpIter.second;
 	if (strategy & (CountSubstEvents | CountIndelEvents))
-	  srcCellCounts = transitionEigenCounts (src, cell) + cellCounts;
+	  srcCellCounts = transitionEigenCounts (src, iterCell) + cellCounts;
 	auto& srcEffTrans = effTrans[src];
 	for (const auto cellEffTransIter : cellEffTrans) {
 	  const ProfileStateIndex& destIdx = cellEffTransIter.first;
@@ -739,10 +741,15 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
 	  }
 	  // we also want to keep the best single alignment consistent w/this set of paths
 	  const LogProb srcDestLogProbBestAlignPath = srcCellLogProbTrans + cellLogProbInsert + cellDestEffTrans.lpBestAlignPath;
+	  const AlignPath tap = transitionAlignPath(src,iterCell);
 	  if (srcDestLogProbBestAlignPath > srcDestEffTrans.lpBestAlignPath) {
 	    srcDestEffTrans.lpBestAlignPath = srcDestLogProbBestAlignPath;
-	    srcDestEffTrans.bestAlignPath = alignPathConcat (transitionAlignPath(src,cell), cap, cellDestEffTrans.bestAlignPath);
+	    srcDestEffTrans.bestAlignPath = alignPathConcat (tap, cap, cellDestEffTrans.bestAlignPath);
 	  }
+	  // consistency check
+	  ProfileState::assertSeqCoordsConsistent (cellSeqCoords(iterCell), prof.state[destIdx], cellDestEffTrans.bestAlignPath);
+	  ProfileState::assertSeqCoordsConsistent (cellSeqCoords(src), cellSeqCoords(iterCell), tap, cap);
+	  ProfileState::assertSeqCoordsConsistent (cellSeqCoords(src), prof.state[destIdx], srcDestEffTrans.bestAlignPath);
 	}
       }
     }
@@ -774,6 +781,9 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
 
   prof.seq = x.seq;
   prof.seq.insert (y.seq.begin(), y.seq.end());
+
+  // verify coordinate integrity
+  prof.assertSeqCoordsConsistent();
   
   return prof;
 }
@@ -867,27 +877,26 @@ map<AlignRowIndex,char> ForwardMatrix::getAlignmentColumn (const CellCoords& cel
 	const auto yCol = y.alignColumn (cell.ypos);
 	col.insert (yCol.begin(), yCol.end());
 	col[parentRowIndex] = Alignment::wildcardChar;
-      }
+      } else if (!x.state[cell.xpos].isNull() && y.state[cell.ypos].isNull())
+	col = y.alignColumn (cell.ypos);
+      else if (x.state[cell.xpos].isNull())
+	col = x.alignColumn (cell.xpos);
       break;
     case PairHMM::IMD:
-      if (!x.state[cell.xpos].isNull()) {
-	col = x.alignColumn (cell.xpos);
+      col = x.alignColumn (cell.xpos);
+      if (!x.state[cell.xpos].isNull())
 	col[parentRowIndex] = Alignment::wildcardChar;
-      }
       break;
     case PairHMM::IDM:
-      if (!y.state[cell.ypos].isNull()) {
-	col = y.alignColumn (cell.ypos);
+      col = y.alignColumn (cell.ypos);
+      if (!y.state[cell.ypos].isNull())
 	col[parentRowIndex] = Alignment::wildcardChar;
-      }
       break;
     case PairHMM::IIW:
-      if (!x.state[cell.xpos].isNull())
-	col = x.alignColumn (cell.xpos);
+      col = x.alignColumn (cell.xpos);
       break;
     case PairHMM::IMI:
-      if (!y.state[cell.ypos].isNull())
-	col = y.alignColumn (cell.ypos);
+      col = y.alignColumn (cell.ypos);
       break;
     default:
       break;
