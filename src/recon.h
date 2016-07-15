@@ -11,7 +11,7 @@
 
 #define DefaultProfileSamples 100
 #define DefaultProfilePostProb .01
-#define DefaultMaxDistanceFromGuide 100
+#define DefaultMaxDistanceFromGuide 10
 #define DefaultMaxEMIterations 100
 #define DefaultMinEMImprovement .001
 
