@@ -24,7 +24,7 @@ protected:
   vguard<LogProb> insx, insy;  // insert-on-branch probabilities by x & y indices
   vguard<LogProb> rootsubx, rootsuby;  // insert-at-root-then-substitute probabilities by x & y indices
   vguard<vguard<LogProb> > absorbScratch;  // scratch space for computing absorb profiles
-
+  
 public:
   struct CellCoords {
     ProfileStateIndex xpos, ypos;
@@ -58,6 +58,7 @@ public:
   LogProb lpEnd;
   const GuideAlignmentEnvelope envelope;
   vguard<SeqIdx> xClosestLeafPos, yClosestLeafPos;
+  vguard<bool> xNearStart, yNearEnd;
   int maxDistance;
 
   DPMatrix (const Profile& x, const Profile& y, const PairHMM& hmm, const GuideAlignmentEnvelope& env);
@@ -87,6 +88,10 @@ public:
   
   // helpers
 public:
+  inline bool inEnvelope (ProfileStateIndex xpos, ProfileStateIndex ypos) const {
+    return xNearStart[xpos] || yNearEnd[ypos] || envelope.inRange (xClosestLeafPos[xpos], yClosestLeafPos[ypos]);
+  }
+
   string cellName (const CellCoords& cell) const;
   static string ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 

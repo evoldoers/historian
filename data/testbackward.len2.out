@@ -1,5 +1,5 @@
-Forward score: -6.54293
-Backward score: -6.54293
+Forward score: -6.54519
+Backward score: -6.54519
+P(IMM,g2,t2) = 1
 P(SSS,START,START) = 1
-P(IMM,g2,t2) = 0.997742
-P(IMM,a1,c1) = 0.997695
+P(IMM,a1,c1) = 0.999344

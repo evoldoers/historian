@@ -6,6 +6,9 @@
 #include "alignpath.h"
 #include "util.h"
 
+#define WaitStateSuffix  ";"
+#define ReadyStateSuffix "."
+
 ProfileTransition::ProfileTransition()
   : lpTrans(-numeric_limits<double>::infinity())
 { }
@@ -55,6 +58,7 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
   this->seq[rowIndex] = seq.seq;
 
   assertSeqCoordsConsistent();
+  assertAllStatesWaitOrReady();
 }
 
 Profile Profile::leftMultiply (const vguard<gsl_matrix*>& sub) const {
@@ -216,4 +220,54 @@ void ProfileState::assertSeqCoordsConsistent (const SeqCoords& srcCoords, const 
 	      destPath.count(sc.first) ? alignPathResiduesInRow(destPath.at(sc.first)) : 0,
 	      sc.second);
     }
+}
+
+void Profile::assertAllStatesWaitOrReady() const {
+  for (auto& s: state)
+    Assert (s.isReady() || s.isWait(), "State %s has %d null transitions and %d absorbing transitions, so is neither Wait nor Ready", s.name.c_str(), s.nullOut.size(), s.absorbOut.size());
+}
+
+Profile Profile::addReadyStates() const {
+  vguard<ProfileStateIndex> old2newStateIndex (size());
+  Profile prof;
+  prof.alphSize = alphSize;
+  prof.components = components;
+  prof.name = name;
+  prof.meta = meta;
+  prof.seq = seq;
+  prof.trans = trans;
+  vguard<ProfileState> profState (state);
+  for (ProfileStateIndex s = 0, n = 0; s < size(); ++s) {
+    old2newStateIndex[s] = n++;
+    if (!state[s].isReady() && !state[s].isWait()) {
+      ProfileState readyState;
+      ProfileTransition readyTrans;
+      const ProfileStateIndex oldReadyStateIdx = profState.size();
+      const ProfileStateIndex newReadyStateIdx = n++;
+      const ProfileTransitionIndex readyTransIdx = prof.trans.size();
+      profState[s].name += WaitStateSuffix;
+      readyState.name = state[s].name + ReadyStateSuffix;
+      readyState.meta = state[s].meta;
+      readyState.seqCoords = state[s].seqCoords;
+      swap (profState[s].absorbOut, readyState.absorbOut);
+      readyTrans.src = s;
+      readyTrans.dest = oldReadyStateIdx;
+      readyTrans.lpTrans = 0;
+      profState[s].nullOut.push_back (readyTransIdx);
+      readyState.in.push_back (readyTransIdx);
+      profState.push_back (readyState);
+      prof.trans.push_back (readyTrans);
+      old2newStateIndex.push_back (newReadyStateIdx);
+    }
+  }
+  prof.state = vguard<ProfileState> (profState.size());
+  for (ProfileStateIndex s = 0; s < (int) profState.size(); ++s)
+    swap (profState[s], prof.state[old2newStateIndex[s]]);
+  for (auto& t: prof.trans) {
+    t.src = old2newStateIndex[t.src];
+    t.dest = old2newStateIndex[t.dest];
+  }
+  for (const auto& ss: equivAbsorbState)
+    prof.equivAbsorbState[old2newStateIndex[ss.first]] = old2newStateIndex[ss.second];
+  return prof;
 }

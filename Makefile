@@ -142,7 +142,7 @@ testseqprofile: bin/testseqprofile
 
 testforward: bin/testforward
 	$(TEST) bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
-	@perl/testcumlp.pl data/testforward.id100.len2.nosub.out 41
+	@perl/testcumlp.pl data/testforward.id100.len2.nosub.out 51
 	$(TEST) bin/testforward -hubs -best data/testforward.len2.fa data/testforward.nosub.json 1 data/testforward.len2.nosub.best.out
 	$(TEST) bin/testforward -hubs -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
 	$(TEST) bin/testforward -hubs -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out

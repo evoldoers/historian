@@ -5,32 +5,55 @@
  "state": [
   {
    "n": 0,
-   "name": "(SSS,START,START)",
+   "name": "(SSS,START,START);",
    "meta": { "fwdLogProb": "0.000000" },
    "seqPos": [ [ 1, 0 ], [ 2, 0 ] ],
-   "trans": [ { "to": 3, "lpTrans": "-inf" },
-              { "to": 4, "lpTrans": "-inf" },
-              { "to": 12, "lpTrans": "-inf" },
-              { "to": 15, "lpTrans": "-inf" },
-              { "to": 16, "lpTrans": 0.000000 } ]
+   "trans": [ { "to": 6, "lpTrans": "-inf" },
+              { "to": 21, "lpTrans": "-inf" },
+              { "to": 1, "lpTrans": 0.000000 } ]
   },
   {
    "n": 1,
-   "name": "(IMM,START,a1)",
+   "name": "(SSS,START,START).",
+   "meta": 
+    {
+     "cumLogProb": "0.000000",
+     "fwdLogProb": "0.000000"
+    },
+   "seqPos": [ [ 1, 0 ], [ 2, 0 ] ],
+   "trans": [ { "to": 5, "lpTrans": "-inf" },
+              { "to": 17, "lpTrans": "-inf" },
+              { "to": 23, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 2,
+   "name": "(IMM,START,a1);",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "path": [ [ 2, "*" ] ],
+   "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
+   "trans": [ { "to": 13, "lpTrans": "-inf" },
+              { "to": 29, "lpTrans": "-inf" },
+              { "to": 3, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 3,
+   "name": "(IMM,START,a1).",
    "meta": 
     {
      "cumLogProb": "-inf",
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
-   "trans": [ { "to": 8, "lpTrans": "-inf" },
-              { "to": 9, "lpTrans": "-inf" },
-              { "to": 17, "lpTrans": "-inf" },
-              { "to": 20, "lpTrans": "-inf" },
-              { "to": 21, "lpTrans": 0.000000 } ]
+   "trans": [ { "to": 12, "lpTrans": "-inf" },
+              { "to": 25, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 2,
+   "n": 4,
    "name": "(IMD,START,a1)",
    "meta": 
     {
@@ -38,12 +61,12 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
-   "trans": [ { "to": 8, "lpTrans": "-inf" },
-              { "to": 17, "lpTrans": -0.105361 },
-              { "to": 21, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 12, "lpTrans": "-inf" },
+              { "to": 25, "lpTrans": -0.105361 },
+              { "to": 31, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 3,
+   "n": 5,
    "name": "(IDM,START,a1)",
    "meta": 
     {
@@ -53,13 +76,13 @@
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -0.000000, -20.723266, -20.723266, -20.723266 ]],
-   "trans": [ { "to": 8, "lpTrans": -0.105361 },
-              { "to": 17, "lpTrans": "-inf" },
-              { "to": 21, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 12, "lpTrans": -0.105361 },
+              { "to": 25, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 4,
-   "name": "(SSI,START,a1)",
+   "n": 6,
+   "name": "(SSI,START,a1);",
    "meta": 
     {
      "cumLogProb": "-inf",
@@ -67,38 +90,60 @@
     },
    "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
-   "trans": [ { "to": 9, "lpTrans": -1.491655 },
-              { "to": 17, "lpTrans": "-inf" },
-              { "to": 20, "lpTrans": "-inf" },
-              { "to": 21, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 13, "lpTrans": -1.491655 },
+              { "to": 29, "lpTrans": "-inf" },
+              { "to": 7, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 5,
-   "name": "(IIW,START,a1)",
+   "n": 7,
+   "name": "(SSI,START,a1).",
    "meta": 
     {
      "cumLogProb": "-inf",
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
-   "trans": [ { "to": 8, "lpTrans": "-inf" },
-              { "to": 20, "lpTrans": -1.491655 },
-              { "to": 21, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 25, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 6,
+   "n": 8,
+   "name": "(IIW,START,a1);",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
+   "trans": [ { "to": 29, "lpTrans": -1.491655 },
+              { "to": 9, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 9,
+   "name": "(IIW,START,a1).",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 0 ], [ 2, 1 ] ],
+   "trans": [ { "to": 12, "lpTrans": "-inf" },
+              { "to": 31, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 10,
    "name": "(IMM,START,g2)",
    "meta": 
     {
      "cumLogProb": "-inf",
      "fwdLogProb": "-inf"
     },
+   "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 0 ], [ 2, 2 ] ],
-   "trans": [ { "to": 22, "lpTrans": "-inf" },
-              { "to": 25, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 7,
+   "n": 11,
    "name": "(IMD,START,g2)",
    "meta": 
     {
@@ -106,10 +151,10 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 0 ], [ 2, 2 ] ],
-   "trans": [ { "to": 22, "lpTrans": -0.105361 } ]
+   "trans": [ ]
   },
   {
-   "n": 8,
+   "n": 12,
    "name": "(IDM,START,g2)",
    "meta": 
     {
@@ -119,10 +164,10 @@
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 0 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -20.723266, -20.723266, -0.000000, -20.723266 ]],
-   "trans": [ { "to": 22, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 9,
+   "n": 13,
    "name": "(SSI,START,g2)",
    "meta": 
     {
@@ -131,11 +176,10 @@
     },
    "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 0 ], [ 2, 2 ] ],
-   "trans": [ { "to": 22, "lpTrans": "-inf" },
-              { "to": 25, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 10,
+   "n": 14,
    "name": "(IIW,START,g2)",
    "meta": 
     {
@@ -143,25 +187,36 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 0 ], [ 2, 2 ] ],
-   "trans": [ { "to": 25, "lpTrans": -1.491655 } ]
+   "trans": [ ]
   },
   {
-   "n": 11,
-   "name": "(IMM,a1,START)",
+   "n": 15,
+   "name": "(IMM,a1,START);",
    "meta": 
     {
      "cumLogProb": "-inf",
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
-   "trans": [ { "to": 18, "lpTrans": "-inf" },
-              { "to": 19, "lpTrans": "-inf" },
-              { "to": 27, "lpTrans": "-inf" },
-              { "to": 30, "lpTrans": "-inf" },
-              { "to": 31, "lpTrans": 0.000000 } ]
+   "trans": [ { "to": 27, "lpTrans": "-inf" },
+              { "to": 40, "lpTrans": "-inf" },
+              { "to": 16, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 12,
+   "n": 16,
+   "name": "(IMM,a1,START).",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
+   "trans": [ { "to": 26, "lpTrans": "-inf" },
+              { "to": 37, "lpTrans": "-inf" },
+              { "to": 41, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 17,
    "name": "(IMD,a1,START)",
    "meta": 
     {
@@ -171,12 +226,12 @@
    "path": [ [ 0, "*" ], [ 1, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
    "lpAbsorb": [[ -0.000000, -20.723266, -20.723266, -20.723266 ]],
-   "trans": [ { "to": 18, "lpTrans": "-inf" },
-              { "to": 27, "lpTrans": -0.105361 },
-              { "to": 31, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 26, "lpTrans": "-inf" },
+              { "to": 37, "lpTrans": -0.105361 },
+              { "to": 41, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 13,
+   "n": 18,
    "name": "(IDM,a1,START)",
    "meta": 
     {
@@ -184,27 +239,38 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
-   "trans": [ { "to": 18, "lpTrans": -0.105361 },
-              { "to": 27, "lpTrans": "-inf" },
-              { "to": 31, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 26, "lpTrans": -0.105361 },
+              { "to": 37, "lpTrans": "-inf" },
+              { "to": 41, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 14,
-   "name": "(IMI,a1,START)",
+   "n": 19,
+   "name": "(IMI,a1,START);",
    "meta": 
     {
      "cumLogProb": "-inf",
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
-   "trans": [ { "to": 19, "lpTrans": -1.491655 },
-              { "to": 27, "lpTrans": "-inf" },
-              { "to": 30, "lpTrans": "-inf" },
-              { "to": 31, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 27, "lpTrans": -1.491655 },
+              { "to": 40, "lpTrans": "-inf" },
+              { "to": 20, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 15,
-   "name": "(SIW,a1,START)",
+   "n": 20,
+   "name": "(IMI,a1,START).",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
+   "trans": [ { "to": 37, "lpTrans": "-inf" },
+              { "to": 41, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 21,
+   "name": "(SIW,a1,START);",
    "meta": 
     {
      "cumLogProb": "-inf",
@@ -212,13 +278,24 @@
     },
    "path": [ [ 1, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
-   "trans": [ { "to": 18, "lpTrans": "-inf" },
-              { "to": 30, "lpTrans": -1.491655 },
-              { "to": 31, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 40, "lpTrans": -1.491655 },
+              { "to": 22, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 16,
-   "name": "(IMM,a1,a1)",
+   "n": 22,
+   "name": "(SIW,a1,START).",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 1 ], [ 2, 0 ] ],
+   "trans": [ { "to": 26, "lpTrans": "-inf" },
+              { "to": 41, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 23,
+   "name": "(IMM,a1,a1);",
    "meta": 
     {
      "cumLogProb": "-1.386294",
@@ -227,14 +304,25 @@
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -0.000000, -41.446532, -41.446532, -41.446532 ]],
-   "trans": [ { "to": 23, "lpTrans": "-inf" },
-              { "to": 24, "lpTrans": "-inf" },
-              { "to": 32, "lpTrans": "-inf" },
-              { "to": 35, "lpTrans": "-inf" },
-              { "to": 36, "lpTrans": 0.000000 } ]
+   "trans": [ { "to": 34, "lpTrans": "-inf" },
+              { "to": 45, "lpTrans": "-inf" },
+              { "to": 24, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 17,
+   "n": 24,
+   "name": "(IMM,a1,a1).",
+   "meta": 
+    {
+     "cumLogProb": "-1.386294",
+     "fwdLogProb": "-1.386294"
+    },
+   "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
+   "trans": [ { "to": 33, "lpTrans": "-inf" },
+              { "to": 42, "lpTrans": "-inf" },
+              { "to": 46, "lpTrans": 0.000000 } ]
+  },
+  {
+   "n": 25,
    "name": "(IMD,a1,a1)",
    "meta": 
     {
@@ -244,12 +332,12 @@
    "path": [ [ 0, "*" ], [ 1, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -0.000000, -20.723266, -20.723266, -20.723266 ]],
-   "trans": [ { "to": 23, "lpTrans": "-inf" },
-              { "to": 32, "lpTrans": -0.105361 },
-              { "to": 36, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 33, "lpTrans": "-inf" },
+              { "to": 42, "lpTrans": -0.105361 },
+              { "to": 46, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 18,
+   "n": 26,
    "name": "(IDM,a1,a1)",
    "meta": 
     {
@@ -259,13 +347,13 @@
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -0.000000, -20.723266, -20.723266, -20.723266 ]],
-   "trans": [ { "to": 23, "lpTrans": -0.105361 },
-              { "to": 32, "lpTrans": "-inf" },
-              { "to": 36, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 33, "lpTrans": -0.105361 },
+              { "to": 42, "lpTrans": "-inf" },
+              { "to": 46, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 19,
-   "name": "(IMI,a1,a1)",
+   "n": 27,
+   "name": "(IMI,a1,a1);",
    "meta": 
     {
      "cumLogProb": "-inf",
@@ -273,14 +361,25 @@
     },
    "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
-   "trans": [ { "to": 24, "lpTrans": -1.491655 },
-              { "to": 32, "lpTrans": "-inf" },
-              { "to": 35, "lpTrans": "-inf" },
-              { "to": 36, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 34, "lpTrans": -1.491655 },
+              { "to": 45, "lpTrans": "-inf" },
+              { "to": 28, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 20,
-   "name": "(IIW,a1,a1)",
+   "n": 28,
+   "name": "(IMI,a1,a1).",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
+   "trans": [ { "to": 42, "lpTrans": "-inf" },
+              { "to": 46, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 29,
+   "name": "(IIW,a1,a1);",
    "meta": 
     {
      "cumLogProb": "-inf",
@@ -288,12 +387,23 @@
     },
    "path": [ [ 1, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
-   "trans": [ { "to": 23, "lpTrans": "-inf" },
-              { "to": 35, "lpTrans": -1.491655 },
-              { "to": 36, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 45, "lpTrans": -1.491655 },
+              { "to": 30, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 21,
+   "n": 30,
+   "name": "(IIW,a1,a1).",
+   "meta": 
+    {
+     "cumLogProb": "-inf",
+     "fwdLogProb": "-inf"
+    },
+   "seqPos": [ [ 1, 1 ], [ 2, 1 ] ],
+   "trans": [ { "to": 33, "lpTrans": "-inf" },
+              { "to": 46, "lpTrans": -2.302585 } ]
+  },
+  {
+   "n": 31,
    "name": "(IMM,a1,g2)",
    "meta": 
     {
@@ -303,11 +413,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -20.723266, -41.446532, -20.723266, -41.446532 ]],
-   "trans": [ { "to": 37, "lpTrans": "-inf" },
-              { "to": 40, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 22,
+   "n": 32,
    "name": "(IMD,a1,g2)",
    "meta": 
     {
@@ -317,10 +426,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -0.000000, -20.723266, -20.723266, -20.723266 ]],
-   "trans": [ { "to": 37, "lpTrans": -0.105361 } ]
+   "trans": [ ]
   },
   {
-   "n": 23,
+   "n": 33,
    "name": "(IDM,a1,g2)",
    "meta": 
     {
@@ -330,10 +439,10 @@
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -20.723266, -20.723266, -0.000000, -20.723266 ]],
-   "trans": [ { "to": 37, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 24,
+   "n": 34,
    "name": "(IMI,a1,g2)",
    "meta": 
     {
@@ -342,11 +451,10 @@
     },
    "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 2 ] ],
-   "trans": [ { "to": 37, "lpTrans": "-inf" },
-              { "to": 40, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 25,
+   "n": 35,
    "name": "(IIW,a1,g2)",
    "meta": 
     {
@@ -355,10 +463,10 @@
     },
    "path": [ [ 1, "*" ] ],
    "seqPos": [ [ 1, 1 ], [ 2, 2 ] ],
-   "trans": [ { "to": 40, "lpTrans": -1.491655 } ]
+   "trans": [ ]
   },
   {
-   "n": 26,
+   "n": 36,
    "name": "(IMM,g2,START)",
    "meta": 
     {
@@ -366,11 +474,10 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 2 ], [ 2, 0 ] ],
-   "trans": [ { "to": 33, "lpTrans": "-inf" },
-              { "to": 34, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 27,
+   "n": 37,
    "name": "(IMD,g2,START)",
    "meta": 
     {
@@ -380,10 +487,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 0 ] ],
    "lpAbsorb": [[ -20.723266, -20.723266, -0.000000, -20.723266 ]],
-   "trans": [ { "to": 33, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 28,
+   "n": 38,
    "name": "(IDM,g2,START)",
    "meta": 
     {
@@ -391,10 +498,10 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 2 ], [ 2, 0 ] ],
-   "trans": [ { "to": 33, "lpTrans": -0.105361 } ]
+   "trans": [ ]
   },
   {
-   "n": 29,
+   "n": 39,
    "name": "(IMI,g2,START)",
    "meta": 
     {
@@ -402,10 +509,10 @@
      "fwdLogProb": "-inf"
     },
    "seqPos": [ [ 1, 2 ], [ 2, 0 ] ],
-   "trans": [ { "to": 34, "lpTrans": -1.491655 } ]
+   "trans": [ ]
   },
   {
-   "n": 30,
+   "n": 40,
    "name": "(SIW,g2,START)",
    "meta": 
     {
@@ -414,10 +521,10 @@
     },
    "path": [ [ 1, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 0 ] ],
-   "trans": [ { "to": 33, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 31,
+   "n": 41,
    "name": "(IMM,g2,a1)",
    "meta": 
     {
@@ -427,11 +534,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -20.723266, -41.446532, -20.723266, -41.446532 ]],
-   "trans": [ { "to": 38, "lpTrans": "-inf" },
-              { "to": 39, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 32,
+   "n": 42,
    "name": "(IMD,g2,a1)",
    "meta": 
     {
@@ -441,10 +547,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -20.723266, -20.723266, -0.000000, -20.723266 ]],
-   "trans": [ { "to": 38, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 33,
+   "n": 43,
    "name": "(IDM,g2,a1)",
    "meta": 
     {
@@ -454,10 +560,10 @@
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 1 ] ],
    "lpAbsorb": [[ -0.000000, -20.723266, -20.723266, -20.723266 ]],
-   "trans": [ { "to": 38, "lpTrans": -0.105361 } ]
+   "trans": [ ]
   },
   {
-   "n": 34,
+   "n": 44,
    "name": "(IMI,g2,a1)",
    "meta": 
     {
@@ -466,10 +572,10 @@
     },
    "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 1 ] ],
-   "trans": [ { "to": 39, "lpTrans": -1.491655 } ]
+   "trans": [ ]
   },
   {
-   "n": 35,
+   "n": 45,
    "name": "(IIW,g2,a1)",
    "meta": 
     {
@@ -478,10 +584,10 @@
     },
    "path": [ [ 1, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 1 ] ],
-   "trans": [ { "to": 38, "lpTrans": "-inf" } ]
+   "trans": [ ]
   },
   {
-   "n": 36,
+   "n": 46,
    "name": "(IMM,g2,g2)",
    "meta": 
     {
@@ -491,10 +597,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -41.446532, -41.446532, -0.000000, -41.446532 ]],
-   "trans": [ { "to": 41, "lpTrans": 0.000000 } ]
+   "trans": [ { "to": 51, "lpTrans": 0.000000 } ]
   },
   {
-   "n": 37,
+   "n": 47,
    "name": "(IMD,g2,g2)",
    "meta": 
     {
@@ -504,10 +610,10 @@
    "path": [ [ 0, "*" ], [ 1, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -20.723266, -20.723266, -0.000000, -20.723266 ]],
-   "trans": [ { "to": 41, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 51, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 38,
+   "n": 48,
    "name": "(IDM,g2,g2)",
    "meta": 
     {
@@ -517,10 +623,10 @@
    "path": [ [ 0, "*" ], [ 2, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 2 ] ],
    "lpAbsorb": [[ -20.723266, -20.723266, -0.000000, -20.723266 ]],
-   "trans": [ { "to": 41, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 51, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 39,
+   "n": 49,
    "name": "(IMI,g2,g2)",
    "meta": 
     {
@@ -529,10 +635,10 @@
     },
    "path": [ [ 2, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 2 ] ],
-   "trans": [ { "to": 41, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 51, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 40,
+   "n": 50,
    "name": "(IIW,g2,g2)",
    "meta": 
     {
@@ -541,10 +647,10 @@
     },
    "path": [ [ 1, "*" ] ],
    "seqPos": [ [ 1, 2 ], [ 2, 2 ] ],
-   "trans": [ { "to": 41, "lpTrans": -2.302585 } ]
+   "trans": [ { "to": 51, "lpTrans": -2.302585 } ]
   },
   {
-   "n": 41,
+   "n": 51,
    "name": "(EEE,END,END)",
    "meta": 
     {

@@ -33,7 +33,9 @@ struct ProfileState {
   inline bool isEmit() const { return !lpAbsorb.empty(); }
   inline bool isStart() const { return in.empty(); }
   inline bool isEmitOrStart() const { return isEmit() || isStart(); }
-
+  inline bool isReady() const { return nullOut.empty(); }
+  inline bool isWait() const { return absorbOut.empty(); }
+  
   static void assertSeqCoordsConsistent (const SeqCoords& srcCoords, const ProfileState& dest, const AlignPath& transPath);
   static void assertSeqCoordsConsistent (const SeqCoords& srcCoords, const SeqCoords& destCoords, const AlignPath& transPath, const AlignPath& destPath);
 };
@@ -61,6 +63,8 @@ struct Profile {
   void writeJson (ostream& out) const;
   string toJson() const;
   void assertSeqCoordsConsistent() const;
+  void assertAllStatesWaitOrReady() const;
+  Profile addReadyStates() const;
 };
 
 #endif /* PROFILE_INCLUDED */

@@ -83,7 +83,7 @@
    "meta": 
     {
      "cumLogProb": "-12.932434",
-     "fwdLogProb": "-12.658973"
+     "fwdLogProb": "-12.833511"
     },
    "seqPos": [ [ 1, 2 ], [ 2, 4 ] ],
    "trans": [ ]
