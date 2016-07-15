@@ -214,4 +214,11 @@ struct EigenCounts {
   EventCounts transform (const RateModel& model) const;
 };
 
+string tempComplexMatrixToString (gsl_matrix_complex* mx);
+string complexMatrixToString (const gsl_matrix_complex* mx);
+string complexVectorToString (const gsl_vector_complex* v);
+
+string complexMatrixToString (const vguard<vguard<gsl_complex> >& mx);
+string complexVectorToString (const vector<gsl_complex>& v);
+
 #endif /* MODEL_INCLUDED */

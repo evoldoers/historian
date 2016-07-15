@@ -24,13 +24,6 @@
 #define EIGENMODEL_NEAR_EQ_COMPLEX(X,Y) (EIGENMODEL_NEAR_EQ(GSL_REAL(X),GSL_REAL(Y)) && EIGENMODEL_NEAR_EQ(GSL_IMAG(X),GSL_IMAG(Y)))
 #define EIGENMODEL_NEAR_REAL(X) (abs(GSL_IMAG(X)) < EIGENMODEL_EPSILON)
 
-string tempComplexMatrixToString (gsl_matrix_complex* mx);
-string complexMatrixToString (const gsl_matrix_complex* mx);
-string complexVectorToString (const gsl_vector_complex* v);
-
-string complexMatrixToString (const vguard<vguard<gsl_complex> >& mx);
-string complexVectorToString (const vector<gsl_complex>& v);
-
 struct DistanceMatrixParams {
   const map<pair<AlphTok,AlphTok>,int>& pairCount;
   const RateModel& model;

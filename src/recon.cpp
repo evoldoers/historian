@@ -982,7 +982,7 @@ void Reconstructor::loadCounts() {
       gotPrior = true;
     }
   if (useLaplacePseudocounts) {
-    priorCounts += EventCounts (priorCounts, 1);
+    priorCounts += EventCounts (priorCounts, priorCounts.components(), 1.);
     gotPrior = true;
   }
   dataCounts = priorCounts;

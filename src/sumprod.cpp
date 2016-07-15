@@ -210,7 +210,7 @@ vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   vguard<LogProb> lpp (model.alphabetSize(), -numeric_limits<double>::infinity());
   for (AlphTok i = 0; i < model.alphabetSize(); ++i)
     for (int cpt = 0; cpt < components(); ++cpt)
-      log_accum_exp (lpp[i], logF[cpt][node] + log(F[cpt][node][i]) + logG[cpt][node] + log(G[cpt][node][i]) - colLogLike);
+      log_accum_exp (lpp[i], logCptWeight[cpt] + logF[cpt][node] + log(F[cpt][node][i]) + logG[cpt][node] + log(G[cpt][node][i]) - colLogLike);
   return lpp;
 }
 
@@ -262,14 +262,14 @@ AlphTok SumProduct::maxPostState (AlignRowIndex node) const {
 void SumProduct::accumulateRootCounts (vguard<vguard<double> >& rootCounts, double weight) const {
   const auto rootNode = columnRoot();
   for (int cpt = 0; cpt < components(); ++cpt) {
-    const double norm = exp (logF[cpt][rootNode] - colLogLike);
+    const double norm = exp (logCptWeight[cpt] + logF[cpt][rootNode] - colLogLike);
     for (AlphTok i = 0; i < model.alphabetSize(); ++i)
       rootCounts[cpt][i] += weight * insProb[cpt][i] * F[cpt][rootNode][i] * norm;
   }
 }
 
 void SumProduct::accumulateSubCounts (vguard<vguard<double> >& rootCounts, vguard<vguard<vguard<double> > >& subCounts, double weight) const {
-  LogThisAt(8,"Accumulating substitution counts, column " << join(gappedCol,"") << endl);
+  LogThisAt(8,"Accumulating substitution counts, column " << join(gappedCol,"") << ", weight " << weight << endl);
   accumulateRootCounts (rootCounts, weight);
 
   const auto rootNode = columnRoot();
@@ -290,7 +290,7 @@ void SumProduct::accumulateSubCounts (vguard<vguard<double> >& rootCounts, vguar
 }
 
 void SumProduct::accumulateEigenCounts (vguard<vguard<double> >& rootCounts, vguard<vguard<vguard<gsl_complex> > >& eigenCounts, double weight) const {
-  LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << endl);
+  LogThisAt(8,"Accumulating eigencounts, column " << join(gappedCol,"") << ", weight " << weight << endl);
   accumulateRootCounts (rootCounts, weight);
 
   const auto rootNode = columnRoot();
@@ -310,7 +310,7 @@ void SumProduct::accumulateEigenCounts (vguard<vguard<double> >& rootCounts, vgu
 	  D0[i] = G[cpt][parent][i] * E[cpt][sibling][i];
 	const double maxU0 = *max_element (U0.begin(), U0.end());
 	const double maxD0 = *max_element (D0.begin(), D0.end());
-	const double norm = exp (colLogLike - logF[cpt][node] - logG[cpt][parent] - logE[cpt][sibling]) / (maxU0 * maxD0);
+	const double norm = exp (colLogLike - logCptWeight[cpt] - logF[cpt][node] - logG[cpt][parent] - logE[cpt][sibling]) / (maxU0 * maxD0);
 
 	// U[b] = U0[b] / maxU0; Ubasis[l] = sum_b U[b] * evecInv[l][b]
 	for (AlphTok b = 0; b < A; ++b)
@@ -362,6 +362,9 @@ void SumProduct::accumulateEigenCounts (vguard<vguard<double> >& rootCounts, vgu
 		 (gsl_matrix_complex_get (branchEigenSubCount[cpt][node], k, l),
 		  Ubasis[l])),
 		weight / norm));
+
+	//	LogThisAt(9,"colLogLike=" << colLogLike << " logF[cpt][node]=" << logF[cpt][node] << " logG[cpt][parent]=" << logG[cpt][parent] << " logE[cpt][sibling]=" << logE[cpt][sibling] << " maxU0=" << maxU0 << " maxD0=" << maxD0 << endl);
+	//	LogThisAt(8,"Component #" << cpt << " eigencounts matrix (norm=" << norm << "):" << endl << complexMatrixToString(eigenCounts[cpt]) << endl);
       }
     }
 }

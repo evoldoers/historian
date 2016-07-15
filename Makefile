@@ -214,6 +214,7 @@ testhist: bin/$(MAIN)
 testcount: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
 	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
+	$(TEST) bin/$(MAIN) count -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
 
 testsum: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) sum data/testcount.out.json data/testcount.out.json data/testcount.sum.json

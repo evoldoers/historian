@@ -36,9 +36,10 @@ int main (int argc, char **argv) {
     for (auto node : sp.ungappedRowIndices())
       if (node != sp.columnRoot()) {
 	const TreeNodeIndex parent = tree.parentNode(node);
-	for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
-	  for (AlphTok b = 0; b < rates.alphabetSize(); ++b)
-	    cout << "P( " << tree.seqName(parent) << " = " << rates.alphabet[a] << " , " << tree.seqName(node) << " = " << rates.alphabet[b] << " ) = " << exp (sp.logBranchPostProb (0, node, a, b)) << endl;
+	for (int cpt = 0; cpt < rates.components(); ++cpt)
+	  for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
+	    for (AlphTok b = 0; b < rates.alphabetSize(); ++b)
+	      cout << "P( " << tree.seqName(parent) << " = " << rates.alphabet[a] << cpt << " , " << tree.seqName(node) << " = " << rates.alphabet[b] << cpt << " ) = " << exp (sp.logBranchPostProb (cpt, node, a, b)) << endl;
       }
     vguard<LogProb> lnpp = sp.logNodePostProb (sp.columnRoot());
     for (AlphTok a = 0; a < rates.alphabetSize(); ++a)
