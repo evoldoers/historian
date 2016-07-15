@@ -447,7 +447,7 @@ TreeAlignFuncs::PosWeightMatrix TreeAlignFuncs::preMultiply (const PosWeightMatr
     for (int cpt = 0; cpt < (int) submat.size(); ++cpt)
       for (AlphTok i = 0; i < pre[cpt].size(); ++i)
 	for (AlphTok j = 0; j < lpp[cpt].size(); ++j)
-	  log_accum_exp (pre[i][cpt], submat[cpt][i][j] + lpp[cpt][j]);
+	  log_accum_exp (pre[cpt][i], submat[cpt][i][j] + lpp[cpt][j]);
   }
   return pwm;
 }
@@ -459,7 +459,7 @@ vguard<LogProb> TreeAlignFuncs::calcInsProbs (const PosWeightMatrix& child, cons
     LogProb lp = -numeric_limits<double>::infinity();
     for (int cpt = 0; cpt < (int) insvec.size(); ++cpt)
       for (AlphTok i = 0; i < lpp[cpt].size(); ++i)
-	log_accum_exp (lp, insvec[cpt][i] + lpp[i][cpt]);
+	log_accum_exp (lp, insvec[cpt][i] + lpp[cpt][i]);
     ins.push_back (lp);
   }
   return ins;
