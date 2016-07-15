@@ -609,8 +609,20 @@ EigenCounts ForwardMatrix::transitionEigenCounts (const CellCoords& src, const C
 AlignPath ForwardMatrix::traceAlignPath (const Path& path) const {
   AlignPath p;
   const vector<CellCoords> pv (path.begin(), path.end());
-  for (size_t n = 0; n < pv.size() - 1; ++n)
-    p = alignPathConcat (p, cellAlignPath(pv[n]), transitionAlignPath(pv[n],pv[n+1]));
+  map<AlignRowIndex,SeqIdx> seqCoords;
+  for (size_t n = 0; n < pv.size() - 1; ++n) {
+    const AlignPath cap = cellAlignPath(pv[n]), tap = transitionAlignPath(pv[n],pv[n+1]);
+    p = alignPathConcat (p, cap, tap);
+    // do some consistency tests...
+    for (const auto& rp: cap)
+      seqCoords[rp.first] += alignPathResiduesInRow (rp.second);
+    for (const auto& sc: x.state[pv[n].xpos].seqCoords)
+      Assert (seqCoords[sc.first] == sc.second, "Sequence %d: cell x-coord is %d, path x-coord is %d", sc.first, sc.second, seqCoords[sc.first]);
+    for (const auto& sc: y.state[pv[n].ypos].seqCoords)
+      Assert (seqCoords[sc.first] == sc.second, "Sequence %d: cell y-coord is %d, path y-coord is %d", sc.first, sc.second, seqCoords[sc.first]);
+    for (const auto& rp: tap)
+      seqCoords[rp.first] += alignPathResiduesInRow (rp.second);
+  }
   p = alignPathConcat (p, cellAlignPath(pv.back()));
 
   const AlignRowIndex rows = p.size();
