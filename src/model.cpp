@@ -235,7 +235,7 @@ void RateModel::writeComponent (int cpt, ostream& out) const {
   out << indent << "\"rootprob\":" << endl;
   out << indent << "{";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i>0 ? "," : "") << "\n  \"" << alphabet[i] << "\": " << gsl_vector_get(insProb[cpt],i);
+    out << (i>0 ? "," : "") << "\n" << indent << " \"" << alphabet[i] << "\": " << gsl_vector_get(insProb[cpt],i);
   out << endl;
   out << indent << "}," << endl;
   out << indent << "\"subrate\":" << endl;
@@ -244,8 +244,8 @@ void RateModel::writeComponent (int cpt, ostream& out) const {
     out << indent << " \"" << alphabet[i] << "\": {";
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
-	out << indent << "\"" << alphabet[j] << "\": " << gsl_matrix_get(subRate[cpt],i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
-    out << indent << "}" << (i < alphabetSize() - 1 ? "," : "") << endl;
+	out << " \"" << alphabet[j] << "\": " << gsl_matrix_get(subRate[cpt],i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
+    out << " }" << (i < alphabetSize() - 1 ? "," : "") << endl;
   }
   out << indent << "}" << endl;
 }
