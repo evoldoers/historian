@@ -183,6 +183,7 @@ testsubcount: bin/testsubcount
 	$(TEST) bin/testsubcount data/testrates.json A T 1 data/testsubcount1.json
 	$(TEST) bin/testsubcount data/testforward.jukescantor.json A T 1 data/testsubcount2.json
 	$(TEST) bin/testsubcount data/testforward.jukescantor.json A T 1 data/testsubcount3.json
+	$(TEST) bin/testsubcount data/testrates.mix2.json A T 1 data/testsubcount.mix2.json
 
 testnumsubcount: bin/testnumsubcount
 	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T A T .01 4 data/testnumsubcount1.out

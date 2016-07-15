@@ -48,7 +48,7 @@ struct RateModel : AlphabetOwner {
 
   RateModel& operator= (const RateModel& model);
 
-  int components() const { return cptWeight.size(); }
+  inline int components() const { return cptWeight.size(); }
 
   void clear();
   void init (const string& alphabet);
