@@ -23,6 +23,8 @@ double log_sum_exp_slow (double a, double b) {
   double min, max, diff, ret;
   if (a < b) { min = a; max = b; }
   else { min = b; max = a; }
+  if (min == -numeric_limits<double>::infinity())
+    return max;
   diff = max - min;
   ret = max + log_sum_exp_unary_slow (diff);
 #if defined(NAN_DEBUG)
