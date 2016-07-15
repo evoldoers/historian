@@ -30,6 +30,9 @@ struct ProfileState {
   ProfileState();
   ProfileState (size_t components, AlphTok alphSize);
   inline bool isNull() const { return lpAbsorb.empty(); }
+  inline bool isEmit() const { return !lpAbsorb.empty(); }
+  inline bool isStart() const { return in.empty(); }
+  inline bool isEmitOrStart() const { return isEmit() || isStart(); }
 
   static void assertSeqCoordsConsistent (const SeqCoords& srcCoords, const ProfileState& dest, const AlignPath& transPath);
   static void assertSeqCoordsConsistent (const SeqCoords& srcCoords, const SeqCoords& destCoords, const AlignPath& transPath, const AlignPath& destPath);

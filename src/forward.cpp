@@ -165,14 +165,14 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
 
 	  imm += computeLogProbAbsorb(i,j);
 
-	} else if (yState.isNull() && !xState.isNull()) {
+	} else if (yState.isNull() && xState.isEmitOrStart()) {
 	  // y-nonabsorbing transitions in IMM
 	  for (auto yt : yState.in) {
 	    const ProfileTransition& yTrans = y.trans[yt];
 	    log_accum_exp (imm, cell(i,yTrans.src,PairHMM::IMM) + yTrans.lpTrans);
 	  }
 
-	} else {  // yState.isNull()
+	} else {  // xState.isNull()
 	  // x-nonabsorbing transitions in IMM
 	  for (auto xt : xState.in) {
 	    const ProfileTransition& xTrans = x.trans[xt];
@@ -339,7 +339,7 @@ map<DPMatrix::CellCoords,LogProb> ForwardMatrix::sourceTransitionsWithoutEmitOrA
     break;
 
   case PairHMM::IMM:
-    if (yState.isNull() && !xState.isNull()) {
+    if (yState.isNull() && xState.isEmitOrStart()) {
       // y-nonabsorbing transitions in IMM
       if (destCell.ypos < ySize - 1)
 	for (auto yt : yState.in)
@@ -496,7 +496,7 @@ AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   case PairHMM::IMM:
     if (!x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
       alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
-    else if (x.state[c.xpos].isNull())
+    else if (!x.state[c.xpos].isEmitOrStart())
       alignPath = x.state[c.xpos].alignPath;
     else // y.state[c.xpos].isNull()
       alignPath = y.state[c.ypos].alignPath;
@@ -875,7 +875,7 @@ map<AlignRowIndex,char> ForwardMatrix::getAlignmentColumn (const CellCoords& cel
 	const auto yCol = y.alignColumn (cell.ypos);
 	col.insert (yCol.begin(), yCol.end());
 	col[parentRowIndex] = Alignment::wildcardChar;
-      } else if (!x.state[cell.xpos].isNull() && y.state[cell.ypos].isNull())
+      } else if (x.state[cell.xpos].isEmitOrStart() && y.state[cell.ypos].isNull())
 	col = y.alignColumn (cell.ypos);
       else if (x.state[cell.xpos].isNull())
 	col = x.alignColumn (cell.xpos);
@@ -1002,7 +1002,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd)
 	}
 	
 	// y-nonabsorbing transitions in IDM, IMI, IMM
-	if (!xState.isNull())
+	if (xState.isEmitOrStart())
 	  for (auto yt : yState.nullOut) {
 	    const ProfileTransition& yTrans = y.trans[yt];
 	    const XYCell& dest = xyCell(i,yTrans.dest);
@@ -1185,7 +1185,7 @@ map<DPMatrix::CellCoords,LogProb> BackwardMatrix::destTransitions (const CellCoo
     }
 
   // y-nonabsorbing transitions in IDM, IMI, IMM
-  if (!xState.isNull() && (srcCell.state == PairHMM::IDM || srcCell.state == PairHMM::IMI || srcCell.state == PairHMM::IMM))
+  if (xState.isEmitOrStart() && (srcCell.state == PairHMM::IDM || srcCell.state == PairHMM::IMI || srcCell.state == PairHMM::IMM))
     for (auto yt : yState.nullOut) {
       const ProfileTransition& yTrans = y.trans[yt];
       if (yTrans.dest != ySize - 1)
