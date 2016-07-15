@@ -10,7 +10,7 @@ public:
   enum State { Start, Match, Insert, Delete };
   const DiagonalEnvelope* penv;
   const FastSeq *px, *py;
-  TokSeq xTok, yTok;
+  UnvalidatedTokSeq xTok, yTok;
   SeqIdx xLen, yLen, xEnd, yEnd;
   vguard<LogProb> cell;
   LogProb start, end, result;
@@ -40,7 +40,8 @@ public:
 
   inline double matchEmitScore (SeqIdx i, SeqIdx j) const {
     Assert (i > 0 && j > 0 && i <= xLen && j <= yLen, "Out of range: (i,j)=(%u,%u) (xLen,yLen)=(%u,%u)", i, j, xLen, yLen);
-    return submat[xTok[i-1]][yTok[j-1]];
+    const UnvalidatedAlphTok xt = xTok[i-1], yt = yTok[j-1];
+    return (xt < 0 || yt < 0) ? 0 : submat[xTok[i-1]][yTok[j-1]];
   }
 
   LogProb cellScore (SeqIdx i, SeqIdx j, State state) const;

@@ -116,16 +116,17 @@ void DiagonalEnvelope::initSparse (const KmerIndex& yKmerIndex, unsigned int ban
     }
   }
 
-  const TokSeq xTok = px->tokens (yKmerIndex.alphabet);
+  const UnvalidatedTokSeq xTok = px->unvalidatedTokens (yKmerIndex.alphabet);
   const AlphTok alphabetSize = (AlphTok) yKmerIndex.alphabet.size();
   
   map<int,unsigned int> diagKmerCount;
-  for (SeqIdx i = 0; i <= xLen - kmerLen; ++i) {
-    const auto yKmerIndexIter = yKmerIndex.kmerLocations.find (makeKmer (kmerLen, xTok.begin() + i, alphabetSize));
-    if (yKmerIndexIter != yKmerIndex.kmerLocations.end())
-      for (auto j : yKmerIndexIter->second)
-	++diagKmerCount[get_diag(i,j)];
-  }
+  for (SeqIdx i = 0; i <= xLen - kmerLen; ++i)
+    if (kmerValid (kmerLen, xTok.begin() + i)) {
+      const auto yKmerIndexIter = yKmerIndex.kmerLocations.find (makeKmer (kmerLen, xTok.begin() + i, alphabetSize));
+      if (yKmerIndexIter != yKmerIndex.kmerLocations.end())
+	for (auto j : yKmerIndexIter->second)
+	  ++diagKmerCount[get_diag(i,j)];
+    }
 
   map<unsigned int,set<unsigned int> > countDistrib;
   for (const auto& diagKmerCountElt : diagKmerCount)

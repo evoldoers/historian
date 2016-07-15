@@ -32,18 +32,19 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
   state.front().seqCoords[rowIndex] = 0;
   state.back().name = "END";
   state.back().seqCoords[rowIndex] = seq.length();
-  const TokSeq dsq = seq.tokens (alphabet);
-  for (size_t pos = 0; pos <= dsq.size(); ++pos) {
+  set<char> invalidChars;
+  int nInvalidToks = 0;
+  for (size_t pos = 0; pos <= seq.seq.size(); ++pos) {
     ProfileTransition& t = trans[pos];
     t.src = pos;
     t.dest = pos + 1;
     t.lpTrans = 0;
-    if (pos == dsq.size())
+    if (pos == seq.seq.size())
       state[pos].nullOut.push_back (pos);
     else
       state[pos].absorbOut.push_back (pos);
     state[pos+1].in.push_back (pos);
-    if (pos < dsq.size()) {
+    if (pos < seq.seq.size()) {
       state[pos+1].name = string(1,seq.seq[pos]) + to_string(pos+1);
       state[pos+1].alignPath[rowIndex].push_back (true);
       state[pos+1].seqCoords[rowIndex] = pos + 1;
@@ -51,12 +52,22 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
       for (auto& lpa: lpAbsorb)
 	if (Alignment::isWildcard (seq.seq[pos]))
 	  fill (lpa.begin(), lpa.end(), 0);
-	else
-	  lpa[dsq[pos]] = 0;
+	else {
+	  const UnvalidatedAlphTok tok = tokenize (seq.seq[pos], alphabet);
+	  if (tok < 0) {
+	    invalidChars.insert (seq.seq[pos]);
+	    ++nInvalidToks;
+	    fill (lpa.begin(), lpa.end(), 0);
+	  }
+	  lpa[tok] = 0;
+	}
     }
   }
   this->seq[rowIndex] = seq.seq;
 
+  if (nInvalidToks)
+    Warn("%s (%s) found in sequence %s", plural(nInvalidToks,"invalid character").c_str(), join(invalidChars).c_str(), seq.name.c_str());
+  
   assertSeqCoordsConsistent();
   assertAllStatesWaitOrReady();
 }

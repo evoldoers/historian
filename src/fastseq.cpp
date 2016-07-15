@@ -15,6 +15,16 @@ UnvalidatedAlphTok tokenize (char c, const string& alphabet) {
   return ptok ? (UnvalidatedAlphTok) (ptok - alphStr) : -1;
 }
 
+UnvalidatedTokSeq tokenize (const string& s, const string& alphabet) {
+  UnvalidatedTokSeq tok;
+  tok.reserve (s.size());
+  for (auto c: s) {
+    const auto t = tokenize (c, alphabet);
+    tok.push_back (t);
+  }
+  return tok;
+}
+
 const char FastSeq::minQualityChar = '!';
 const char FastSeq::maxQualityChar = '~';
 const QualScore FastSeq::qualScoreRange = 94;
@@ -61,10 +71,22 @@ TokSeq FastSeq::tokens (const string& alphabet) const {
   return validTokenize (seq, alphabet, name.c_str());
 }
 
-Kmer makeKmer (SeqIdx k, vector<unsigned int>::const_iterator tok, AlphTok alphabetSize) {
+UnvalidatedTokSeq FastSeq::unvalidatedTokens (const string& alphabet) const {
+  return tokenize (seq, alphabet);
+}
+
+bool kmerValid (SeqIdx k, vector<int>::const_iterator tok) {
+  for (SeqIdx j = 0; j < k; ++j)
+    if (tok[j] < 0)
+      return false;
+  return true;
+}
+
+Kmer makeKmer (SeqIdx k, vector<int>::const_iterator tok, AlphTok alphabetSize) {
   Kmer kmer = 0, mul = 1;
   for (SeqIdx j = 0; j < k; ++j) {
-    const unsigned int token = tok[k - j - 1];
+    const int token = tok[k - j - 1];
+    Assert (token >= 0, "Invalid token in makeKmer");
     kmer += mul * token;
     mul *= alphabetSize;
   }
@@ -167,11 +189,12 @@ KmerIndex::KmerIndex (const FastSeq& seq, const string& alphabet, SeqIdx kmerLen
   : seq(seq), alphabet(alphabet), kmerLen(kmerLen)
 {
   LogThisAt(5, "Building " << kmerLen << "-mer index for " << seq.name << endl);
-  const TokSeq tok = seq.tokens (alphabet);
+  const UnvalidatedTokSeq tok = seq.unvalidatedTokens (alphabet);
   const AlphTok alphabetSize = (AlphTok) alphabet.size();
   const SeqIdx seqLen = seq.length();
   for (SeqIdx j = 0; j <= seqLen - kmerLen; ++j)
-    kmerLocations[makeKmer (kmerLen, tok.begin() + j, alphabetSize)].push_back (j);
+    if (kmerValid(kmerLen,tok.begin() + j))
+      kmerLocations[makeKmer (kmerLen, tok.begin() + j, alphabetSize)].push_back (j);
 
   if (LoggingThisAt(8)) {
     LogStream (8, "Frequencies of " << kmerLen << "-mers in " << seq.name << ':' << endl);

@@ -20,12 +20,15 @@ typedef unsigned long long Kmer;
 typedef unsigned int QualScore;
 
 typedef vguard<AlphTok> TokSeq;
+typedef vguard<UnvalidatedAlphTok> UnvalidatedTokSeq;
 
 UnvalidatedAlphTok tokenize (char c, const string& alphabet);  // returns -1 if invalid
+UnvalidatedTokSeq tokenize (const string& s, const string& alphabet);
 TokSeq validTokenize (const string& s, const string& alphabet, const char* seqname = NULL);
 string detokenize (const TokSeq& s, const string& alphabet);
 
-Kmer makeKmer (SeqIdx k, vector<AlphTok>::const_iterator tok, AlphTok alphabetSize);
+bool kmerValid (SeqIdx k, vector<UnvalidatedAlphTok>::const_iterator tok);
+Kmer makeKmer (SeqIdx k, vector<UnvalidatedAlphTok>::const_iterator tok, AlphTok alphabetSize);
 Kmer numberOfKmers (SeqIdx k, AlphTok alphabetSize);
 string kmerToString (Kmer kmer, SeqIdx k, const string& alphabet);
 
@@ -46,6 +49,7 @@ struct FastSeq {
   }
   inline QualScore getQualScoreAt (SeqIdx pos) const { return qualScoreForChar (qual[pos]); }
   TokSeq tokens (const string& alphabet) const;
+  UnvalidatedTokSeq unvalidatedTokens (const string& alphabet) const;
   void writeFasta (ostream& out) const;
   void writeFastq (ostream& out) const;
 };
