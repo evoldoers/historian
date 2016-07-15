@@ -63,6 +63,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "                   (guide tree too, if output format allows)\n"
     + "  -output (nexus|fasta|stockholm)\n"
     + "                  Specify output format (default is Stockholm)\n"
+    + "  -noancs         Do not display ancestral sequences\n"
     + "\n"
     + "  -codon          Interpret sequences as spliced protein-coding DNA/RNA\n"
     + "\n"

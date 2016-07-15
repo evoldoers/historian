@@ -56,6 +56,7 @@ Reconstructor::Reconstructor()
     mcmcSamplesPerSeq (DefaultMCMCSamplesPerSeq),
     mcmcTraceFiles (0),
     outputFormat (StockholmFormat),
+    outputLeavesOnly (false),
     guideFile (NULL)
 { }
 
@@ -231,6 +232,11 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       else
 	Fail ("Unrecognized format: %s", argvec[1].c_str());
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-noancs") {
+      outputLeavesOnly = true;
       argvec.pop_front();
       return true;
 
@@ -854,11 +860,18 @@ void Reconstructor::predictAllAncestors() {
 void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>& gapped, const string& name, ostream& out, bool isReconstruction, const ReconPostProbMap* postProb) const {
   Tree t (tree);
   vguard<FastSeq> g (gapped);
+  if (outputLeavesOnly) {
+    vguard<FastSeq> gl;
+    for (TreeNodeIndex n = 0; n < tree.nodes(); ++n)
+      if (tree.isLeaf(n))
+	gl.push_back (g[n]);
+    swap (g, gl);
+  }
   if (tokenizeCodons)
     g = codonTokenizer.detokenize (g);
   switch (outputFormat) {
   case FastaFormat:
-    writeFastaSeqs (out, gapped);
+    writeFastaSeqs (out, g);
     out << endl;
     break;
   case NexusFormat:
@@ -876,11 +889,15 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
       if (isReconstruction)
 	t.assignInternalNodeNames (g);
       Stockholm stock (g, t);
-      if (postProb)
-	for (auto& row_colcharprob: *postProb)
-	  for (auto& col_charprob: row_colcharprob.second)
-	    for (auto& char_prob: col_charprob.second)
-	      stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + to_string(col_charprob.first + 1) + " " + char_prob.first + " " + to_string(char_prob.second));
+      if (postProb) {
+	if (outputLeavesOnly)
+	  Warn ("Not showing ancestors, so not showing posterior probabilities of ancestors either");
+	else
+	  for (auto& row_colcharprob: *postProb)
+	    for (auto& col_charprob: row_colcharprob.second)
+	      for (auto& char_prob: col_charprob.second)
+		stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + to_string(col_charprob.first + 1) + " " + char_prob.first + " " + to_string(char_prob.second));
+      }
       stock.gf[StockholmIDTag].push_back (name);
       stock.write (out, 0);
     }
