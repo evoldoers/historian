@@ -58,8 +58,8 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
 	    invalidChars.insert (seq.seq[pos]);
 	    ++nInvalidToks;
 	    fill (lpa.begin(), lpa.end(), 0);
-	  }
-	  lpa[tok] = 0;
+	  } else
+	    lpa[tok] = 0;
 	}
     }
   }
