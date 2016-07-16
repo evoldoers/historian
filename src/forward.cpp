@@ -515,10 +515,10 @@ AlignPath ForwardMatrix::cellAlignPath (const CellCoords& c) const {
   case PairHMM::IMM:
     if (!x.state[c.xpos].isNull() && !y.state[c.ypos].isNull())
       alignPath = alignPathUnion (x.state[c.xpos].alignPath, y.state[c.ypos].alignPath);
-    else if (!x.state[c.xpos].isEmitOrStart())
-      alignPath = x.state[c.xpos].alignPath;
-    else // y.state[c.xpos].isNull()
+    else if (x.state[c.xpos].isEmitOrStart())
       alignPath = y.state[c.ypos].alignPath;
+    else // x.state[c.xpos].isNull()
+      alignPath = x.state[c.xpos].alignPath;
     break;
   case PairHMM::IMD:
   case PairHMM::IIW:
