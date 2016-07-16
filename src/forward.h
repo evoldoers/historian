@@ -88,10 +88,16 @@ public:
   
   // helpers
 public:
-  inline bool inEnvelope (ProfileStateIndex xpos, ProfileStateIndex ypos) const {
-    return xNearStart[xpos] || yNearEnd[ypos] || envelope.inRange (xClosestLeafPos[xpos], yClosestLeafPos[ypos]);
+  inline bool atEdge (ProfileStateIndex xpos, ProfileStateIndex ypos) const {
+    return xNearStart[xpos] || yNearEnd[ypos];
   }
 
+  inline bool inEnvelope (ProfileStateIndex xpos, ProfileStateIndex ypos) const {
+    return atEdge(xpos,ypos) || envelope.inRange (xClosestLeafPos[xpos], yClosestLeafPos[ypos]);
+  }
+
+  void write (ostream& out, bool edgeOnly = false) const;
+  string toString (bool edgeOnly = false) const;
   string cellName (const CellCoords& cell) const;
   static string ancestorName (const string& lChildName, double lTime, const string& rChildName, double rTime);
 

@@ -62,9 +62,15 @@ struct Profile {
   LogProb calcSumPathAbsorbProbs (const vguard<LogProb>& logCptWeight, const vguard<vguard<LogProb> >& logInsProb, const char* tag = "cumLogProb");
   void writeJson (ostream& out) const;
   string toJson() const;
+  string tinyDescription (ProfileStateIndex s) const;  // for debugging
+
+  void assertTransitionsConsistent() const;
   void assertSeqCoordsConsistent() const;
   void assertAllStatesWaitOrReady() const;
+  void assertPathToEndExists() const;
   Profile addReadyStates() const;
+
+  vguard<ProfileStateIndex> examplePathToEnd() const;  // proof-of-concept path to end
 };
 
 #endif /* PROFILE_INCLUDED */

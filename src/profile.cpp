@@ -68,8 +68,10 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
   if (nInvalidToks)
     Warn("%s (%s) found in sequence %s", plural(nInvalidToks,"invalid character").c_str(), join(invalidChars).c_str(), seq.name.c_str());
   
+  assertTransitionsConsistent();
   assertSeqCoordsConsistent();
   assertAllStatesWaitOrReady();
+  assertPathToEndExists();
 }
 
 Profile Profile::leftMultiply (const vguard<gsl_matrix*>& sub) const {
@@ -206,6 +208,30 @@ string Profile::toJson() const {
   return s.str();
 }
 
+string trans2state (const vguard<ProfileTransition>& trans, const vguard<ProfileTransitionIndex>& idx, bool useSrc) {
+  vguard<ProfileStateIndex> v;
+  for (auto i: idx)
+    v.push_back (useSrc ? trans[i].src : trans[i].dest);
+  return string("(") + to_string_join(v,",") + ")";
+}
+
+string Profile::tinyDescription (ProfileStateIndex i) const {
+  ostringstream out;
+  const ProfileState& s = state[i];
+  out << "("
+      << (s.isStart() ? "Start" : (s.isNull() ? "Null" : "Emit"))
+      << ","
+      << (s.isReady() ? "Ready" : (s.isWait() ? "Wait" : "Irregular"));
+  if (!s.in.empty())
+    out << ",in:" << trans2state (trans, s.in, true);
+  if (!s.nullOut.empty())
+    out << ",nullOut:" << trans2state (trans, s.nullOut, false);
+  if (!s.absorbOut.empty())
+    out << ",absorbOut:" << trans2state (trans, s.absorbOut, false);
+  out << ")";
+  return out.str();
+}
+
 void Profile::assertSeqCoordsConsistent() const {
   for (const auto& t: trans)
     ProfileState::assertSeqCoordsConsistent (state[t.src].seqCoords, state[t.dest], t.alignPath);
@@ -280,5 +306,52 @@ Profile Profile::addReadyStates() const {
   }
   for (const auto& ss: equivAbsorbState)
     prof.equivAbsorbState[old2newStateIndex[ss.first]] = old2newStateIndex[ss.second];
+
+  prof.assertTransitionsConsistent();
+  prof.assertAllStatesWaitOrReady();
+  prof.assertPathToEndExists();
+
   return prof;
+}
+
+void Profile::assertTransitionsConsistent() const {
+  for (ProfileStateIndex i = 0; i < (int) state.size(); ++i) {
+    const ProfileState& s = state[i];
+    for (ProfileTransitionIndex t: s.in)
+      Assert (trans[t].dest == i, "Incoming transition destination index doesn't match state index");
+    for (ProfileTransitionIndex t: s.nullOut)
+      Assert (trans[t].src == i, "Null transition source index doesn't match state index");
+    for (ProfileTransitionIndex t: s.absorbOut)
+      Assert (trans[t].src == i, "Absorbing transition source index doesn't match state index");
+  }
+}
+
+void Profile::assertPathToEndExists() const {
+  (void) examplePathToEnd();
+}
+
+vguard<ProfileStateIndex> Profile::examplePathToEnd() const {
+  vguard<bool> fromStart (state.size(), false);
+  vguard<ProfileStateIndex> prev (state.size(), 0);
+  fromStart.front() = true;
+  for (ProfileStateIndex i = 0; i < (int) state.size(); ++i)
+    if (fromStart[i]) {
+      const ProfileState& s = state[i];
+      for (ProfileTransitionIndex t: s.nullOut) {
+	Assert (trans[t].dest > i, "Null transition violates toposort");
+	fromStart[trans[t].dest] = true;
+	prev[trans[t].dest] = i;
+      }
+      for (ProfileTransitionIndex t: s.absorbOut) {
+	Assert (trans[t].dest > i, "Absorbing transition violates toposort");
+	fromStart[trans[t].dest] = true;
+	prev[trans[t].dest] = i;
+      }
+    }
+  Assert (fromStart.back(), "No path from start to end");
+  vguard<ProfileStateIndex> revPath;
+  for (ProfileStateIndex j = state.size() - 1; j != 0; j = prev[j])
+    revPath.push_back (j);
+  revPath.push_back (0);
+  return vguard<ProfileStateIndex> (revPath.rbegin(), revPath.rend());
 }

@@ -81,7 +81,7 @@ ForwardMatrix::ForwardMatrix (const Profile& x, const Profile& y, const PairHMM&
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
 
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+      if (inEnvelope(i,j)) {
 
 	XYCell& dest = xyCell(i,j);
 	double& imm = dest(PairHMM::IMM);
@@ -433,6 +433,30 @@ LogProb DPMatrix::lpCellEmitOrAbsorb (const CellCoords& c) {
   }
 
   return lp;
+}
+
+string DPMatrix::toString (bool edgeOnly) const {
+  ostringstream out;
+  write (out, edgeOnly);
+  return out.str();
+}
+
+void DPMatrix::write (ostream& out, bool edgeOnly) const {
+  const auto states = PairHMM::states();
+  CellCoords coords;
+  for (coords.xpos = 0; coords.xpos < xSize - 1; ++coords.xpos)
+    for (coords.ypos = 0; coords.ypos < ySize - 1; ++coords.ypos)
+      if (edgeOnly ? atEdge(coords.xpos,coords.ypos) : inEnvelope(coords.xpos,coords.ypos))
+	for (auto state: states) {
+	  coords.state = state;
+	  out << setw(16) << cell(coords)
+	      << setw(6) << coords.xpos
+	      << setw(6) << coords.ypos
+	      << setw(6) << PairHMM::stateName(state,coords.xpos==0,coords.ypos==0)
+	      << " " << x.tinyDescription(coords.xpos)
+	      << " " << y.tinyDescription(coords.ypos)
+	      << endl;
+	}
 }
 
 string DPMatrix::cellName (const CellCoords& c) const {
@@ -799,11 +823,10 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
   prof.seq = x.seq;
   prof.seq.insert (y.seq.begin(), y.seq.end());
 
-  // transform into ready/wait form
+  // transform into ready/wait form & verify integrity
+  prof.assertTransitionsConsistent();  // addReadyStates() will check this again
+  prof.assertPathToEndExists();  // addReadyStates() will check this again
   prof = prof.addReadyStates();
-  prof.assertAllStatesWaitOrReady();
-
-  // verify coordinate integrity
   prof.assertSeqCoordsConsistent();
   
   return prof;
@@ -935,7 +958,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd)
     const ProfileTransition& xTrans = x.trans[xt];
     for (auto yt : y.end().in) {
       const ProfileTransition& yTrans = y.trans[yt];
-      if (envelope.inRange (xClosestLeafPos[xTrans.src], yClosestLeafPos[yTrans.src])) {
+      if (inEnvelope(xTrans.src,yTrans.src)) {
 	XYCell& src = xyCell(xTrans.src,yTrans.src);
       
 	src(PairHMM::IMM) = xTrans.lpTrans + yTrans.lpTrans + hmm.imm_eee;
@@ -958,7 +981,7 @@ BackwardMatrix::BackwardMatrix (ForwardMatrix& fwd)
     for (int j = ySize - 2; j >= 0; --j) {
       const ProfileState& yState = y.state[j];
 
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+      if (inEnvelope(i,j)) {
 
 	XYCell& src = xyCell(i,j);
 	double& imm = src(PairHMM::IMM);
@@ -1055,7 +1078,7 @@ void ForwardMatrix::slowFillTest() {
   size_t nCells = 0, nTrans = 0;
   for (int i = 0; i < xSize; ++i)
     for (int j = 0; j < ySize; ++j)
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j]))
+      if (inEnvelope(i,j))
 	for (auto s : states) {
 	  const bool atStart = s == PairHMM::SSS && i == 0 && j == 0;
 	  const bool atEnd = s == PairHMM::EEE && i == xSize-1 && j == ySize-1;
@@ -1080,7 +1103,7 @@ void BackwardMatrix::slowFillTest() {
   size_t nCells = 0, nTrans = 0;
   for (int i = xSize - 2; i >= 0; --i)
     for (int j = ySize - 2; j >= 0; --j)
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j]))
+      if (inEnvelope(i,j))
 	for (auto s : states) {
 	  ++nCells;
 	  const CellCoords srcCell (i, j, s);
@@ -1100,7 +1123,7 @@ void BackwardMatrix::sourceDestTransTest() {
   const auto states = hmm.states();
   for (int i = 0; i < xSize; ++i)
     for (int j = 0; j < ySize; ++j)
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j]))
+      if (inEnvelope(i,j))
 	for (auto s : states) {
 	  const CellCoords testCell (i, j, s);
 	  for (const auto& src_lp : fwd.sourceTransitions (testCell))
@@ -1149,7 +1172,7 @@ EigenCounts BackwardMatrix::getCounts() const {
     for (ProfileStateIndex j = 0; j < ySize - 1; ++j) {
       const ProfileState& yState = y.state[j];
 
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+      if (inEnvelope(i,j)) {
 	for (auto s : states) {
 	  const CellCoords dest (i, j, s);
 	  const LogProb lpDest = cell(dest);
@@ -1259,7 +1282,7 @@ priority_queue<BackwardMatrix::CellPostProb> BackwardMatrix::cellsAbovePostProbT
   const auto states = hmm.states();
   for (int i = xSize - 2; i >= 0; --i)
     for (int j = ySize - 2; j >= 0; --j)
-      if (envelope.inRange (xClosestLeafPos[i], yClosestLeafPos[j])) {
+      if (inEnvelope(i,j)) {
 	const XYCell& backSrc = xyCell(i,j);
 	const XYCell& fwdSrc = fwd.xyCell(i,j);
 	for (auto s : states) {
@@ -1318,7 +1341,7 @@ bool BackwardMatrix::addCells (set<CellCoords>& cells, size_t maxCells, const li
     for (const auto& newCell : newCells) {
       const list<CellCoords>& eqvCells = equivAbsorbCells (newCell);
       for (auto& eqvCell : eqvCells)
-	if (!cells.count (eqvCell) && cellPostProb(eqvCell) > 0 && envelope.inRange (xClosestLeafPos[eqvCell.xpos], yClosestLeafPos[eqvCell.ypos]))
+	if (!cells.count (eqvCell) && cellPostProb(eqvCell) > 0 && inEnvelope(eqvCell.xpos,eqvCell.ypos))
 	  addTrace (eqvCell, cells, maxCells, false);
     }
   return true;
