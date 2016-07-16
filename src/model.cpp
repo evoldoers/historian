@@ -491,9 +491,12 @@ double distanceMatrixNegLogLike (double t, void *params) {
   const DistanceMatrixParams& dmp = *(const DistanceMatrixParams*) params;
   vguard<gsl_matrix*> sub = dmp.model.getSubProbMatrix (t);
   double ll = 0;
-  for (int c = 0; c < dmp.model.components(); ++c)
-    for (auto& pc : dmp.pairCount)
-      ll += log (dmp.model.cptWeight[c] * gsl_matrix_get(sub[c],pc.first.first,pc.first.second)) * (double) pc.second;
+  for (auto& pc : dmp.pairCount) {
+    double p = 0;
+    for (int c = 0; c < dmp.model.components(); ++c)
+      p += dmp.model.cptWeight[c] * gsl_matrix_get(sub[c],pc.first.first,pc.first.second);
+    ll += log(p) * (double) pc.second;
+  }
   for (auto& sr: sub)
     gsl_matrix_free (sr);
   return -ll;
