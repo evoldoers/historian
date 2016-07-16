@@ -287,6 +287,8 @@ Profile Profile::addReadyStates() const {
       readyState.meta = state[s].meta;
       readyState.seqCoords = state[s].seqCoords;
       swap (profState[s].absorbOut, readyState.absorbOut);
+      for (auto t: readyState.absorbOut)
+	prof.trans[t].src = oldReadyStateIdx;
       readyTrans.src = s;
       readyTrans.dest = oldReadyStateIdx;
       readyTrans.lpTrans = 0;
