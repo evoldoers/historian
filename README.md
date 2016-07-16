@@ -3,7 +3,7 @@ Reconstruction of evolutionary indel & substitution histories using the phylogen
 (see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
 <pre><code>
-Usage: historian {recon[struct],count,fit,help,version} [options]
+Usage: historian {recon[struct],count,fit,mcmc,help,version} [options]
 
 EXAMPLES
 
@@ -46,6 +46,7 @@ Reconstruction file I/O options
                    (guide tree too, if output format allows)
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
+  -noancs         Do not display ancestral sequences
 
   -codon          Interpret sequences as spliced protein-coding DNA/RNA
 
@@ -55,7 +56,7 @@ The reconstruction algorithm iterates through the guide tree in postorder,
 aligning each sibling pair and reconstructing a profile of their parent.
 The dynamic programming is constrained to a band around a guide alignment.
 
-  -band &lt;n&gt;       Size of band around guide alignment (default 10)
+  -band &lt;n&gt;       Size of band around guide alignment (default 40)
   -noband         Unlimit band, removing dependence on guide alignment
 
 The reconstructed parent profile is a weighted finite-state transducer
@@ -64,10 +65,12 @@ posterior probability threshold for inclusion in the parent profile and
 max number of states in the parent profile can both be tweaked to trade off
 sensitivity vs performance.
 
-  -profminpost &lt;P&gt;, -profsamples &lt;N&gt;, -profmaxstates &lt;S&gt;
+  -profminpost &lt;P&gt;, -profsamples &lt;N&gt;
                   Specify minimum posterior prob. (P) for retaining DP states
-                   in profile (default .01), or sample N states randomly;
-                   either way, limit profile to at most S states
+                   in profile (default .01), or sample N states randomly
+  -profmaxstates &lt;S&gt;
+                  Limit profile to at most S states
+                   (default of 6553 uses at most 5% of memory for DP matrix)
 
 Following alignment, ancestral sequence reconstruction can be performed.
 
@@ -78,9 +81,7 @@ MCMC sampling allows for additional accuracy in historical reconstruction.
 
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
-  -trace &lt;file&gt;   Specify MCMC trace filename (default is stdout)
-  -notrace        Suppress MCMC trace
-  -fixguide       Fix guide alignment during MCMC
+  -trace &lt;file&gt;   Specify MCMC trace filename
 
 Guide alignment & tree estimation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -114,7 +115,8 @@ distance matrix method. By default this is UPGMA.
 If you are confident the guide alignment & tree should be reasonably obvious,
 and just want to get on to reconstruction as quickly as possible:
 
-  -fast           Shorthand for '-rndspan -kmatchn 3 -jc'
+  -fast           Shorthand for the following options:
+                   -rndspan -kmatchn 3 -band 10 -profmaxstates 1 -jc
 
 Model-fitting and event-counting options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

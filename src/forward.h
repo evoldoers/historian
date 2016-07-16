@@ -98,7 +98,7 @@ public:
   static random_engine newRNG();
 
   static size_t cellSize() { return sizeof(XYCell); }
-
+  
   inline int components() const { return hmm.components(); }
   
 protected:

@@ -11,7 +11,9 @@
 
 #define DefaultProfileSamples 100
 #define DefaultProfilePostProb .01
-#define DefaultMaxDistanceFromGuide 10
+#define DefaultMaxDPMemoryFraction .05
+
+#define DefaultMaxDistanceFromGuide 40
 #define DefaultMaxEMIterations 100
 #define DefaultMinEMImprovement .001
 
@@ -19,7 +21,7 @@
 
 #define AncestralSequencePostProbTag "PP"
 
-#define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-jc"}
+#define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc",}
 
 class Reconstructor {
 public:
@@ -125,6 +127,8 @@ public:
   void writeModel (ostream& out) const;
 
   static FileFormat detectFormat (const string& filename);
+
+  static int defaultMaxProfileStates();
   
 private:
   Dataset& newDataset();

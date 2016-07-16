@@ -14,6 +14,7 @@
 #include "ctok.h"
 #include "codon.h"
 #include "refiner.h"
+#include "memsize.h"
 
 const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
 const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
@@ -26,7 +27,7 @@ const vguard<string> Reconstructor::fastAliasArgs = ReconFastAliasArgs;
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
-    profileNodeLimit (0),
+    profileNodeLimit (defaultMaxProfileStates()),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     tokenizeCodons (false),
@@ -59,6 +60,10 @@ Reconstructor::Reconstructor()
     outputLeavesOnly (false),
     guideFile (NULL)
 { }
+
+int Reconstructor::defaultMaxProfileStates() {
+  return sqrt (DefaultMaxDPMemoryFraction * getMemorySize() / DPMatrix::cellSize());
+}
 
 bool Reconstructor::parseAncSeqArgs (deque<string>& argvec) {
   if (argvec.size()) {
