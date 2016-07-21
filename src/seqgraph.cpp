@@ -22,16 +22,12 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
 	if (i == 0 || lp[i] > lp[iMax])
 	  iMax = i;
       }
-      for (AlphTok i = 0; i < logInsProb.size(); ++i) {
-	LogProb lpsum = -numeric_limits<double>::infinity();
-	for (const auto& lip: logInsProb)
-	  log_accum_exp (lpsum, lip[i]);
-	if (i == iMax || lpsum > minLogPostProb) {
+      for (AlphTok i = 0; i < alphabet.size(); ++i)
+	if (i == iMax || lp[i] > minLogPostProb) {
 	  stateNodes[s].push_back (node.size());
 	  node.push_back (Node());
 	  node.back().seq += alphabet[i];
 	}
-      }
     }
   for (const auto& trans : prof.trans)
     for (auto s : stateNodes[trans.src])
