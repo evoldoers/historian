@@ -48,7 +48,7 @@ struct TreeAlignFuncs {
 
   static LogProb logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child);
   static double rootExtProb (const RateModel& model) { return model.insExtProb; }
-  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbVector>& insvec);
+  static vguard<LogProb> calcInsProbs (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbVector>& insvec, const vguard<LogProb>& logCptWeight);
 
   static LogProb rootLogLikelihood (const RateModel& model, const History& history);
   static LogProb indelLogLikelihood (const RateModel& model, const History& history);

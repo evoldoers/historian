@@ -452,14 +452,14 @@ TreeAlignFuncs::PosWeightMatrix TreeAlignFuncs::preMultiply (const PosWeightMatr
   return pwm;
 }
 
-vguard<LogProb> TreeAlignFuncs::calcInsProbs (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbVector>& insvec) {
+vguard<LogProb> TreeAlignFuncs::calcInsProbs (const PosWeightMatrix& child, const vguard<LogProbModel::LogProbVector>& insvec, const vguard<LogProb>& logCptWeight) {
   vguard<LogProb> ins;
   ins.reserve (child.size());
   for (const auto& lpp : child) {
     LogProb lp = -numeric_limits<double>::infinity();
     for (int cpt = 0; cpt < (int) insvec.size(); ++cpt)
       for (AlphTok i = 0; i < lpp[cpt].size(); ++i)
-	log_accum_exp (lp, insvec[cpt][i] + lpp[cpt][i]);
+	log_accum_exp (lp, logCptWeight[cpt] + insvec[cpt][i] + lpp[cpt][i]);
     ins.push_back (lp);
   }
   return ins;
@@ -1001,7 +1001,7 @@ TreeAlignFuncs::BranchMatrixBase::BranchMatrixBase (const RateModel& model, cons
     yRow (y),
     xSeq (xSeq),
     ySub (Sampler::preMultiply (ySeq, logProbModel.logSubProb)),
-    yEmit (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb))
+    yEmit (Sampler::calcInsProbs (ySeq, logProbModel.logInsProb, logProbModel.logCptWeight))
 {
   mm = lpTrans (ProbModel::Match, ProbModel::Match);
   mi = lpTrans (ProbModel::Match, ProbModel::Insert);
@@ -1185,8 +1185,8 @@ Sampler::SiblingMatrix::SiblingMatrix (const RateModel& model, const PosWeightMa
     pRow (p),
     lSub (Sampler::preMultiply (lSeq, lLogProbModel.logSubProb)),
     rSub (Sampler::preMultiply (rSeq, rLogProbModel.logSubProb)),
-    lEmit (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb)),
-    rEmit (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb))
+    lEmit (Sampler::calcInsProbs (lSeq, lLogProbModel.logInsProb, lLogProbModel.logCptWeight)),
+    rEmit (Sampler::calcInsProbs (rSeq, rLogProbModel.logInsProb, rLogProbModel.logCptWeight))
 {
   for (int cpt = 0; cpt < model.components(); ++cpt)
     for (AlphTok tok = 0; tok < model.alphabetSize(); ++tok)
