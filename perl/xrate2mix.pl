@@ -12,10 +12,10 @@ while (<>) {
 	$initial = {};
 	$mutate = {};
     } elsif (/initial..state..(.)....prob.([0-9\.e\+\-]+)/) {
-	$initial->{$1} = $2;
+	$initial->{$1} = $2 + 0;
 	push @alph, $1;
     } elsif (/mutate..from..(.)....to..(.)....rate.([0-9\.e\+\-]+)/) {
-	$mutate->{$1}->{$2} = $3;
+	$mutate->{$1}->{$2} = $3 + 0;
     }
 }
 

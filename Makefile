@@ -244,4 +244,4 @@ data/%.json: data/%.hsm
 	perl/xrate2json.pl $< >$@
 
 data/prot1-4.json: data/prot1.json
-	perl/gamma-sites.pl $< -bins 4 >$@
+	perl/gamma-sites.pl $< -bins 4 -pretty -verbose >$@
