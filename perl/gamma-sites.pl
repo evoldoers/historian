@@ -25,7 +25,7 @@ use Stockholm;
 my ($progname) = fileparse($0);
 
 my ($shape, $scale, $bins) = (1, 1, 2);
-my $pretty = 0;
+my ($pretty, $verbose) = (0, 0);
 
 my $usage = "";
 $usage .= "$progname -- add discretized-gamma prior to indelhistorian rate matrix\n";
@@ -37,18 +37,21 @@ $usage .= " -shape <shape>  Set shape parameter (default $shape)\n";
 $usage .= " -scale <scale>  Set scale parameter (default $scale)\n";
 $usage .= " -bins <bins>    Set number of bins (default $bins)\n";
 $usage .= " -pretty         Pretty-print JSON output\n";
+$usage .= " -verbose        Print debugging info\n";
 $usage .= "\n";
 
 GetOptions ("shape=i" => \$shape,
 	    "scale=i" => \$scale,
 	    "bins=i"  => \$bins,
-	    "pretty" => \$pretty)
+	    "pretty" => \$pretty,
+	    "verbose" => \$verbose)
     or die $usage;
 
 @ARGV == 1 or die $usage;
 my ($paramsFilename) = @ARGV;
 
 my @quartiles = map (qgamma ($_ / ($bins+1), $shape, $scale), 1..$bins);
+warn "Quartiles: (@quartiles)\n" if $verbose;
 
 my $paramsFile = read_file ($paramsFilename);
 my $params = decode_json ($paramsFile);
