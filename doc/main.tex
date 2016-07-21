@@ -37,6 +37,63 @@ None.
 
 \section{Introduction}
 
+Multiple sequence alignments are used for different purposes in bioinformatics,
+and these different applications have led to different criteria for evaluating
+the accuracy of multiple alignment tools
+
+Homology modeling in protein structure prediction
+leads to accuracy metrics that quantify the number of correctly aligned residues
+compared to a benchmark dataset of structurally-informed reference alignments
+
+Significant progress has been made optimizing these metrics
+
+Successful techniques include using Bayesian decision theory to maximize the expected
+score under the metrics \cite{TCOFFEE,ProbCons,AMAP,FSA}
+and fine-tuning the alignment scoring function to reflect known details of
+protein sequences under selection for folding, such as the reduced likelihood of indels in
+hydrophobic regions \cite{MAFFT,MUSCLE}
+
+These have been accompanied by performance optimizations at the rate-limiting steps
+of multiple alignment, including all-versus-all sequence comparison \cite{FSA,MUSCLE}
+
+
+The study of sequence evolution and molecular phylogenetics gives rise to
+an alternative set of criteria for measuring alignment accuracy
+
+Previous work showed that, for the purposes of estimating
+molecular evolutionary parameters
+such as the rates of insertion-deletion events \cite{Westesson2012-zg}
+or the ratio between synonymous abd nonsynonymous substitution rates \cite{Redelings},
+it is best to use an explicit probabilistic model of the sequence evolution process
+and to treat sequence alignment rigorously as a missing data estimation problem
+under this model
+
+
+The ProtPal program is one such approach which uses the theory of
+weighted finite-state transducers
+These are automata which can be multiplied like substitution matrices
+and so can be thought of as a strict generalization of Felsenstein's likelihood-phylogenetic
+approach to multiple sequence alignment
+(in fact, the use of transducers makes Felsenstein's pruning algorithm formally
+equivalent to a special case of Sankoff's multiple alignment algorithm)
+
+A previously published benchmark of alignment methods on simulated sequence data
+showed that most alignment algorithms introduce systematic biases into the
+estimation of indel rates, and that these biases are typically substantially worse
+at higher indel rates.
+
+ProtPal was found to be the most accurate algorithm for indel rate estimation,
+followed by PRANK and then MUSCLE.
+
+However, the implementation of ProtPal published with that benchmark was too slow
+for practical use, and no benchmark of ProtPal on structural alignment benchmarks was available
+
+Here, we present a clean implementation of the algorithm underlying ProtPal
+in a new tool, Indel Historian, which we recommend for evolutionary applications such
+as ancestral sequence reconstruction and molecular phylogenetics
+
+We also report the results of benchmarking ProtPal on the BAliBase 3.0 benchmark
+
 \begin{methods}
 \section{Methods}
 
@@ -46,11 +103,16 @@ None.
 
 
 
+Comparison to MCMC tools
+
+
+\section{Results}
+
 
 
 \section{Availability}
 
-Indel Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license. It is written in C++11, and compiles on a POSIX system with Clang (v.6.1.0). It requires the GNU Scientific Software library (libgsl), the ZLib compression library (libz), and the Boost library.
+Indel Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license. It is written in C++11, and compiles on a POSIX system with Clang (v.6.1.0). It requires the GNU Scientific Software library (libgsl), the ZLib compression library (libz), and the Boost C++ library.
 
 \section*{Acknowledgements}
 
