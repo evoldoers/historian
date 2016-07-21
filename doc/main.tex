@@ -89,7 +89,8 @@ However, the implementation of ProtPal published with that benchmark was too slo
 for practical use, and no benchmark of ProtPal on structural alignment benchmarks was available
 
 Here, we present a clean implementation of the algorithm underlying ProtPal
-in a new tool, Indel Historian, which we recommend for evolutionary applications such
+in a new tool, Indel Historian
+The tool is targeted to evolutionary applications such
 as ancestral sequence reconstruction and molecular phylogenetics
 
 We also report the results of benchmarking ProtPal on the BAliBase 3.0 benchmark
@@ -104,9 +105,26 @@ We also report the results of benchmarking ProtPal on the BAliBase 3.0 benchmark
 
 
 Comparison to MCMC tools
+BaliPhy, PhylogenyCafe, HandAlign
 
 
 \section{Results}
+
+
+
+\section{Discussion}
+
+
+
+The best-performing method MUSCLE introduces heuristics into its scoring scheme
+that improve accuracy.
+
+It is harder to incorporate these sorts of modifications into a rigorous phylogenetic model
+primarily because they violate the assumption of independence
+between indel and substitution processes
+that most such models rely on
+
+Decision theory may also be useful in conjunction with MCMC tools \cite{HermanHeinEtc}
 
 
 
