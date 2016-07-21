@@ -1,0 +1,413 @@
+@ARTICLE{Berlin2015-it,
+  title       = "Assembling large genomes with single-molecule sequencing and
+                 locality-sensitive hashing",
+  author      = "Berlin, Konstantin and Koren, Sergey and Chin, Chen-Shan and
+                 Drake, James P and Landolin, Jane M and Phillippy, Adam M",
+  affiliation = "1] Department of Chemistry and Biochemistry, University of
+                 Maryland, College Park, Maryland, USA. [2] Institute for
+                 Advanced Computer Studies, University of Maryland, College
+                 Park, Maryland, USA. [3] Invincea Labs, Arlington, Virginia,
+                 USA. National Biodefense Analysis and Countermeasures Center,
+                 Frederick, Maryland, USA. Pacific Biosciences of California,
+                 Inc., Menlo Park, California, USA. Pacific Biosciences of
+                 California, Inc., Menlo Park, California, USA. Pacific
+                 Biosciences of California, Inc., Menlo Park, California, USA.
+                 National Biodefense Analysis and Countermeasures Center,
+                 Frederick, Maryland, USA.",
+  abstract    = "Long-read, single-molecule real-time (SMRT) sequencing is
+                 routinely used to finish microbial genomes, but available
+                 assembly methods have not scaled well to larger genomes. We
+                 introduce the MinHash Alignment Process (MHAP) for overlapping
+                 noisy, long reads using probabilistic, locality-sensitive
+                 hashing. Integrating MHAP with the Celera Assembler enabled
+                 reference-grade de novo assemblies of Saccharomyces
+                 cerevisiae, Arabidopsis thaliana, Drosophila melanogaster and
+                 a human hydatidiform mole cell line (CHM1) from SMRT
+                 sequencing. The resulting assemblies are highly continuous,
+                 include fully resolved chromosome arms and close persistent
+                 gaps in these reference genomes. Our assembly of D.
+                 melanogaster revealed previously unknown heterochromatic and
+                 telomeric transition sequences, and we assembled
+                 low-complexity sequences from CHM1 that fill gaps in the human
+                 GRCh38 reference. Using MHAP and the Celera Assembler,
+                 single-molecule sequencing can produce de novo near-complete
+                 eukaryotic assemblies that are 99.99\% accurate when compared
+                 with available reference genomes.",
+  journal     = "Nat. Biotechnol.",
+  volume      =  33,
+  number      =  6,
+  pages       = "623--630",
+  month       =  jun,
+  year        =  2015
+}
+
+@ARTICLE{Cock2010-bk,
+  title       = "The Sanger {FASTQ} file format for sequences with quality
+                 scores, and the {Solexa/Illumina} {FASTQ} variants",
+  author      = "Cock, Peter J A and Fields, Christopher J and Goto, Naohisa
+                 and Heuer, Michael L and Rice, Peter M",
+  affiliation = "Plant Pathology, SCRI, Invergowrie, Dundee DD2 5DA, UK.
+                 peter.cock@scri.ac.uk",
+  abstract    = "FASTQ has emerged as a common file format for sharing
+                 sequencing read data combining both the sequence and an
+                 associated per base quality score, despite lacking any formal
+                 definition to date, and existing in at least three
+                 incompatible variants. This article defines the FASTQ format,
+                 covering the original Sanger standard, the Solexa/Illumina
+                 variants and conversion between them, based on publicly
+                 available information such as the MAQ documentation and
+                 conventions recently agreed by the Open Bioinformatics
+                 Foundation projects Biopython, BioPerl, BioRuby, BioJava and
+                 EMBOSS. Being an open access publication, it is hoped that
+                 this description, with the example files provided as
+                 Supplementary Data, will serve in future as a reference for
+                 this important file format.",
+  journal     = "Nucleic Acids Res.",
+  volume      =  38,
+  number      =  6,
+  pages       = "1767--1771",
+  month       =  apr,
+  year        =  2010
+}
+
+@ARTICLE{Frith2010-zj,
+  title       = "Parameters for accurate genome alignment",
+  author      = "Frith, Martin C and Hamada, Michiaki and Horton, Paul",
+  affiliation = "Computational Biology Research Center, Institute for Advanced
+                 Industrial Science and Technology, Tokyo 135-0064, Japan.
+                 martin@cbrc.jp",
+  abstract    = "BACKGROUND: Genome sequence alignments form the basis of much
+                 research. Genome alignment depends on various mundane but
+                 critical choices, such as how to mask repeats and which score
+                 parameters to use. Surprisingly, there has been no large-scale
+                 assessment of these choices using real genomic data. Moreover,
+                 rigorous procedures to control the rate of spurious alignment
+                 have not been employed. RESULTS: We have assessed 495
+                 combinations of score parameters for alignment of animal,
+                 plant, and fungal genomes. As our gold-standard of accuracy,
+                 we used genome alignments implied by multiple alignments of
+                 proteins and of structural RNAs. We found the HOXD scoring
+                 schemes underlying alignments in the UCSC genome database to
+                 be far from optimal, and suggest better parameters. Higher
+                 values of the X-drop parameter are not always better. E-values
+                 accurately indicate the rate of spurious alignment, but only
+                 if tandem repeats are masked in a non-standard way. Finally,
+                 we show that gamma-centroid (probabilistic) alignment can find
+                 highly reliable subsets of aligned bases. CONCLUSIONS: These
+                 results enable more accurate genome alignment, with
+                 reliability measures for local alignments and for individual
+                 aligned bases. This study was made possible by our new
+                 software, LAST, which can align vertebrate genomes in a few
+                 hours http://last.cbrc.jp/.",
+  journal     = "BMC Bioinformatics",
+  volume      =  11,
+  pages       = "80",
+  month       =  "9~" # feb,
+  year        =  2010
+}
+
+@ARTICLE{Utturkar2015-vh,
+  title       = "Sequence data for Clostridium autoethanogenum using three
+                 generations of sequencing technologies",
+  author      = "Utturkar, Sagar M and Klingeman, Dawn M and Bruno-Barcena,
+                 Jos\'{e} M and Chinn, Mari S and Grunden, Amy M and
+                 K{\"{o}}pke, Michael and Brown, Steven D",
+  affiliation = "Graduate School of Genome Science and Technology, University
+                 of Tennessee , Knoxville, Tennessee 37919, USA. Biosciences
+                 Division, Oak Ridge National Laboratory , Oak Ridge, Tennessee
+                 37831, USA. Department of Plant and Microbial Biology, North
+                 Carolina State University , Raleigh, North Carolina 27695,
+                 USA. Department of Biological and Agricultural Engineering,
+                 North Carolina State University , Raleigh, North Carolina
+                 27695, USA. Department of Plant and Microbial Biology, North
+                 Carolina State University , Raleigh, North Carolina 27695,
+                 USA. LanzaTech , Skokie, Illinois 60077, USA. Graduate School
+                 of Genome Science and Technology, University of Tennessee ,
+                 Knoxville, Tennessee 37919, USA ; Biosciences Division, Oak
+                 Ridge National Laboratory , Oak Ridge, Tennessee 37831, USA.",
+  abstract    = "During the past decade, DNA sequencing output has been mostly
+                 dominated by the second generation sequencing platforms which
+                 are characterized by low cost, high throughput and shorter
+                 read lengths for example, Illumina. The emergence and
+                 development of so called third generation sequencing platforms
+                 such as PacBio has permitted exceptionally long reads (over 20
+                 kb) to be generated. Due to read length increases, algorithm
+                 improvements and hybrid assembly approaches, the concept of
+                 one chromosome, one contig and automated finishing of
+                 microbial genomes is now a realistic and achievable task for
+                 many microbial laboratories. In this paper, we describe high
+                 quality sequence datasets which span three generations of
+                 sequencing technologies, containing six types of data from
+                 four NGS platforms and originating from a single
+                 microorganism, Clostridium autoethanogenum. The dataset
+                 reported here will be useful for the scientific community to
+                 evaluate upcoming NGS platforms, enabling comparison of
+                 existing and novel bioinformatics approaches and will
+                 encourage interest in the development of innovative
+                 experimental and computational methods for NGS data.",
+  journal     = "Sci Data",
+  volume      =  2,
+  pages       = "150014",
+  month       =  "14~" # apr,
+  year        =  2015
+}
+
+@ARTICLE{Westesson2012-zg,
+  title       = "Accurate reconstruction of insertion-deletion histories by
+                 statistical phylogenetics",
+  author      = "Westesson, Oscar and Lunter, Gerton and Paten, Benedict and
+                 Holmes, Ian",
+  affiliation = "University of California Berkeley and University of California
+                 San Francisco Graduate Program in Bioengineering, University
+                 of California, Berkeley, California, United States of America.",
+  abstract    = "The Multiple Sequence Alignment (MSA) is a computational
+                 abstraction that represents a partial summary either of indel
+                 history, or of structural similarity. Taking the former view
+                 (indel history), it is possible to use formal automata theory
+                 to generalize the phylogenetic likelihood framework for finite
+                 substitution models (Dayhoff's probability matrices and
+                 Felsenstein's pruning algorithm) to arbitrary-length
+                 sequences. In this paper, we report results of a
+                 simulation-based benchmark of several methods for
+                 reconstruction of indel history. The methods tested include a
+                 relatively new algorithm for statistical marginalization of
+                 MSAs that sums over a stochastically-sampled ensemble of the
+                 most probable evolutionary histories. For mammalian
+                 evolutionary parameters on several different trees, the single
+                 most likely history sampled by our algorithm appears less
+                 biased than histories reconstructed by other MSA methods. The
+                 algorithm can also be used for alignment-free inference, where
+                 the MSA is explicitly summed out of the analysis. As an
+                 illustration of our method, we discuss reconstruction of the
+                 evolutionary histories of human protein-coding genes.",
+  journal     = "PLoS One",
+  volume      =  7,
+  number      =  4,
+  pages       = "e34572",
+  month       =  "20~" # apr,
+  year        =  2012
+}
+
+@ARTICLE{Altschul1990-bc,
+  title       = "Basic local alignment search tool",
+  author      = "Altschul, S F and Gish, W and Miller, W and Myers, E W and
+                 Lipman, D J",
+  affiliation = "National Center for Biotechnology Information, National
+                 Library of Medicine, National Institutes of Health, Bethesda,
+                 MD 20894.",
+  abstract    = "A new approach to rapid sequence comparison, basic local
+                 alignment search tool (BLAST), directly approximates
+                 alignments that optimize a measure of local similarity, the
+                 maximal segment pair (MSP) score. Recent mathematical results
+                 on the stochastic properties of MSP scores allow an analysis
+                 of the performance of this method as well as the statistical
+                 significance of alignments it generates. The basic algorithm
+                 is simple and robust; it can be implemented in a number of
+                 ways and applied in a variety of contexts including
+                 straightforward DNA and protein sequence database searches,
+                 motif searches, gene identification searches, and in the
+                 analysis of multiple regions of similarity in long DNA
+                 sequences. In addition to its flexibility and tractability to
+                 mathematical analysis, BLAST is an order of magnitude faster
+                 than existing sequence comparison tools of comparable
+                 sensitivity.",
+  journal     = "J. Mol. Biol.",
+  volume      =  215,
+  number      =  3,
+  pages       = "403--410",
+  month       =  "5~" # oct,
+  year        =  1990
+}
+
+@ARTICLE{Sippl1999-te,
+  title     = "Biological sequence analysis. Probabilistic models of proteins
+               and nucleic acids, edited by R. Durbin, S. Eddy, A. Krogh, and
+               G. Mitchinson. 1998. Cambridge: Cambridge University Press. 356
+               pp. \pounds{}{}55.00 ($80.00) (hardcover); \pounds{}{}19.95
+               ($34.95) (paper)",
+  author    = "Sippl, Manfred J",
+  journal   = "Protein Sci.",
+  publisher = "Cold Spring Harbor Laboratory Press",
+  volume    =  8,
+  number    =  3,
+  pages     = "695--695",
+  month     =  "1~" # jan,
+  year      =  1999
+}
+
+@ARTICLE{Drasdo1998-hl,
+  title       = "A statistical theory of sequence alignment with gaps",
+  author      = "Drasdo, D and Hwa, T and L{\"{a}}ssig, M",
+  affiliation = "Max-Planck-Institut f{\"{u}}r Kolloid- und
+                 Grenzfl{\"{a}}chenforschung, Teltow, Germany.
+                 drasdo@imise.uni-leipzig.de",
+  abstract    = "A statistical theory of local alignment algorithms with gaps
+                 is presented. Both the linear and logarithmic phases, as well
+                 as the phase transition separating the two phases, are
+                 described in a quantitative way. Markov sequences without
+                 mutual correlations are shown to have scale-invariant
+                 alignment statistics. Deviations from scale invariance
+                 indicate the presence of mutual correlations detectable by
+                 alignment algorithms. Conditions are obtained for the optimal
+                 detection of a class of mutual sequence correlations.",
+  journal     = "Proc. Int. Conf. Intell. Syst. Mol. Biol.",
+  volume      =  6,
+  pages       = "52--58",
+  year        =  1998
+}
+
+@BOOK{Durbin1998-ps,
+  title     = "Biological Sequence Analysis: Probabilistic Models of Proteins
+               and Nucleic Acids",
+  author    = "Durbin, Richard and Eddy, Sean R and Krogh, Anders and
+               Mitchison, Graeme",
+  abstract  = "Probabilistic models are becoming increasingly important in
+               analysing the huge amount of data being produced by large-scale
+               DNA-sequencing efforts such as the Human Genome Project. For
+               example, hidden Markov models are used for analysing biological
+               sequences, linguistic-grammar-based probabilistic models for
+               identifying RNA secondary structure, and probabilistic
+               evolutionary models for inferring phylogenies of sequences from
+               different organisms. This book gives a unified, up-to-date and
+               self-contained account, with a Bayesian slant, of such methods,
+               and more generally to probabilistic methods of sequence
+               analysis. Written by an interdisciplinary team of authors, it
+               aims to be accessible to molecular biologists, computer
+               scientists, and mathematicians with no formal knowledge of the
+               other fields, and at the same time present the state-of-the-art
+               in this new and highly important field.",
+  publisher = "Cambridge University Press",
+  month     =  "23~" # apr,
+  year      =  1998
+}
+
+@ARTICLE{Jain2015-by,
+  title       = "Improved data analysis for the {MinION} nanopore sequencer",
+  author      = "Jain, Miten and Fiddes, Ian T and Miga, Karen H and Olsen,
+                 Hugh E and Paten, Benedict and Akeson, Mark",
+  affiliation = "1] UC Santa Cruz Genomics Institute, Santa Cruz, California,
+                 USA. [2] Department of Biomolecular Engineering, University of
+                 California, Santa Cruz, California, USA. 1] UC Santa Cruz
+                 Genomics Institute, Santa Cruz, California, USA. [2]
+                 Department of Biomolecular Engineering, University of
+                 California, Santa Cruz, California, USA. 1] UC Santa Cruz
+                 Genomics Institute, Santa Cruz, California, USA. [2]
+                 Department of Biomolecular Engineering, University of
+                 California, Santa Cruz, California, USA. 1] UC Santa Cruz
+                 Genomics Institute, Santa Cruz, California, USA. [2]
+                 Department of Biomolecular Engineering, University of
+                 California, Santa Cruz, California, USA. 1] UC Santa Cruz
+                 Genomics Institute, Santa Cruz, California, USA. [2]
+                 Department of Biomolecular Engineering, University of
+                 California, Santa Cruz, California, USA. 1] UC Santa Cruz
+                 Genomics Institute, Santa Cruz, California, USA. [2]
+                 Department of Biomolecular Engineering, University of
+                 California, Santa Cruz, California, USA.",
+  abstract    = "Speed, single-base sensitivity and long read lengths make
+                 nanopores a promising technology for high-throughput
+                 sequencing. We evaluated and optimized the performance of the
+                 MinION nanopore sequencer using M13 genomic DNA and used
+                 expectation maximization to obtain robust maximum-likelihood
+                 estimates for insertion, deletion and substitution error rates
+                 (4.9\%, 7.8\% and 5.1\%, respectively). Over 99\% of
+                 high-quality 2D MinION reads mapped to the reference at a mean
+                 identity of 85\%. We present a single-nucleotide-variant
+                 detection tool that uses maximum-likelihood parameter
+                 estimates and marginalization over many possible read
+                 alignments to achieve precision and recall of up to 99\%. By
+                 pairing our high-confidence alignment strategy with long
+                 MinION reads, we resolved the copy number for a cancer-testis
+                 gene family (CT47) within an unresolved region of human
+                 chromosome Xq24.",
+  journal     = "Nat. Methods",
+  volume      =  12,
+  number      =  4,
+  pages       = "351--356",
+  month       =  apr,
+  year        =  2015
+}
+
+@ARTICLE{Holmes1998-pr,
+  title       = "Dynamic programming alignment accuracy",
+  author      = "Holmes, I and Durbin, R",
+  affiliation = "Sanger Centre, Wellcome Trust Genome Campus, Hinxton,
+                 Cambridge, England. ihh,rd@sanger.ac.uk",
+  abstract    = "Algorithms for generating alignments of biological sequences
+                 have inherent statistical limitations when it comes to the
+                 accuracy of the alignments they produce. Using simulations, we
+                 measure the accuracy of the standard global dynamic
+                 programming method and show that it can be reasonably well
+                 modelled by an ``edge wander'' approximation to the
+                 distribution of the optimal scoring path around the correct
+                 path in the vicinity of a gap. We also give a table from which
+                 accuracy values can be predicted for commonly used scoring
+                 schemes and sequence divergences (the PAM and BLOSUM series).
+                 Finally we describe how to calculate the expected accuracy of
+                 a given alignment, and show how this can be used to construct
+                 an optimal accuracy alignment algorithm which generates
+                 significantly more accurate alignments than standard dynamic
+                 programming methods in simulated experiments.",
+  journal     = "J. Comput. Biol.",
+  volume      =  5,
+  number      =  3,
+  pages       = "493--504",
+  year        =  1998
+}
+
+@INCOLLECTION{Myers2014-em,
+  title     = "Efficient Local Alignment Discovery amongst Noisy Long Reads",
+  booktitle = "Algorithms in Bioinformatics",
+  author    = "Myers, Gene",
+  publisher = "Springer Berlin Heidelberg",
+  pages     = "52--67",
+  series    = "Lecture Notes in Computer Science",
+  month     =  "8~" # sep,
+  year      =  2014
+}
+
+@ARTICLE{Lindner2012-tx,
+  title       = "A comprehensive evaluation of alignment algorithms in the
+                 context of {RNA-seq}",
+  author      = "Lindner, Robert and Friedel, Caroline C",
+  affiliation = "Institute of Pharmacy and Molecular Biotechnology, Heidelberg
+                 University, Heidelberg, Germany.",
+  abstract    = "Transcriptome sequencing (RNA-Seq) overcomes limitations of
+                 previously used RNA quantification methods and provides one
+                 experimental framework for both high-throughput
+                 characterization and quantification of transcripts at the
+                 nucleotide level. The first step and a major challenge in the
+                 analysis of such experiments is the mapping of sequencing
+                 reads to a transcriptomic origin including the identification
+                 of splicing events. In recent years, a large number of such
+                 mapping algorithms have been developed, all of which have in
+                 common that they require algorithms for aligning a vast number
+                 of reads to genomic or transcriptomic sequences. Although the
+                 FM-index based aligner Bowtie has become a de facto standard
+                 within mapping pipelines, a much larger number of possible
+                 alignment algorithms have been developed also including other
+                 variants of FM-index based aligners. Accordingly, developers
+                 and users of RNA-seq mapping pipelines have the choice among a
+                 large number of available alignment algorithms. To provide
+                 guidance in the choice of alignment algorithms for these
+                 purposes, we evaluated the performance of 14 widely used
+                 alignment programs from three different algorithmic classes:
+                 algorithms using either hashing of the reference
+                 transcriptome, hashing of reads, or a compressed FM-index
+                 representation of the genome. Here, special emphasis was
+                 placed on both precision and recall and the performance for
+                 different read lengths and numbers of mismatches and indels in
+                 a read. Our results clearly showed the significant reduction
+                 in memory footprint and runtime provided by FM-index based
+                 aligners at a precision and recall comparable to the best hash
+                 table based aligners. Furthermore, the recently developed
+                 Bowtie 2 alignment algorithm shows a remarkable tolerance to
+                 both sequencing errors and indels, thus, essentially making
+                 hash-based aligners obsolete.",
+  journal     = "PLoS One",
+  volume      =  7,
+  number      =  12,
+  pages       = "e52403",
+  month       =  "26~" # dec,
+  year        =  2012
+}
+

@@ -1,0 +1,75 @@
+\documentclass{bioinfo}
+\copyrightyear{2015} \pubyear{2015}
+
+\access{Advance Access Publication Date: Day Month Year}
+\appnotes{Application Note}
+
+\usepackage{url}
+
+\begin{document}
+\firstpage{1}
+
+\subtitle{Application Note}
+
+\title[Indel Historian: phylogenetic ancestral reconstruction]{Indel Historian: phylogenetic ancestral reconstruction}
+\author[Ian Holmes]{Ian Holmes$^{\text{\sfb 1}*}$}
+\address{$^{\text{\sf 1}}$Department of Bioengineering, University of California, Berkeley, 94703, USA.}
+
+\corresp{$^\ast$To whom correspondence should be addressed.}
+
+\history{Received on XXXXX } %; revised on XXXXX; accepted on XXXXX}
+
+\editor{Associate Editor: XXXXXXX}
+
+\abstract{
+{\bf Motivation.}
+{\bf Results.}
+{\bf Availability and Implementation.}
+Indel Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license.
+It is written in C++11.
+{\bf Contact.}
+Ian Holmes {\tt ihholmes+indelhistorian@gmail.com}.
+{\bf Supplementary Information.}
+None.
+}
+
+\maketitle
+
+\section{Introduction}
+
+\begin{methods}
+\section{Methods}
+
+\cite{Westesson2012-zg}
+
+\end{methods}
+
+
+
+
+
+\section{Availability}
+
+Indel Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license. It is written in C++11, and compiles on a POSIX system with Clang (v.6.1.0). It requires the GNU Scientific Software library (libgsl), the ZLib compression library (libz), and the Boost library.
+
+\section*{Acknowledgements}
+
+Indel Historian includes code from Ivan Vashchaev (gason), Heng Li (kseq), Rafael Baptista (stacktrace), David Robert Nadeau (memsize), Roger Pate (string escaping), Konrad Rudolph (index sort), and the StackOverflow community.
+
+\section*{Funding}
+
+This work has been supported by NHGRI grant R01-HG004483.
+
+\bibliographystyle{natbib}
+%\bibliographystyle{bioinformatics}
+%\bibliographystyle{achemnat}
+%\bibliographystyle{plainnat}
+%\bibliographystyle{abbrv}
+%
+%\bibliographystyle{plain}
+%
+%\bibliography{Document}
+
+
+\bibliography{references}
+\end{document}
