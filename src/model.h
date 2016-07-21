@@ -162,7 +162,8 @@ struct IndelCounts {
   void accumulateIndelCounts (const RateModel& model, const Tree& tree, const AlignPath& align, double weight = 1.);
   void writeJson (ostream& out, const size_t indent = 0) const;
   void read (const JsonValue& json);
-
+  string toJson() const;
+  
   // helper to compute the expected wait time before an irreversible decay event,
   // conditioned on the event being known to have taken place
   static double decayWaitTime (double decayRate, double timeInterval);
@@ -186,6 +187,7 @@ struct EventCounts : AlphabetOwner {
   void optimize (RateModel& model, bool fitIndelRates = true, bool fitSubstRates = true) const;
   
   void writeJson (ostream& out) const;
+  string toJson() const;
   void read (const JsonValue& json);
   void readComponent (const JsonMap& jm);
 

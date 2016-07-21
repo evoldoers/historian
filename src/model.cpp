@@ -827,6 +827,8 @@ void IndelCounts::accumulateIndelCounts (const RateModel& model, double time, co
     state = next;
   }
   lp += log (pm.transProb (state, ProbModel::End)) * weight;
+
+  LogThisAt(9,"Accumulated indel counts on branch of length " << time << " (weight=" << weight << "):\n" << toJson());
 }
 
 void IndelCounts::accumulateIndelCounts (const RateModel& model, const Tree& tree, const AlignPath& align, double weight) {
@@ -902,6 +904,20 @@ void IndelCounts::read (const JsonValue& json) {
   delTime = jm.getNumber("delTime");
 }
 
+string IndelCounts::toJson() const {
+  ostringstream out;
+  writeJson (out);
+  out << endl;
+  return out.str();
+}
+
+string EventCounts::toJson() const {
+  ostringstream out;
+  writeJson (out);
+  out << endl;
+  return out.str();
+}
+
 void EventCounts::read (const JsonValue& json) {
   readAlphabet (json);
   rootCount.clear();
@@ -945,7 +961,9 @@ void EventCounts::readComponent (const JsonMap& jm) {
 void EventCounts::optimize (RateModel& model, bool fitIndelRates, bool fitSubstRates) const {
   if (model.alphabet != alphabet)
     model.init (alphabet);
-
+  
+  LogThisAt(9,"Optimizing model for the following expected counts:\n" << toJson());
+  
   if (fitSubstRates) {
     vguard<double> cptCount;
     double totalCptCount = 0;

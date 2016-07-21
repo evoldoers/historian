@@ -15,7 +15,7 @@ SeqGraph::SeqGraph (const Profile& prof, const string& alphabet, const vguard<Lo
       for (int cpt = 0; cpt < (int) logInsProb.size(); ++cpt)
 	log_accum_exp (lpNorm, logCptWeight[cpt] + logInnerProduct (logInsProb[cpt], prof.state[s].lpAbsorb[cpt]));
       AlphTok iMax = 0;
-      vguard<LogProb> lp (logInsProb.front().size(), -numeric_limits<double>::infinity());
+      vguard<LogProb> lp (alphabet.size(), -numeric_limits<double>::infinity());
       for (AlphTok i = 0; i < (int) lp.size(); ++i) {
 	for (int cpt = 0; cpt < (int) logInsProb.size(); ++cpt)
 	  log_accum_exp (lp[i], logCptWeight[cpt] + logInsProb[cpt][i] + prof.state[s].lpAbsorb[cpt][i] - lpNorm);

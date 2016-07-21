@@ -1012,7 +1012,7 @@ void Reconstructor::loadCounts() {
 
 void Reconstructor::count (Dataset& dataset) {
   dataset.eigenCounts = EigenCounts (model.components(), model.alphabetSize());
-  dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree, 1, accumulateIndelCounts, accumulateSubstCounts);
+  dataset.eigenCounts.accumulateCounts (model, dataset.reconstruction, dataset.tree, accumulateIndelCounts, accumulateSubstCounts);
   if (accumulateSubstCounts)
     dataCounts += dataset.eigenCounts.transform (model);
   else if (accumulateIndelCounts)
