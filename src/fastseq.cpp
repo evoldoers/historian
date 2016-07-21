@@ -192,7 +192,7 @@ KmerIndex::KmerIndex (const FastSeq& seq, const string& alphabet, SeqIdx kmerLen
   const UnvalidatedTokSeq tok = seq.unvalidatedTokens (alphabet);
   const AlphTok alphabetSize = (AlphTok) alphabet.size();
   const SeqIdx seqLen = seq.length();
-  for (SeqIdx j = 0; j <= seqLen - kmerLen; ++j)
+  for (SeqIdx j = 0; j + kmerLen <= seqLen; ++j)
     if (kmerValid(kmerLen,tok.begin() + j))
       kmerLocations[makeKmer (kmerLen, tok.begin() + j, alphabetSize)].push_back (j);
 

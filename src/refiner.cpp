@@ -183,7 +183,7 @@ Refiner::History Refiner::refine (const History& oldHistory) const {
       bestLogProb = newBestLogProb;
       stepsSinceImprovement = 0;
     } else {
-      if (newBestLogProb < bestLogProb)
+      if (newBestLogProb < bestLogProb && !REFINER_NEAR_EQ(newBestLogProb,bestLogProb))
 	Warn ("During branch refinement, alignment log-likelihood dropped from %g to %g", bestLogProb, newBestLogProb);
       ++stepsSinceImprovement;
       LogThisAt(4,"Branch refinement failed to improve alignment log-likelihood for " << plural(stepsSinceImprovement,"step") << endl);
