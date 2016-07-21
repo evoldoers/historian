@@ -40,8 +40,8 @@ $usage .= " -pretty         Pretty-print JSON output\n";
 $usage .= " -verbose        Print debugging info\n";
 $usage .= "\n";
 
-GetOptions ("shape=i" => \$shape,
-	    "scale=i" => \$scale,
+GetOptions ("shape=f" => \$shape,
+	    "scale=f" => \$scale,
 	    "bins=i"  => \$bins,
 	    "pretty" => \$pretty,
 	    "verbose" => \$verbose)
