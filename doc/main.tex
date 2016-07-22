@@ -48,23 +48,24 @@ compared to a benchmark dataset of structurally-informed reference alignments
 Significant progress has been made optimizing these metrics
 
 Successful techniques include using Bayesian decision theory to maximize the expected
-score under the metrics \cite{TCOFFEE,ProbCons,AMAP,FSA}
+score under the metrics \citep{NotredameEtAl2000,DoEtAl2005,SchwartzPachter2007,BradleyEtAl2009}
 and fine-tuning the alignment scoring function to reflect known details of
 protein sequences under selection for folding, such as the reduced likelihood of indels in
-hydrophobic regions \cite{MAFFT,MUSCLE}
+hydrophobic regions \citep{KatohEtAl2005,Edgar2004b,LarkinEtAl2007}
+
+PRANK\citep{LoytynojaGoldman2005}, Muscle \citep{Edgar2004b}, ClustalW\citep{LarkinEtAl2007}, MAFFT\citep{KatohEtAl2005}
 
 These have been accompanied by performance optimizations at the rate-limiting steps
-of multiple alignment, including all-versus-all sequence comparison \cite{FSA,MUSCLE}
+of multiple alignment, including all-versus-all sequence comparison \citep{BradleyEtAl2009,Edgar2004b}
 
 
 The study of sequence evolution and molecular phylogenetics gives rise to
 an alternative set of criteria for measuring alignment accuracy
 
 Previous work showed that, for the purposes of estimating
-molecular evolutionary parameters
-such as the rates of insertion-deletion events \cite{Westesson2012-zg}
-or the ratio between synonymous abd nonsynonymous substitution rates \cite{Redelings},
-it is best to use an explicit probabilistic model of the sequence evolution process
+molecular evolutionary parameters---such as the rates of insertion-deletion events \citep{Westesson2012-zg},
+the ratio between synonymous and nonsynonymous substitution rates \citep{Redelings2014},
+or other evolutionary analyses \citep{LoytynojaGoldman2008}---it is best to use an explicit probabilistic model of the sequence evolution process
 and to treat sequence alignment rigorously as a missing data estimation problem
 under this model
 
@@ -80,7 +81,7 @@ equivalent to a special case of Sankoff's multiple alignment algorithm)
 A previously published benchmark of alignment methods on simulated sequence data
 showed that most alignment algorithms introduce systematic biases into the
 estimation of indel rates, and that these biases are typically substantially worse
-at higher indel rates.
+at higher indel rates \citep{Westesson2012-zg}.
 
 ProtPal was found to be the most accurate algorithm for indel rate estimation,
 followed by PRANK and then MUSCLE.
@@ -93,19 +94,22 @@ in a new tool, Indel Historian
 The tool is targeted to evolutionary applications such
 as ancestral sequence reconstruction and molecular phylogenetics
 
-We also report the results of benchmarking ProtPal on the BAliBase 3.0 benchmark
+We also report an assessment of the structural alignment accuracy of IndelHistorian on the benchmark datasets BAliBase 3.0 \citep{ThompsonEtAl2005}
+and PREFAB 4.0 \citep{Edgar2010}
 
 \begin{methods}
 \section{Methods}
 
-\cite{Westesson2012-zg}
+\citep{Westesson2012-zg}
 
 \end{methods}
 
 
 
 Comparison to MCMC tools
-BaliPhy, PhylogenyCafe, HandAlign
+BaliPhy \citep{RedelingsSuchard2005,RedelingsSuchard2007,Redelings2014},
+StatAlign \citep{NovakEtAl2008,HermanEtAl2014},
+HandAlign \citep{WestessonBarquistHolmes2012}
 
 
 \section{Results}
@@ -124,7 +128,7 @@ primarily because they violate the assumption of independence
 between indel and substitution processes
 that most such models rely on
 
-Decision theory may also be useful in conjunction with MCMC tools \cite{HermanHeinEtc}
+Decision theory may also be useful to produce consensus alignments summarizing an MCMC run \citep{HermanEtAl2015}
 
 
 
