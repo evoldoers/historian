@@ -23,13 +23,14 @@
 
 \abstract{
 {\bf Motivation.}
-Ancestral reconstruction of indel histories is a specialized application of multiple sequence alignment.
-The alignment tool ProtPal, which uses weighted finite-state transducers to model indel evolution,
-out-performed other ancestral-reconstruction alignment tools in a previous simulation benchmark,
+Reconstruction of indel histories and ancestral sequences is a specialized variation of multiple sequence alignment.
+The alignment tool ProtPal, based on a statistical phylogenetic model combining indel and substitution processes,
+reconstructed indel histories more accurately than other tools in an earlier simulation benchmark,
 but has been too slow for practical use.
 {\bf Results.}
 Indel Historian combines an efficient reimplementation of the ProtPal algorithm with performance-improving heuristics from other alignment tools.
-On structural alignment benchmarks, it out-performs PRANK and is comparable to CLUSTALW.
+Supplementing the earlier simulation results on fidelity of ancestral sequence reconstruction,
+evaluations on the structurally-informed datasets BAliBase and PREFAB are reported.
 {\bf Availability and Implementation.}
 Indel Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license.
 {\bf Contact.}
@@ -46,13 +47,13 @@ Synthesis of reconstructed ancestral proteins offers a direct way to test hypoth
 or to generate diversity in combinatorial libraries for directed evolution \citep{AlcolombriEtAl2011,SantiagoOrtizEtAl2015}.
 A typical computational workflow involves building a multiple sequence alignment and then using statistical phylogenetics to reconstruct the substitution history
 \citep{Liberles2007}.
-However, it remains unclear whether the multiple alignment tools that perform best on common benchmarks
+However, it is doubtful whether the multiple alignment tools that perform best on common benchmarks
 (which generally use protein structure as a gold standard)
 are also the best tools for ancestral reconstruction.
 
 Multiple alignments are used for several purposes in bioinformatics,
 only one of which is homology-directed structure prediction,
-yet structurally-informed alignments have tended to dominate alignment benchmarks.
+yet structurally-derived alignments have tended to dominate alignment benchmarks.
 Alignment accuracy scores (such as SPS, TCS, AMA, and the Cline shift score) quantify the number of correctly aligned residues
 compared to a benchmark dataset of structurally-informed reference alignments \citep{ThompsonEtAl2005}.
 Techniques that score highly in these tests include using Bayesian decision theory to maximize the expected
@@ -63,56 +64,56 @@ hydrophobic regions \citep{KatohEtAl2005,Edgar2004b,LarkinEtAl2007}.
 These have been accompanied by performance optimizations of 
 rate-limiting steps such as all-versus-all pairwise sequence comparison \citep{BradleyEtAl2009,Edgar2004b}.
 
-There is evidence that for evolutionary uses of alignments, such as reconstructing trees or ancestral sequences,
-different tools (or at least different tool-assessment metrics) might be required.
-Several independent studies have shown that, for the purposes of estimating
+There is evidence that for evolutionary applications, such as reconstructing trees or ancestral sequences,
+different alignment tools (or at least different tool-assessment metrics) might be required.
+Studies have shown that, for the purposes of estimating
 molecular evolutionary parameters---such as indel rates \citep{Westesson2012-zg},
 dN/dS ratios \citep{Redelings2014},
-or trees \citep{LoytynojaGoldman2008}---it is best to use an explicit probabilistic model of the sequence evolution process
-and to treat sequence alignment rigorously as a statistical ``missing data'' problem.
-One possible explanation for this is that, for protein structure prediction,
+or trees \citep{LoytynojaGoldman2008}---it is best to use an explicit statistical model of the sequence evolution process
+and to treat alignment rigorously as a ``missing data'' problem.
+One possible explanation is that, for protein structure prediction,
 detailed reconstruction of indel histories in fast-evolving regions (such as loops) is unnecessary,
-but evolutionary analyses can make more use of this information.
+while evolutionary analyses can make more use of this information.
 
-The ProtPal program \citep{Westesson2012-zg} is one such approach, modeling indel evolution using automata.
+The ProtPal program \citep{Westesson2012-zg} is one such approach, modeling indel evolution using 
 weighted finite-state transducers,
-automata which can be multiplied together like substitution matrices \citep{BouchardCote2013},
-generalizing Felsenstein's celebrated
-algorithm for computing phylogenetic likelihoods from individual sites to whole sequences \citep{Felsenstein81}.
+automata which can be multiplied together like substitution matrices \citep{BouchardCote2013}.
+%Transducers generalize Felsenstein's celebrated
+%algorithm for computing phylogenetic likelihoods from individual sites to whole sequences \citep{Felsenstein81}.
 %In fact, the use of transducers makes Felsenstein's pruning algorithm formally
 %equivalent to a special case of Sankoff's phylogenetic multiple alignment and RNA folding algorithm \citep{Sankoff85};
 %the RNA folding component is included if one generalizes from finite-state transducers to pushdown automata \citep{BradleyHolmes2009}.
 In an earlier benchmark of alignment methods on simulated sequence data,
-ProtPal was found to be the most accurate algorithm for indel rate estimation,
+ProtPal was found to be the most accurate for indel rate estimation,
 followed by PRANK and then MUSCLE.
-Most alignment algorithms introduce systematic biases into the
+Most alignment tools introduce systematic biases into the
 estimation of indel rates, and these biases are typically substantially worse
-at higher indel rates \citep{Westesson2012-zg}.
+at higher rates \citep{Westesson2012-zg}.
 These biases are minimized with ProtPal.
 However, the implementation of ProtPal published with that benchmark was too slow
 for practical use.
-Furthermore, no benchmark of ProtPal on structural alignment benchmarks has been available,
-and---although we have noted that structure prediction is a different task from evolutionary analysis---it would be
-useful to know just how different it is, according to the metrics.
+%Furthermore, no benchmark of ProtPal on structural alignment benchmarks has been available,
+%and---although we have noted that structure prediction is a different task from evolutionary analysis---it would be
+%useful to know just how different it is, according to the metrics.
 
-Here, we present a clean implementation of the algorithm underlying ProtPal
+Here, we present a clean reimplementation of the algorithm underlying ProtPal
 in a new tool, Indel Historian.
-The tool is targeted to evolutionary applications such
-as ancestral sequence reconstruction and molecular phylogenetics.
-We also report an assessment of the alignment accuracy of IndelHistorian on structurally-informed benchmarks.
+%The tool is targeted to evolutionary applications such
+%as ancestral sequence reconstruction and molecular phylogenetics.
+We also report an assessment of the alignment accuracy %of IndelHistorian
+on structurally-informed benchmarks.
 
 \begin{methods}
 \section{Methods}
 
 Indel Historian combines established algorithms from several sources.
 Like ProtPal, Indel Historian progressively climbs a tree from tips to root,
-using a finite-state transducer model of sequence evolution (similar to a Pair HMM)
-to build an ancestral sequence profile that includes suboptimal alignments \citep{Westesson2012-zg}.
-To find the guide tree, Indel Historian performs neighbor-joining \citep{SaitouNei87}
+building an ancestral sequence profile that includes suboptimal alignments \citep{Westesson2012-zg}.
+To find the guide tree, Indel Historian does neighbor-joining \citep{SaitouNei87}
 on a guide alignment constructed via a sparse random subset of the all-vs-all pairwise alignment graph \citep{BradleyEtAl2009}.
-The progressive alignment step is followed by iterative refinement \citep{HolmesBruno2001,Edgar2004b} and optional MCMC \citep{WestessonBarquistHolmes2012}.
-Indel Historian also includes implementations of the phylogenetic EM algorithm for continuous-time Markov chains \citep{HolmesRubin2002},
-allowing substitution and indel rates to be estimated directly from sequence data.
+Progressive alignment is followed by iterative refinement \citep{HolmesBruno2001,Edgar2004b} and optional MCMC \citep{WestessonBarquistHolmes2012}.
+Indel Historian also implements the phylogenetic EM algorithm for continuous-time Markov chains \citep{HolmesRubin2002},
+so substitution and indel rates can be estimated directly from sequence data.
 
 \end{methods}
 
@@ -137,14 +138,18 @@ MUSCLE & 0.89 & 0.64 & 0.73 & 0.73 \\
 
 Supplementing the previously published data on the superior fidelity of the ProtPal algorithm
 at reconstructing indel histories \citep{Westesson2012-zg},
-Table~1 summarizes an evaluation of the ProtPal algorithm, as implemented in Indel Historian, on structural benchmarks.
+Table~1 summarizes an evaluation of Indel Historian
+on structural benchmarks.
 The comparison uses the BAliBase and PREFAB
 benchmarks, compiled partially or wholly using 3D structure information.
 In general, Indel Historian performs better than PRANK,
-a program which also aims for a phylogenetically meaningful alignment
-including ancestral sequences \citep{LoytynojaGoldman2008},
-and the second-most accurate after ProtPal at estimating indel rates \citep{Westesson2012-zg}.
+which also generates a phylogenetic ancestral reconstruction \citep{LoytynojaGoldman2008},
+and is the second-most accurate after ProtPal at estimating indel rates \citep{Westesson2012-zg}.
 Compared to leading protein aligners that do not attempt ancestral reconstruction, Indel Historian performs better than CLUSTALW but worse than MUSCLE.
+
+The benchmark did not include MCMC approaches
+such as BaliPhy \citep{Redelings2014}, StatAlign \citep{NovakEtAl2008} or HandAlign \citep{WestessonBarquistHolmes2012}.
+These are expected to be more accurate still, but take much longer to run.
 
 % The best-performing method MUSCLE introduces heuristics into its scoring scheme
 % that improve accuracy.
