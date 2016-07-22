@@ -61,17 +61,17 @@ the rate-limiting step generally being all-versus-all sequence comparison \citep
 
 The study of sequence evolution and molecular phylogenetics gives rise to
 a different set of criteria for measuring alignment accuracy.
-As an example, for the purposes of predicting a protein structure,
-functionally equivalent sequences in a rapidly-evolving region (such as a loop)
-may be considered alignable even if they have been entirely replaced by a series of indel mutations
-(e.g. the sequences $X$ and $Y$ in the mutation trajectory $AXB \to AXYB \to AYB$),
-but for the purposes of evolutionary analysis, one generally wants to count every indel event that has occurred.
-Previous work showed that, for the purposes of estimating
+Several independent studies have showed that, for the purposes of estimating
 molecular evolutionary parameters---such as the rates of insertion-deletion events \citep{Westesson2012-zg},
 the ratio between synonymous and nonsynonymous substitution rates \citep{Redelings2014},
 or other evolutionary analyses \citep{LoytynojaGoldman2008}---it is best to use an explicit probabilistic model of the sequence evolution process
 and to treat sequence alignment rigorously as a missing data estimation problem
 under this model.
+One conceptual explanation for this phenomenon is that, for the purposes of predicting a protein structure,
+functionally equivalent sequences in a rapidly-evolving region (such as a loop)
+may be considered alignable even if they have been entirely replaced by a series of indel mutations
+(e.g. the sequences $X$ and $Y$ in the mutation trajectory $AXB \to AXYB \to AYB$),
+but for the purposes of evolutionary analysis, one generally wants to count every indel event that has occurred.
 
 The ProtPal program \citep{Westesson2012-zg} is one such approach which uses the theory of
 weighted finite-state transducers,
@@ -91,7 +91,7 @@ followed by PRANK and then MUSCLE.
 However, the implementation of ProtPal published with that benchmark was too slow
 for practical use.
 Furthermore, no benchmark of ProtPal on structural alignment benchmarks was available,
-and---although we have noted that structure prediction is a different task---it would be
+and---although we have noted that structure prediction is a different task from evolutionary analysis---it would be
 useful to know just how different it is, according to the metrics.
 
 Here, we present a clean implementation of the algorithm underlying ProtPal
