@@ -32,7 +32,7 @@ Reconstructor::Reconstructor()
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     tokenizeCodons (false),
     guideAlignTryAllPairs (true),
-    useUPGMA (true),
+    useUPGMA (false),
     jukesCantorDistanceMatrix (false),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
@@ -407,6 +407,11 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       runMCMC = true;
       useUPGMA = true;
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-norefine") {
+      refineReconstruction = false;
       argvec.pop_front();
       return true;
 

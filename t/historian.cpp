@@ -128,7 +128,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "Following construction of the guide alignment, a tree is estimated using a\n"
     + "distance matrix method. By default this is UPGMA.\n"
     + "\n"
-    //    + "  -upgma          Use UPGMA to estimate tree (default)\n"
+    + "  -upgma          Use UPGMA to estimate tree (default for MCMC)\n"
     + "  -nj             Use neighbor-joining, not UPGMA, to estimate tree\n"
     + "  -jc             Use Jukes-Cantor-like estimates for distance matrix\n"
     + "\n"
@@ -233,6 +233,7 @@ int main (int argc, char** argv) {
 
     recon.reconstructRoot = true;
     recon.runMCMC = true;
+    recon.useUPGMA = true;
     recon.accumulateSubstCounts = false;
     recon.accumulateIndelCounts = false;
 

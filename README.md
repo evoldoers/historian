@@ -109,6 +109,7 @@ memory threshold can be set with -kmatchmb). It can be disabled with
 Following construction of the guide alignment, a tree is estimated using a
 distance matrix method. By default this is UPGMA.
 
+  -upgma          Use UPGMA to estimate tree (default for MCMC)
   -nj             Use neighbor-joining, not UPGMA, to estimate tree
   -jc             Use Jukes-Cantor-like estimates for distance matrix
 
