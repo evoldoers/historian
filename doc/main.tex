@@ -95,9 +95,9 @@ Indel Historian combines established algorithms from several sources.
 Like ProtPal, Indel Historian progressively climbs a tree from tips to root,
 building an ancestral sequence profile that includes suboptimal alignments \citep{LeeGrassoSharlow2002,Westesson2012-zg}
 using a time-dependent evolutionary model \citep{RivasEddy2015}.
-To find the guide tree, Indel Historian does neighbor-joining % \citep{SaitouNei87}
+The guide tree is found by neighbor-joining % \citep{SaitouNei87}
 on a guide alignment constructed from the all-vs-all pairwise alignment graph,
-or from a sparse random subset \citep{BradleyEtAl2009}.
+or from a sparse random connected subgraph \citep{BradleyEtAl2009}.
 The guide alignment, which can also be supplied by another tool,
 can optionally constrain the progressive reconstruction,
 which is followed by iterative refinement \citep{HolmesBruno2001,Edgar2004b}.
@@ -126,13 +126,14 @@ MUSCLE & 0.89 & 0.64 & 0.73 & 0.73 \\
   }
 \end{table}
 
-Supplementing the previously published data on the fidelity of the ProtPal algorithm
-at reconstructing indel histories \citep{Westesson2012-zg},
 Table~1 summarizes an evaluation of Indel Historian
 on the BAliBase and PREFAB benchmarks,
 compiled partially or wholly using 3D structural alignments.
+(This complements the previously published data on rate estimation:
+Indel Historian is primarily for evolutionary applications,
+but that should not preclude critical evaluation on a structural benchmark.)
 In general, Indel Historian performs better on these structure-derived benchmarks than PRANK,
-which also generates a phylogenetic ancestral reconstruction \citep{LoytynojaGoldman2008},
+which also performs ancestral reconstruction \citep{LoytynojaGoldman2008},
 and is the second-most accurate after ProtPal at estimating indel rates \citep{Westesson2012-zg}.
 Compared to leading protein aligners that do not attempt ancestral reconstruction,
 Indel Historian outperforms CLUSTALW \citep{LarkinEtAl2007} but not MUSCLE \citep{Edgar2004b},
@@ -140,7 +141,7 @@ ProbCons \citep{DoEtAl2005} or MAFFT \citep{KatohEtAl2005}.
 
 We did not benchmark MCMC approaches
 such as BaliPhy \citep{Redelings2014}, StatAlign \citep{NovakEtAl2008} or HandAlign \citep{WestessonBarquistHolmes2012}.
-These are expected to be more accurate still, but generally take much longer.
+These are expected to be more accurate, but generally take much longer.
 MCMC samplers may be usefully supplemented by decision-theoretic approaches to summarize a sampling run \citep{HermanEtAl2015}.
 Other potential ways to improve accuracy include position-specific gap penalties, as used by MUSCLE \citep{Edgar2004b} and MAFFT \citep{KatohEtAl2005},
 and explicit modeling of tandem duplications \citep{SzalkowskiAnisimova2013}.
