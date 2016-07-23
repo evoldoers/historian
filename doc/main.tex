@@ -76,7 +76,7 @@ using the evolution simulator indel-Seq-Gen \citep{StropeEtAl2009}.
 The ProtPal program \citep{Westesson2012-zg}, which models indel evolution using 
 transducers---finite-state machines which can be multiplied together like substitution matrices \citep{BouchardCote2013}---introduced
 the least biases of the tools evaluated (RMS error 25\% for insertion rates and 25\% for deletion rates),
-followed by PRANK (RMS errors 40\% for insertions, 34\% for deletions) and then a MUSCLE-based workflow (45\% and 37\%).
+followed by PRANK (RMS error 40\% for insertions, 34\% for deletions) and then a MUSCLE-based workflow (45\%, 37\%).
 Biases were substantially worse at higher indel rates: e.g. for the highest simulated insertion rate of 0.08 insertions/substitution,
 the RMS estimation errors were 43\% (ProtPal), 64\% (PRANK) and 74\% (MUSCLE).
 
@@ -93,9 +93,9 @@ complementing the above-described evolution-oriented simulation experiments.
 
 Indel Historian combines established algorithms from several sources.
 Like ProtPal, Indel Historian progressively climbs a tree from tips to root,
-building an ancestral sequence profile that includes suboptimal alignments \citep{Westesson2012-zg}
+building an ancestral sequence profile that includes suboptimal alignments \citep{LeeGrassoSharlow2002,Westesson2012-zg}
 using a time-dependent evolutionary model \citep{RivasEddy2015}.
-To find the guide tree, Indel Historian does neighbor-joining \citep{SaitouNei87}
+To find the guide tree, Indel Historian does neighbor-joining % \citep{SaitouNei87}
 on a guide alignment constructed from the all-vs-all pairwise alignment graph,
 or from a sparse random subset \citep{BradleyEtAl2009}.
 The guide alignment, which can also be supplied by another tool,
