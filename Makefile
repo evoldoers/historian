@@ -22,7 +22,7 @@ GSLLIBS = -L$(GSLPREFIX)/lib -lgsl -lgslcblas -lm
 endif
 
 # figure out whether to use Boost
-# Boost is optional -- it's only needed for regexes with gcc
+# Boost is needed for regexes with some versions of gcc.
 # NB pkg-config support for Boost is lacking; see https://svn.boost.org/trac/boost/ticket/1094
 BOOSTPREFIX = /usr
 ifeq (,$(wildcard $(BOOSTPREFIX)/include/boost/regex.h))
@@ -88,7 +88,7 @@ clean:
 # Main build rules
 bin/%: $(OBJFILES) obj/%.o
 	@test -e bin || mkdir bin
-	$(CPP) $(LIBFLAGS) -o $@ obj/$*.o $(OBJFILES)
+	$(CPP) -o $@ obj/$*.o $(OBJFILES) $(LIBFLAGS)
 
 obj/%.o: src/%.cpp
 	@test -e obj || mkdir obj

@@ -1,6 +1,7 @@
 #ifndef JSONUTIL_INCLUDED
 #define JSONUTIL_INCLUDED
 
+#include <cstring>
 #include <map>
 #include <string>
 #include "vguard.h"

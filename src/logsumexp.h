@@ -1,6 +1,7 @@
 #ifndef LOGSUMEXP_INCLUDED
 #define LOGSUMEXP_INCLUDED
 
+#include <limits>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <cmath>
