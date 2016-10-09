@@ -1,5 +1,5 @@
 
-MAKEDIR: $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 progs: bin/rose bin/prank bin/muscle bin/probcons bin/historian bin/qscore
 
@@ -7,7 +7,7 @@ bin/rose:
 	test -e bin || mkdir bin
 	curl -O https://bibiserv2.cebitec.uni-bielefeld.de/applications/rose/resources/downloads/rose-1.3.1-src.tar.gz
 	tar xvzf rose-1.3.1-src.tar.gz
-	cd rose-1.3.1-src; ./configure --prefix=$(MAKEDIR); make; make install
+	cd rose-1.3.1; ./configure --prefix=$(MAKEDIR); make; make install
 
 bin/prank:
 	test -e bin || mkdir bin
