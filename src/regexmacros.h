@@ -23,11 +23,12 @@ using namespace std;
 #define RE_PLUS(CLASS) CLASS RE_STAR(CLASS)
 #define RE_GROUP(EXPR) "\\(" EXPR "\\)"
 
-#define RE_NUMERIC_RANGE "0-9"
-#define RE_ALPHA_RANGE "A-Za-z"
+#define RE_NUMERIC_RANGE "0123456789"
+#define RE_ALPHA_RANGE "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 #define RE_ALPHANUM_RANGE RE_ALPHA_RANGE RE_NUMERIC_RANGE
-#define RE_NONWHITE_RANGE "!-~"
-#define RE_DOT_RANGE " -~"
+//#define RE_NONWHITE_RANGE "!-~"
+#define RE_NONWHITE_RANGE "!\"#\\x24%&'\\x28\\x29\\x2a\\x2b,\\x2d\\x2e/:;<=>\\x3f@\\x5b\\x5c\\x5d\\x5e_`\\x7b\\x7c\\x7d~" RE_ALPHANUM_RANGE
+#define RE_DOT_RANGE " " RE_NONWHITE_RANGE
 
 #define RE_NUMERIC_CHAR_CLASS RE_CHAR_CLASS(RE_NUMERIC_RANGE)
 #define RE_VARNAME_CHAR_CLASS RE_CHAR_CLASS(RE_ALPHANUM_RANGE "_")
