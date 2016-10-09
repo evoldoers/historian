@@ -2,6 +2,7 @@
 MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 progs: bin/rose bin/prank bin/muscle bin/probcons bin/historian bin/qscore
+	rm *.tar.gz *.tgz
 
 bin/rose:
 	test -e bin || mkdir bin
@@ -13,6 +14,7 @@ bin/prank:
 	test -e bin || mkdir bin
 	curl -O http://www.ebi.ac.uk/goldman-srv/prank/src/prank/prank.osx_1058.100701.tgz
 	tar xvzf prank.osx_1058.100701.tgz
+	mv prank $@
 
 bin/muscle:
 	test -e bin || mkdir bin
