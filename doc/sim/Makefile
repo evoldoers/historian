@@ -1,8 +1,15 @@
 
 MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-progs: bin/rose bin/prank bin/muscle bin/probcons bin/historian bin/qscore
+progs: bin/indel-seq-gen bin/rose bin/prank bin/muscle bin/probcons bin/historian bin/qscore
 	rm *.tar.gz *.tgz
+
+bin/indel-seq-gen:
+	curl -O http://bioinfolab.unl.edu/~cstrope/iSG/indel-seq-gen-2.1.03.tar.gz
+	tar xvzf indel-seq-gen-2.1.03.tar.gz
+	perl -pi.bak -e 'print"#include <unistd.h>\n"unless$$n++' indel-seq-gen-2.1.03/src/main.cpp
+	perl -pi.bak -e 's/next/nxt/' indel-seq-gen-2.1.03/src/random.cpp
+	cd indel-seq-gen-2.1.03; ./configure --prefix=$(MAKEDIR); make; make install
 
 bin/rose:
 	test -e bin || mkdir bin
