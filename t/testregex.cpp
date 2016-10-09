@@ -7,8 +7,7 @@ using namespace std;
 
 int main (int argc, char **argv) {
   const string rs (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR);
-  cerr << "Testing regex " << rs << endl;
-  
+  //  cerr << "Testing regex " << rs << endl;
   const regex nonwhite_re (rs, regex_constants::basic);
   
   smatch sm;
