@@ -1,4 +1,6 @@
 
+# Installation
+
 MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 progs: bin/indel-seq-gen bin/rose bin/prank bin/muscle bin/probcons bin/historian bin/qscore
@@ -46,3 +48,16 @@ bin/qscore:
 	cd qscore; tar xvzf qscore_src.tar.gz
 	cd qscore; make
 	mv qscore/qscore $@
+
+
+# Simulation
+
+# General formula is from Text S1 of Westesson et al, 2012
+# http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
+GUIDETREE := gp120guide.isg
+
+# SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
+SUBRATESCALE := .83333
+
+gp120sim:
+	cat $(GUIDETREE) | bin/indel-seq-gen -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile $@ --quiet --outfile_format f -s 10000 --write_anc
