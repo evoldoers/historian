@@ -245,3 +245,10 @@ data/%.json: data/%.hsm
 
 data/prot1-4.json: data/prot1.json
 	perl/gamma-sites.pl $< -bins 4 -pretty -verbose >$@
+
+# For building release binaries
+hide-shared:
+	python/hide-shared-libs.py -d /usr/local --hide
+
+restore-shared:
+	python/hide-shared-libs.py -d /usr/local --restore
