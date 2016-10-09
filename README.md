@@ -2,6 +2,13 @@
 Reconstruction of evolutionary indel & substitution histories using the phylogenetic transducer method
 (see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
+Release Notes, v1.0 (10/9/2016)
+* The tests work for the following development environment. Other builds may give subtly different results due to rounding errors.
+ * Apple LLVM version 7.3.0 (clang-703.0.31)
+ * Boost 1.62.0
+ * GSL 2.2.1
+* At present, IndelHistorian requires the Boost C++ library due to inconsistencies in regex implementations of C++ compilers.
+
 <pre><code>
 Usage: historian {recon[struct],count,fit,mcmc,help,version} [options]
 
