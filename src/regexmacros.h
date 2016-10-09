@@ -26,8 +26,8 @@ using namespace std;
 #define RE_NUMERIC_RANGE "0123456789"
 #define RE_ALPHA_RANGE "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 #define RE_ALPHANUM_RANGE RE_ALPHA_RANGE RE_NUMERIC_RANGE
-//#define RE_NONWHITE_RANGE "!-~"
-#define RE_NONWHITE_RANGE "!\"#\\x24%&'\\x28\\x29\\x2a\\x2b,\\x2d\\x2e/:;<=>\\x3f@\\x5b\\x5c\\x5d\\x5e_`\\x7b\\x7c\\x7d~" RE_ALPHANUM_RANGE
+#define RE_NONWHITE_RANGE "!-~"
+//#define RE_NONWHITE_RANGE "!\"#\\x24%&'\\x28\\x29\\x2a\\x2b,\\x2d\\x2e/:;<=>\\x3f@\\x5b\\x5c\\x5d\\x5e_`\\x7b\\x7c\\x7d~" RE_ALPHANUM_RANGE
 #define RE_DOT_RANGE " " RE_NONWHITE_RANGE
 
 #define RE_NUMERIC_CHAR_CLASS RE_CHAR_CLASS(RE_NUMERIC_RANGE)
@@ -46,6 +46,7 @@ using namespace std;
 #define RE_FLOAT_GROUP RE_GROUP(RE_PLUS(RE_FLOAT_CHAR_CLASS))
 #define RE_DOT_GROUP RE_GROUP(RE_PLUS(RE_DOT))
 
+//#define RE_WHITE_CHARS " \\x09\\x0a"
 #define RE_WHITE_CHARS " \t\n"
 #define RE_WHITE_CHAR_CLASS RE_CHAR_CLASS(RE_WHITE_CHARS)
 #define RE_WHITE_OR_EMPTY RE_STAR(RE_WHITE_CHAR_CLASS)

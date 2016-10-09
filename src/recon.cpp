@@ -20,8 +20,10 @@ const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_c
 const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
 const regex nexus_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "NEXUS" RE_DOT_STAR);
 const regex fasta_re (RE_WHITE_OR_EMPTY ">" RE_DOT_STAR);
-const regex newick_re (RE_WHITE_OR_EMPTY "\\x28" RE_DOT_STAR);  // '('
-const regex json_re (RE_WHITE_OR_EMPTY "\\x7b" RE_DOT_STAR);    // '{'
+//const regex newick_re (RE_WHITE_OR_EMPTY "\\x28" RE_DOT_STAR);  // '('
+//const regex json_re (RE_WHITE_OR_EMPTY "\\x7b" RE_DOT_STAR);    // '{'
+const regex newick_re (RE_WHITE_OR_EMPTY "\\(" RE_DOT_STAR);  // '('
+const regex json_re (RE_WHITE_OR_EMPTY "\\{" RE_DOT_STAR);    // '{'
 
 const vguard<string> Reconstructor::fastAliasArgs = ReconFastAliasArgs;
 
@@ -180,7 +182,7 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
 	break;
       case UnknownFormat:
       default:
-	Fail ("Could not detect format of file %s; please specify it explicitly");
+	Fail ("Could not detect format of file %s; please specify it explicitly", filename.c_str());
 	break;
       }
       return true;
