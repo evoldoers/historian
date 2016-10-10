@@ -52,7 +52,15 @@ bin/qscore:
 
 # Simulation
 
-# General formula is from Text S1 of Westesson et al, 2012
+# First estimate rough parameters of indel evolution on GP120 tree
+# These are hand-coded into gp120guide.isg
+gp120.json:
+	bin/historian fit ../../data/gp120.fa >$@
+
+gp120.recon.fa: gp120.json
+	bin/historian ../../data/gp120.fa -model gp120.json >$@
+
+# General recipe for indel-seq-gen usage (and PRANK usage) is from Text S1 of Westesson et al, 2012
 # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
 GUIDETREE := gp120guide.isg
 
@@ -60,7 +68,7 @@ GUIDETREE := gp120guide.isg
 SUBRATESCALE := .83333
 
 gp120sim/%.seq:
-	cat $(GUIDETREE) | bin/indel-seq-gen --rnd_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile gp120sim/$* --quiet --outfile_format f -s 10000 --write_anc
+	cat $(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile gp120sim/$* --quiet --outfile_format f -s 10000 --write_anc
 
 gp120sim/%.ma.json: gp120sim/%.seq
 	bin/historian fit -fixsubrates -band 1 gp120sim/$*.ma >$@
@@ -85,7 +93,7 @@ gp120sim/%.summary: gp120sim/%.ma.json gp120sim/%.hist.json gp120sim/%.muscle gp
 	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' gp120sim/$*.ma.json gp120sim/$*.hist.json gp120sim/$*.muscle.json gp120sim/$*.probcons.json gp120sim/$*.prank.json >$@
 
 gp120sim-%:
-	make -n `perl -e 'print map "gp120sim/$$_.summary ", 1..$*'`
+	make `perl -e 'print map "gp120sim/$$_.summary ", 1..$*'`
 
 # keep intermediates
 .SECONDARY:
