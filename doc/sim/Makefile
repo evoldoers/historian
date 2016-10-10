@@ -59,5 +59,33 @@ GUIDETREE := gp120guide.isg
 # SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
 SUBRATESCALE := .83333
 
-gp120sim:
-	cat $(GUIDETREE) | bin/indel-seq-gen -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile $@ --quiet --outfile_format f -s 10000 --write_anc
+gp120sim/%.seq:
+	cat $(GUIDETREE) | bin/indel-seq-gen --rnd_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile gp120sim/$* --quiet --outfile_format f -s 10000 --write_anc
+
+gp120sim/%.ma.json: gp120sim/%.seq
+	bin/historian fit -fixsubrates -band 1 gp120sim/$*.ma >$@
+
+gp120sim/%.hist.json: gp120sim/%.seq
+	bin/historian fit -fixsubrates gp120sim/$*.seq >$@
+
+gp120sim/%.muscle: gp120sim/%.seq
+	bin/muscle -in gp120sim/$*.seq >$@
+	bin/historian fit -fixsubrates -band 1 $@ >$@.json
+
+gp120sim/%.probcons: gp120sim/%.seq
+	bin/probcons gp120sim/$*.seq >$@
+	bin/historian fit -fixsubrates -band 1 $@ >$@.json
+
+gp120sim/%.prank: gp120sim/%.seq
+	bin/prank -d=gp120sim/$*.seq -noxml -realbranches -writeanc -o=gp120sim/$*.prankout +F
+	cp gp120sim/$*.prankout.1.fas $@
+	bin/historian fit -fixsubrates -band 1 $@ >$@.json
+
+gp120sim/%.summary: gp120sim/%.ma.json gp120sim/%.hist.json gp120sim/%.muscle gp120sim/%.probcons gp120sim/%.prank
+	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' gp120sim/$*.ma.json gp120sim/$*.hist.json gp120sim/$*.muscle.json gp120sim/$*.probcons.json gp120sim/$*.prank.json >$@
+
+gp120sim-%:
+	make -n `perl -e 'print map "gp120sim/$$_.summary ", 1..$*'`
+
+# keep intermediates
+.SECONDARY:
