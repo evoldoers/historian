@@ -54,6 +54,11 @@ bin/qscore:
 
 # First estimate rough parameters of indel evolution on GP120 tree
 # These are hand-coded into gp120guide.isg
+# The field before the tree is [500]{30,.3}
+# Here 500 is the length of the root domain (GP120)
+#       30 is the max indel length (by inspection of gp120.recon.fa)
+#       .3 is the indel opening probability = 1 - exp(-(insRate+delRate)/2)
+# All these parameters are rounded to 1 significant figure
 gp120.json:
 	bin/historian fit ../../data/gp120.fa >$@
 
