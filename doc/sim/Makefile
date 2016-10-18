@@ -101,7 +101,8 @@ gp120sim/%.summary: gp120sim/%.ma.json gp120sim/%.hist.json gp120sim/%.muscle gp
 # RMS error = sqrt(sum (r-1)^2) = sum (r^2 - 2r + 1)
 # where r = estimated_rate / true_rate
 gp120sim/1-%.summary:
-	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_sd_rmserr(m1,m2){m=m1/$*;return[m,Math.sqrt(m2/$*-m*m),Math.sqrt(m2/$*-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$*;++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_sd_rmserr(m1i,m2i)).concat(mean_sd_rmserr(m1d,m2d)).join(" "))})' 0.3 gp120sim/ ma hist muscle probcons prank >$@
+	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$*;return [m,Math.sqrt(m2/$*-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$*;++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' 0.3 gp120sim/ ma hist muscle probcons prank >$@
+	cp $@ gp120.1-100.summary
 
 gp120sim-%:
 	make `perl -e 'print map "gp120sim/$$_.summary ", 1..$*'`
