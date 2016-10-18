@@ -32,8 +32,8 @@ reconstructed indel histories more accurately than other tools,
 but has proven too slow for practical use.
 {\bf Results.}
 Indel Historian combines an efficient reimplementation of the ProtPal algorithm with performance-improving heuristics from other alignment tools.
-Supplementing the earlier simulation results on fidelity of ancestral sequence reconstruction,
-evaluations on the structurally-informed datasets BAliBase and PREFAB are reported.
+Simulation results on fidelity of ancestral sequence reconstruction,
+along with evaluations on the structurally-informed datasets BAliBase and PREFAB, are reported.
 {\bf Availability and Implementation.}
 Indel Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license.
 {\bf Contact.}
@@ -114,6 +114,13 @@ summing over the most probable alignments.
 
 \section{Results and Discussion}
 
+\begin{figure}
+  \includegraphics[width=\columnwidth]{gp120tree.pdf}
+  \caption{
+    Tree of HIV and SIV GP120 domains that was used for the simulation benchmark.
+  }
+\end{figure}
+
 \begin{table}
   \begin{tabular}{r|r}
     & RMS error \\
@@ -134,11 +141,10 @@ MUSCLE & \\
 We first performed a simulation benchmark to assess Indel Historian's ability to reconstruct evolutionary parameters,
 compared to other tools.
 We based the simulation parameters on the evolutionary profile of the HIV GP120 envelope domain, as follows.
-We started with an alignment of ten GP120 domains from HIV and SIV and estimated a tree from this alignment.
-The resulting tree has three branches that are over 0.1 substitutions/site in length (the relevant branch lengths are 0.10, 0.19, and 0.41).
-The remaining branch lengths were all under 0.1 subs/site; the median branch length was 0.046 subs/site.
-
-We further estimated the approximate indel rates from this alignment, and converted these to indel-Seq-Gen's parameter format.
+We started with an alignment of ten GP120 domains from HIV and SIV and estimated a tree from this alignment (Figure~1).
+%The resulting tree has three branches that are over 0.1 substitutions/site in length (the relevant branch lengths are 0.10, 0.19, and 0.41).
+%The remaining branch lengths were all under 0.1 subs/site; the median branch length was 0.046 subs/site.
+We used the tree to estimate the indel rates for the alignment, and converted these to indel-Seq-Gen's parameter format.
 To one significant figure, the probability of opening an indel at any given site on a unit-length branch is $p=0.3$, and the sequence length is 500 amino acids.
 
 We then simulated 100 different alignments under these conditions, using indel-Seq-Gen, and attempted to estimate indel rates
