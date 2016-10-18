@@ -118,6 +118,7 @@ summing over the most probable alignments.
   \begin{tabular}{r|r}
     & RMS error \\
     \hline
+True alignment & \\
 Indel Historian & \\
 PRANK & \\
 ProbCons & \\
@@ -144,7 +145,11 @@ We then simulated 100 different alignments under these conditions, using indel-S
 (a) from the true alignment; (b) using alignments or reconstructions created by ProbCons, MUSCLE, PRANK, and Indel Historian.
 In each case, we estimated insertion and deletion rates $(\hat{\lambda},\hat{\mu})$ and computed relative errors $(\frac{\hat{\lambda}-\lambda}{\lambda},\frac{\hat{\mu}-\mu}{\mu})$
 compared to the true indel rates ($\lambda = \mu = \log(1-p)$).
+
 The RMS (root mean square) of these errors are reported in Table~1.
+Note that even perfect knowledge of the true alignment does not guarantee perfect reconstruction of the underlying indel rate parameters,
+due to the possibility of indel events that are not directly observable (for example, when multiple indel events overlap on the same branch,
+they will generally be conflated into a single event by the inference algorithm).
 
 \begin{table}
   \begin{tabular}{r|rr|rr}
