@@ -74,6 +74,7 @@ gp120sim/tree%/$(GUIDETREE):
 	bin/add-indelign-params.js 500 30 .3 $(GP120TREE) $* >$@
 
 gp120sim/%.seq:
+	test -e $(dir $@)$(GUIDETREE) || make $(dir $@)$(GUIDETREE)
 	cat $(dir $@)$(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile gp120sim/$* --quiet --outfile_format f -s 10000 --write_anc
 
 gp120sim/%.ma.json: gp120sim/%.seq
@@ -107,7 +108,7 @@ gp120sim/%/1-$(REPS).summary:
 	cp $@ gp120.1-100.summary
 
 gp120sim-tree%:
-	make -n `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
