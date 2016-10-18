@@ -60,8 +60,9 @@ gp120.json:
 gp120.recon.fa: gp120.json
 	bin/historian ../../data/gp120.fa -model gp120.json >$@
 
+GP120TREE := ../../data/gp120.tree.nh
 gp120guide.isg:
-	bin/add-indelign-params.js 500 30 .3 ../../data/gp120.tree.nh >$@
+	bin/add-indelign-params.js 500 30 .3 $(GP120TREE) >$@
 
 # General recipe for indel-seq-gen usage (and PRANK usage) is from Text S1 of Westesson et al, 2012
 # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
@@ -104,6 +105,21 @@ gp120sim/1-%.summary:
 
 gp120sim-%:
 	make `perl -e 'print map "gp120sim/$$_.summary ", 1..$*'`
+
+
+# Simulation #2: DNA
+gp120dna: gp120/dna/3.summary gp120/dna/4.summary gp120/dna/5.summary gp120/dna/6.summary gp120/dna/7.summary
+
+gp120/dna/%.summary:
+	test -e gp120/dna/$* || mkdir -p gp120/dna/$*
+	bin/dna-sim.js $* gp120/dna/$* ../../../Makefile .3 100 $(GP120TREE)
+
+# the following targets will be made from within the subdirectory gp120/dna/$logLength
+dna%.seq:
+	cat params.isg | ../../../bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile dna$* --quiet --outfile_format f -s 10000 --write_anc
+
+dna%.hist.json: dna%.seq
+	../../../bin/historian fit -fixsubrates dna$*.seq -v2 >$@
 
 # keep intermediates
 .SECONDARY:
