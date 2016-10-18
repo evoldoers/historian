@@ -49,28 +49,33 @@ None.
 Multiple alignments are used for several purposes in bioinformatics,
 only one of which is homology-directed protein structure prediction,
 yet structurally-derived alignments have tended to dominate benchmarks.
-Alignment accuracy scores (such as SPS, TCS, AMA, and the Cline shift score) quantify the number of correctly aligned residues
-compared to a benchmark dataset of structurally-informed reference alignments \citep{ThompsonEtAl2005}.
-Techniques that score highly in these tests include using Bayesian decision theory to maximize the expected
-alignment accuracy \citep{NotredameEtAl2000,DoEtAl2005,SchwartzPachter2007,BradleyEtAl2009}
-and fine-tuning the alignment scoring function for contextual details, such as the reduced propensity for indels in
-hydrophobic protein regions \citep{Edgar2004b,KatohEtAl2005,LarkinEtAl2007}.
-These have been accompanied by performance optimizations of 
-rate-limiting steps such as all-versus-all pairwise sequence comparison \citep{Edgar2004b,BradleyEtAl2009}.
-
 There is evidence that for evolutionary applications, such as reconstructing trees or ancestral sequences,
-different alignment tools (or at least different tool-assessment metrics) might be preferable.
+different alignment tools (along with different tool-assessment metrics) might be preferable.
+Aligners that are optimized for detecting structural homology may not do so well at recovering information about substitution rates,
+whereas explicit statistical models of the sequence evolution process may do a better job at estimating these parameters.
+
 Empirical studies suggest that, for the purposes of estimating
 molecular evolutionary parameters---such as indel rates \citep{Westesson2012-zg},
 dN/dS ratios \citep{Redelings2014},
-or trees \citep{LoytynojaGoldman2008}---it is advantageous to use an explicit statistical model of the sequence evolution process
+or trees \citep{LoytynojaGoldman2008}---it is advantageous to use a statistical model of evolution
 and to treat alignment rigorously as a ``missing data'' problem.
 One possible explanation is that, for protein structure prediction,
 detailed reconstruction of indel histories in fast-evolving regions (such as loops) is unnecessary
 (as structurally homologous loops can simply be aligned),
 whereas evolutionary analyses can make use of this information.
 
-One previous study sought to quantify systematic biases introduced into the
+The benchmarks commonly used to evaluate aligners use accuracy scores
+(such as SPS, TCS, AMA, and the Cline shift score)
+which quantify the number of correctly aligned residues
+compared to a dataset of structurally-informed reference alignments \citep{ThompsonEtAl2005}.
+Techniques that score highly in these tests include using Bayesian decision theory to maximize the expected
+alignment accuracy \citep{NotredameEtAl2000,DoEtAl2005,SchwartzPachter2007,BradleyEtAl2009}
+and fine-tuning the alignment scoring function for contextual details, such as the reduced propensity for indels in
+hydrophobic protein regions \citep{Edgar2004b,KatohEtAl2005,LarkinEtAl2007}.
+Aligners have also been tuned for performance by optimizing rate-limiting steps
+uch as all-versus-all pairwise sequence comparison \citep{Edgar2004b,BradleyEtAl2009}.
+
+In a previous study, we sought to quantify systematic biases introduced into the
 estimation of indel rates \citep{Westesson2012-zg},
 using the evolution simulator indel-Seq-Gen \citep{StropeEtAl2009}.
 The ProtPal program \citep{Westesson2012-zg}, which models indel evolution using 

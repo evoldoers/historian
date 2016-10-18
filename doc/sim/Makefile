@@ -61,8 +61,6 @@ gp120.recon.fa: gp120.json
 	bin/historian ../../data/gp120.fa -model gp120.json >$@
 
 GP120TREE := ../../data/gp120.tree.nh
-gp120guide.isg:
-	bin/add-indelign-params.js 500 30 .3 $(GP120TREE) >$@
 
 # General recipe for indel-seq-gen usage (and PRANK usage) is from Text S1 of Westesson et al, 2012
 # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
@@ -71,8 +69,12 @@ GUIDETREE := gp120guide.isg
 # SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
 SUBRATESCALE := .83333
 
+gp120sim/tree%/$(GUIDETREE):
+	test -e gp120sim/tree$* || mkdir -p gp120sim/tree$*
+	bin/add-indelign-params.js 500 30 .3 $(GP120TREE) $* >$@
+
 gp120sim/%.seq:
-	cat $(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile gp120sim/$* --quiet --outfile_format f -s 10000 --write_anc
+	cat $(dir $@)$(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile gp120sim/$* --quiet --outfile_format f -s 10000 --write_anc
 
 gp120sim/%.ma.json: gp120sim/%.seq
 	bin/historian fit -fixsubrates -band 1 gp120sim/$*.ma >$@
@@ -99,12 +101,13 @@ gp120sim/%.summary: gp120sim/%.ma.json gp120sim/%.hist.json gp120sim/%.muscle gp
 
 # RMS error = sqrt(sum (r-1)^2) = sum (r^2 - 2r + 1)
 # where r = estimated_rate / true_rate
-gp120sim/1-%.summary:
-	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$*;return [m,Math.sqrt(m2/$*-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$*;++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' 0.3 gp120sim/ ma hist muscle probcons prank >$@
+REPS := 100
+gp120sim/%/1-$(REPS).summary:
+	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' 0.3 gp120sim/ ma hist muscle probcons prank >$@
 	cp $@ gp120.1-100.summary
 
 gp120sim-%:
-	make `perl -e 'print map "gp120sim/$$_.summary ", 1..$*'`
+	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
