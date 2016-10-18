@@ -14,25 +14,21 @@ bin/indel-seq-gen:
 	cd indel-seq-gen-2.1.03; ./configure --prefix=$(MAKEDIR); make; make install
 
 bin/rose:
-	test -e bin || mkdir bin
 	curl -O https://bibiserv2.cebitec.uni-bielefeld.de/applications/rose/resources/downloads/rose-1.3.1-src.tar.gz
 	tar xvzf rose-1.3.1-src.tar.gz
 	cd rose-1.3.1; ./configure --prefix=$(MAKEDIR); make; make install
 
 bin/prank:
-	test -e bin || mkdir bin
 	curl -O http://www.ebi.ac.uk/goldman-srv/prank/src/prank/prank.osx_1058.100701.tgz
 	tar xvzf prank.osx_1058.100701.tgz
 	mv prank $@
 
 bin/muscle:
-	test -e bin || mkdir bin
 	curl -O http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86darwin64.tar.gz
 	tar xvzf muscle3.8.31_i86darwin64.tar.gz
 	mv muscle3.8.31_i86darwin64 $@
 
 bin/probcons:
-	test -e bin || mkdir bin
 	curl -O http://probcons.stanford.edu/probcons_v1_12.tar.gz
 	tar xvzf probcons_v1_12.tar.gz
 	cd probcons; make
@@ -50,20 +46,22 @@ bin/qscore:
 	mv qscore/qscore $@
 
 
-# Simulation
+# Simulation #1: GP120 protein-like
 
 # First estimate rough parameters of indel evolution on GP120 tree
-# These are hand-coded into gp120guide.isg
-# The field before the tree is [500]{30,.3}
-# Here 500 is the length of the root domain (GP120)
-#       30 is the max indel length (by inspection of gp120.recon.fa)
-#       .3 is the indel opening probability = 1 - exp(-(insRate+delRate)/2)
+# These are then used to make gp120guide.isg
+#  500 is the length of the root domain (GP120)
+#   30 is the max indel length (by inspection of gp120.recon.fa)
+#   .3 is the indel opening probability = 1 - exp(-(insRate+delRate)/2)
 # All these parameters are rounded to 1 significant figure
 gp120.json:
 	bin/historian fit ../../data/gp120.fa >$@
 
 gp120.recon.fa: gp120.json
 	bin/historian ../../data/gp120.fa -model gp120.json >$@
+
+gp120guide.isg:
+	bin/add-indelign-params.js 500 30 .3 ../../data/gp120.tree.nh >$@
 
 # General recipe for indel-seq-gen usage (and PRANK usage) is from Text S1 of Westesson et al, 2012
 # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
