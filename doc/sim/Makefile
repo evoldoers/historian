@@ -75,7 +75,7 @@ gp120sim/tree%/$(GUIDETREE):
 	bin/add-indelign-params.js 500 30 .3 $(GP120TREE) $* >$@
 
 gp120sim/sym%/$(GUIDETREE):
-	test -e gp120sim/sym* || mkdir -p gp120sim/sym$*
+	test -e gp120sim/sym$* || mkdir -p gp120sim/sym$*
 	bin/add-indelign-params.js 500 30 .3 $(SYM8TREE) $* >$@
 
 %.seq:
