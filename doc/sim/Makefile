@@ -114,7 +114,7 @@ REPS := 100
 gp120sim-tree%:
 	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
 
-sym8sim-tree%:
+gp120sim-sym%:
 	make `perl -e 'print map "gp120sim/sym$*/$$_.summary ", 1..$(REPS)'`
 
 
