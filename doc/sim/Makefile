@@ -106,8 +106,8 @@ gp120sim/%/1-$(REPS).summary:
 	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' 0.3 gp120sim/ ma hist muscle probcons prank >$@
 	cp $@ gp120.1-100.summary
 
-gp120sim-%:
-	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
+gp120sim-tree%:
+	make -n `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
