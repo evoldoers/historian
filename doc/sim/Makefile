@@ -112,18 +112,18 @@ gp120sim-tree%:
 
 
 # Simulation #2: DNA
-gp120dna: gp120/dna/3.summary gp120/dna/4.summary gp120/dna/5.summary gp120/dna/6.summary gp120/dna/7.summary
+gp120dna: gp120sim/dna/3.summary gp120sim/dna/4.summary gp120sim/dna/5.summary gp120sim/dna/6.summary gp120sim/dna/7.summary
 
-gp120/dna/%.summary:
-	test -e gp120/dna/$* || mkdir -p gp120/dna/$*
-	bin/dna-sim.js $* gp120/dna/$* ../../../Makefile .3 100 $(GP120TREE)
+gp120sim/dna/%.summary:
+	test -e gp120sim/dna/$* || mkdir -p gp120sim/dna/$*
+	bin/dna-sim.js $* gp120sim/dna/$* ../../../Makefile .3 1 $(GP120TREE)
 
-# the following targets will be made from within the subdirectory gp120/dna/$logLength
+# the following targets will be made from within the subdirectory gp120sim/dna/$logLength
 dna%.seq:
 	cat params.isg | ../../../bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile dna$* --quiet --outfile_format f -s 10000 --write_anc
 
-dna%.hist.json: dna%.seq
-	../../../bin/historian fit -fixsubrates dna$*.seq -v2 >$@
+dna%.hist.stk: dna%.seq
+	../../../bin/historian recon dna$*.seq -v2 >$@
 
 # keep intermediates
 .SECONDARY:

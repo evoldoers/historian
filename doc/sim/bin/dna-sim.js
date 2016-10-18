@@ -16,5 +16,5 @@ var paramFile = dir + "/params.isg"
 
 exec ("bin/add-indelign-params.js " + len + " " + maxIndelLen + " " + indelProb + " " + treeFile + " >" + paramFile)
 for (var rep = 1; rep <= reps; ++rep) {
-    exec ("cd " + dir + "; make -f " + makefileFromDir + " dna" + rep + ".hist.json")
+    exec ("cd " + dir + "; make -f " + makefileFromDir + " dna" + rep + ".hist.stk")
 }
