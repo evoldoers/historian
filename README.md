@@ -68,7 +68,7 @@ This produces output somewhat like this (but more colorful - GitHub-flavored Mar
 
 #### File formats
 
-Indel Historian speaks a variety of input and output formats. By default, it outputs alignments in [Stockholm format](https://en.wikipedia.org/wiki/Stockholm_format), which allows easy extraction of the alignment while also affording space for metadata like trees. If you prefer your alignments in another output format, for example [Nexus](https://en.wikipedia.org/wiki/Nexus_file) or [FASTA](https://en.wikipedia.org/wiki/FASTA_format), use `-output nexus` or `-output stockholm`.
+Indel Historian speaks a variety of input and output formats. By default, it outputs alignments in [Stockholm format](https://en.wikipedia.org/wiki/Stockholm_format), which allows easy extraction of the alignment while also affording space for metadata like trees. If you prefer your alignments in another output format, for example [Nexus](https://en.wikipedia.org/wiki/Nexus_file) or [FASTA](https://en.wikipedia.org/wiki/FASTA_format), use `-output nexus` or `-output fasta`.
 
 Input sequence formats will usually be auto-detected, but this behavior can be overridden to stipulate particular file formats via the [command-line arguments](#HelpText).
 
