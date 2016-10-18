@@ -20,7 +20,7 @@ At present, Indel Historian requires the following build environment to compile:
  * Boost C++ library version 1.62.0 or later
  * Gnu Scientific Library (GSL) version 2.2.1 or later
 
-Pre-compiled binaries are also available from the GitHub repository release page.
+Pre-compiled binaries are also available from the GitHub repository [release page](https://github.com/ihh/indelhistorian/releases).
 
 ## Examples
 
