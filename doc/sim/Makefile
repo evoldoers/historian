@@ -74,8 +74,8 @@ gp120sim/tree%/$(GUIDETREE):
 	test -e gp120sim/tree$* || mkdir -p gp120sim/tree$*
 	bin/add-indelign-params.js 500 30 .3 $(GP120TREE) $* >$@
 
-sym8sim/tree%/$(GUIDETREE):
-	test -e sym8sim/tree$* || mkdir -p sym8sim/tree$*
+gp120sim/sym%/$(GUIDETREE):
+	test -e gp120sim/sym* || mkdir -p gp120sim/sym$*
 	bin/add-indelign-params.js 500 30 .3 $(SYM8TREE) $* >$@
 
 %.seq:
@@ -115,7 +115,7 @@ gp120sim-tree%:
 	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
 
 sym8sim-tree%:
-	make `perl -e 'print map "sym8sim/tree$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/sym$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
