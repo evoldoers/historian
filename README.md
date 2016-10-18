@@ -1,13 +1,182 @@
 # Indel Historian
-Reconstruction of evolutionary indel & substitution histories using the phylogenetic transducer method
-(see [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction).
 
-Release Notes, v1.0 (10/9/2016)
+Indel Historian is a multiple aligner that aims at providing accurate historical reconstructions of the history of a set of DNA or protein sequences. This stands in contrast to most multiple alignment tools, which instead try to provide protein alignments that correctly identify regions of 3D structural homology. If you are trying to predict the structure of a protein, you should probably use one of those other tools. If you care about the evolutionary history of your sequences, use Indel Historian.
+
+Most multiple alignment tools (think: Clustal, Muscle, ProbCons) are optimized for homology-based structure prediction, and tested on structural alignment benchmarks (e.g. BAliBase, Oxbench, Prefab, Sabmark). That's a good empirical approach as far as it goes, because structurally-informed protein alignments make a good "gold standard" for benchmarking alignment tools. Often, these tools have scoring schemes that are optimized for recognizing commonly conserved patterns in protein structure. However, optimizing for structure has the unfortunate drawback of introducing biases into the estimates of indel (and possibly substitution) rates (as a rule of thumb, all methods tend to underestimate mutation rates, but with standard multiple aligners the biases can be unpredictable and can vary widely at different indel rates). Consequently, this approach yields a less-than-accurate picture of ancestral sequences.
+
+By contrast, Indel Historian uses an explicit evolutionary model of indel and substitution events, derived rigorously from statistical phylogenetics using finite-state transducers as evolutionary operators. In simulation tests (using the third-party evolution simulator [indel-Seq-Gen](https://www.ncbi.nlm.nih.gov/pubmed/17158778)), it introduces significantly fewer biases than other tools. It also performs pretty well on structural alignment benchmarks, though not as well as tools like Muscle and ProbCons that are optimized for that.
+
+The basic method and initial benchmarks of the approach are described in ([_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012). The implementation described in that paper is a program called ProtPal. Indel Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has significantly more features.
+
+The closest method to Indel Historian is PRANK ([_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008). Indel Historian is slightly more accurate than PRANK (on both simulation and structural alignment benchmarks), has more features, and runs faster.
+
+## Installation
+
+To build from source, type `make` followed by `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
+
+At present, Indel Historian requires the following build environment to compile:
+
+* Apple LLVM version 7.3.0 or later (clang-703.0.31), or gcc version 4.8.3 or later
+ * Boost C++ library version 1.62.0 or later
+ * Gnu Scientific Library (GSL) version 2.2.1 or later
+
+Pre-compiled binaries are also available from the GitHub repository release page.
+
+## Examples
+
+### Basic reconstruction
+
+The simplest way to use Indel Historian is just to point it at a FASTA file. It will then estimate a guide alignment, estimate a tree from that (using neighbor-joining), and perform a full ancestral reconstruction.
+
+For example, using a test file of [HIV GP120 sequences](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa) that is included in the repository:
+
+	historian gp120.fa
+
+This will generally be pretty fast, but you can make it faster with the `-fast` option:
+
+	historian gp120.fa -fast
+
+#### Commands
+
+Indel Historian is one of these toolbox programs where the first argument can be a command, specifying what action is to be performed. If you omit this first command-argument, Indel Historian assumes you want to reconstruct something. You can make this explicit as follows:
+
+	historian reconstruct gp120.fa
+
+You can also abbreviate `reconstruct` to `recon` or just `r`:
+
+	historian r gp120.fa
+
+All commands can be abbreviated to single letters.
+Of course, if you are doing reconstruction (as noted above), you can omit the command entirely, but the examples [further below](#ModelFitting) will use different commands.
+
+#### Logging
+
+By default, the `historian` program runs in classic Unix mode, i.e. printing nothing except the output. This can be a bit boring for long jobs, so run with `-v` for verbose colorized logging output, or `-vv` for more verbose, or `-vvv` (or equivalently `-v3`) for even more logging, and so on. Probably `-v2` is about the right balance between showing some feedback on progress and not drowning you in psychedelic rainbow log messages.
+
+	historian -v2 
+
+This produces output somewhat like this (but more colorful - GitHub-flavored Markdown won't show the colors):
+
+	Using default amino acid model
+	Loading sequences from data/gp120.fa
+	Building guide alignment (data/gp120.fa)
+	Estimating initial tree by neighbor-joining (data/gp120.fa)
+	Starting reconstruction on 19-node tree (data/gp120.fa)
+	Aligning ENV_HV2BE/24-510 (489 states, 488 transitions) and ENV_HV2D1/24-501 (480 states, 479 transitions)
+	Aligning ENV_HV2G1/23-502 (482 states, 481 transitions) and (ENV_HV2BE/24-510:0.106114,ENV_HV2D1/24-501:0.0784677) (689 states, 808 transitions)
+...and so on.
+
+#### File formats
+
+Indel Historian speaks a variety of input and output formats. By default, it outputs alignments in [Stockholm format](https://en.wikipedia.org/wiki/Stockholm_format), which allows easy extraction of the alignment while also affording space for metadata like trees. If you prefer your alignments in another output format, for example [Nexus](https://en.wikipedia.org/wiki/Nexus_file) or [FASTA](https://en.wikipedia.org/wiki/FASTA_format), use `-output nexus` or `-output stockholm`.
+
+Input sequence formats will usually be auto-detected, but this behavior can be overridden to stipulate particular file formats via the [command-line arguments](#HelpText).
+
+#### Fine-tuning the reconstruction
+
+As briefly alluded to above, Indel Historian does several performance-optimizing steps _en route_ to a reconstruction. First, it builds a quick-guess multiple alignment by a greedy maximal-spanning-tree type approach; this can optionally be accelerated by a k-mer match step (confining the alignment to diagonals of the dynamic programming matrix that pass a minimum threshold of k-mer matches) and by using a sparse [random spanning forest](https://www.ncbi.nlm.nih.gov/pubmed/19478997) instead of a dense all-vs-all comparison. Second, it uses this alignment to build a guide tree by neighbor-joining. And finally, it builds a progressive reconstruction that includes suboptimal alignments in something like a [partial-order graph](https://www.ncbi.nlm.nih.gov/pubmed/11934745). This last step can also be constrained to stay near the guide alignment for performance reasons.
+
+The default settings attempt to navigate this maze of options for you, mostly using the higher-accuracy options until memory becomes a limiting factor and then switching to the more approximate options. However, as a power user, you may want to take control of these options. Command-line arguments allow you to supply guide alignments and/or guide trees, and change the parameters or behavior of the standard workflow.
+
+For example, if you want to supply sequences in FASTA format ([gp120.fa](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa)) and a guide tree in New Hampshire format ([gp120.tree.nh](https://github.com/ihh/indelhistorian/blob/master/data/gp120.tree.nh))
+
+	historian -seqs gp120.fa -tree gp120.tree.nh
+
+Alternatively, if your sequences are in Nexus or Stockholm format, you can encode the tree together with your sequences, using the appropriate syntax for encoding New Hampshire-format trees in those formats (`#=GF NH` for Stockholm).
+
+If you want to estimate the tree and use UPGMA instead of neighbor-joining, so as to enforce an ultrametric tree, use the `-upgma` option, e.g.
+
+	historian -upgma gp120.fa
+
+To save the guide alignment, use the `-saveguide` option:
+
+	historian gp120.fa -saveguide gp120.guide.fa
+
+If you already have your sequences aligned, and you want to use [this alignment](https://github.com/ihh/indelhistorian/blob/master/data/gp120.guide.fa) as the guide alignment, you only need to supply that alignment (not the sequences):
+
+	historian -guide gp120.guide.fa
+
+The guide alignment is, by default, just treated as a "hint". Indel Historian will do dynamic programming in a "band" around the guide alignment, sliding gaps back and forth up to a maximum distance specified by the `-band` argument. If, instead, you want to use the guide alignment as a strict constraint, and find the best reconstruction that is exactly consistent with the guide, then set the band to zero:
+
+	historian -guide gp120.guide.fa -band 0
+
+For some alignments, it may be the case that there is no reconstruction under Indel Historian's model that is exactly consistent with the guide (due to ordering of gaps), in which case you might want to relax the band to 1:
+
+	historian -guide gp120.guide.fa -band 1
+
+These arguments are all listed in the help text, available via the `-h` option and copied [below](#HelpText).
+
+## Model-fitting
+
+Indel Historian's underlying model is a simple one: there is a substitution rate matrix, an insertion rate, a deletion rate, and insertion/deletion extension probabilities. These are all specified in a JSON file format, an example of which can be found [here](https://github.com/ihh/indelhistorian/blob/master/data/testcount.jukescantor.json).
+
+The default model is an amino acid substitution matrix estimated using [XRate](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0036898) on a dataset of Pfam alignments, with indel rates and probabilities that were also estimated from Pfam. However, the `historian` program allows you to load new models using the `-model` option, or to estimate these rates directly from data using the built-in EM algorithm (described in [this paper](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-428)).
+
+To estimate rates from data, use the `fit` command. Model-fitting takes a little longer than reconstruction, since the EM algorithm typically takes a few iterations to converge, so you might want to turn on some logging. For example:
+
+	historian fit gp120.fa -fast -vv >gp120.model.json
+
+You can then load this model using the `-model` option, and use it to reconstruct another sequence history. For example, using it to reconstruct the ancestors of the Cas9 bridge helix domain (Pfam family PF16593), included as file [data/PF16593.fa](https://github.com/ihh/indelhistorian/blob/master/data/PF16593.fa) in the repository:
+
+	historian reconstruct -model gp120.model.json PF16593.fa
+
+Often, a single protein family will not include enough information to reliably fit an amino acid rate matrix - the model will be over-trained. You can aggregate multiple datasets together into a larger training set simply by listing the files successively on the command line:
+
+	historian fit -fast gp120.fa PF16593.fa -v3 >aggregated.model.json
+
+If you only want to estimate the indel rates and not the substitution matrix, then you can use the `-fixsubrates` option to hold the substitution rates constant:
+
+	historian fit gp120.fa -fixsubrates >gp120.model.json
+
+Conversely, you can use `-fixgaprates` to hold the indel rates (and indel extension parameters) constant, while estimating substitution rates. Other aspects of the model-fitting algorithm (for example, the use of [Laplace pseudocounts](https://en.wikipedia.org/wiki/Additive_smoothing), or the EM convergence criteria) can be set via the [command-line options](#HelpText).
+
+## Event-counting
+
+The model-fitting algorithm described above is an [Expectation-Maximization algorithm](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm) that iteratively estimates the _a posteriori_ expected number of indel and substitution events of each possible type, along with the amount of time spent in each state, and then uses these expected counts and times to update the mutation rates.
+
+For some applications, these event counts and wait times - the so-called "sufficient statistics" for EM - may be more useful (or more stable, or reliable) than the rate parameters themselves.
+
+If you are just interested in these counts, you can get at them using the `count` command. For example:
+
+	historian count gp120.fa >gp120.counts.json
+
+One application of the counts is as [pseudocounts](https://en.wikipedia.org/wiki/Pseudocount) representing hyperparameters of Dirichlet priors. JSON counts files that were computed using the `count` command can be passed as pseudocounts to the `fit` command via the `-counts` option:
+
+	historian fit PF16593.fa -counts gp120.counts.json -nolaplace >PF16593.model.json
+
+The `-nolaplace` option here indicates that we don't want to add the usual +1 Laplace pseudocounts in this case.
+
+You can also use the `count` command to estimate counts for a bunch of alignments in parallel, then combine the counts using the `sum` command, and finally estimate the maximum-likelihood parameters for these combined counts using `fit`. This amounts to doing a single iteration of the EM algorithm. Probably the only reason you'd want to do this would be if you were implementing some kind of roll-your-own [MapReduce](https://en.wikipedia.org/wiki/MapReduce)-style approach to splitting up the EM algorithm on a large dataset. Which is probably unlikely, but here's roughly what it'd look like:
+
+	historian count file1.fa >file1.counts.json
+	historian count file2.fa >file2.counts.json
+	...
+	historian count fileN.fa >fileN.counts.json
+	historian sum file1.counts.json file2.counts.json ... fileN.counts.json >summed.counts.json
+	historian fit -nolaplace -counts summed.counts.json >updated.model.json
+
+## MCMC
+
+Indel Historian includes an experimental MCMC implementation for co-sampling trees and alignments. Currently, this implementation only works for ultrametric trees. It is available via the `mcmc` command.
+
+## Method
+At its core, Indel Historian uses the phylogenetic transducer method.
+See [Westesson et al, 2012](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572) for an evaluation and brief description of the method, or [this arXiv report](http://arxiv.org/abs/1103.4347) for a tutorial introduction.
+
+Very briefly, the idea of this method is as follows. The main recursion of Felsenstein's [pruning algorithm](https://en.wikipedia.org/wiki/Felsenstein%27s_tree-pruning_algorithm) for calculating the likelihood of a multiple alignment column can be summarized, in matrix form, as **Fn=(Bl Fl).(Br Fr)** where **n**, **l** and **r** are the node and its two children, **Bn** is the branch substitution matrix on the branch leading to node **n**, **(A B)** denotes the matrix product and **A.B** the pointwise (Hadamard) product, with each **Fn** denoting an ancestral sequence profile. If for our matrix representation we use [weighted finite-state transducers](https://en.wikipedia.org/wiki/Finite-state_transducer), with **(A B)** denoting the operation of transducer composition and **A.B** the operation of transducer intersection, then Felsenstein's algorithm yields an instance of [Sankoff's algorithm](http://epubs.siam.org/doi/abs/10.1137/0145048) for multiple sequence alignment, and **Fn** is a state machine. We constrain the algorithm to be practical by retaining only high-probability states of **Fn** at each stage. The branch transducers **Bn** are derived using a simple approximation that indel events on a single branch never overlap.
+
+## Release Notes, v1.0 (10/9/2016)
+
 * The tests work for the following development environment. Other builds may give subtly different results due to rounding errors.
  * Apple LLVM version 7.3.0 (clang-703.0.31)
  * Boost 1.62.0
  * GSL 2.2.1
-* At present, IndelHistorian requires the Boost C++ library due to inconsistencies in regex implementations of C++ compilers.
+* At present, IndelHistorian requires the Boost C++ library due to inconsistencies in the way different C++ compilers and standard libraries implement regular expressions.
+
+<a name="HelpText"></a>
+## Command-line help text
+
+The following is the message that appears when you type `historian help`:
 
 <pre><code>
 Usage: historian {recon[struct],count,fit,mcmc,help,version} [options]
@@ -77,7 +246,7 @@ sensitivity vs performance.
                    in profile (default .01), or sample N states randomly
   -profmaxstates &lt;S&gt;
                   Limit profile to at most S states
-                   (default of 6553 uses at most 5% of memory for DP matrix)
+                   (default uses at most 5% of memory for DP matrix)
 
 Following alignment, ancestral sequence reconstruction can be performed.
 

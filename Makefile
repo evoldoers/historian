@@ -231,7 +231,7 @@ testpost:
 # Rules for building files in the repository
 # For updating README.md
 README.md: bin/$(MAIN)
-	PATH=bin:$(PATH); $(MAIN) help | perl -pe 's/</&lt;/g;s/>/&gt;/g;' | perl -e 'open FILE,"<README.md";while(<FILE>){last if/<pre>/;print}close FILE;print"<pre><code>\n";while(<>){print};print"</code></pre>\n"' >temp.md
+	PATH=bin:$(PATH); $(MAIN) help | perl -pe 's/</&lt;/g;s/>/&gt;/g;' | perl -e 'open FILE,"<README.md";while(<FILE>){last if/<pre>/;print}close FILE;print"<pre><code>\n";while(<>){s/(default) of \S+ (uses at most \S+ of memory for DP matrix)/$$1 $$2/;print};print"</code></pre>\n"' >temp.md
 	mv temp.md $@
 
 # For updating default models
