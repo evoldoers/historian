@@ -12,13 +12,15 @@ The closest method to Indel Historian is PRANK ([_Phylogeny-Aware Gap Placement 
 
 ## Installation
 
-To build from source, type `make` followed by `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
+To build from source, type `make`. This will create a binary file `bin/historian`.
 
 At present, Indel Historian requires the following build environment to compile:
 
 * Apple LLVM version 7.3.0 or later (clang-703.0.31), or gcc version 4.8.3 or later
  * Boost C++ library version 1.62.0 or later
  * Gnu Scientific Library (GSL) version 2.2.1 or later
+
+If you want to run the tests, type `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
 
 Pre-compiled binaries are also available from the GitHub repository [release page](https://github.com/ihh/indelhistorian/releases).
 
