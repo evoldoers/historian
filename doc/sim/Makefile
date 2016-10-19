@@ -119,18 +119,19 @@ gp120sim-sym%:
 
 
 # Simulation #2: DNA
-gp120dna: gp120sim/dna/3.summary gp120sim/dna/4.summary gp120sim/dna/5.summary gp120sim/dna/6.summary gp120sim/dna/7.summary
+gp120dna: gp120sim/dna/3/dna.hist.stk gp120sim/dna/4/dna.hist.stk gp120sim/dna/5/dna.hist.stk gp120sim/dna/6/dna.hist.stk gp120sim/dna/7/dna.hist.stk
 
-gp120sim/dna/%.summary:
-	test -e gp120sim/dna/$* || mkdir -p gp120sim/dna/$*
-	bin/dna-sim.js $* gp120sim/dna/$* ../../../Makefile .3 1 $(GP120TREE)
+gp120sim/dna/%/$(GUIDETREE):
+	test -e $(dir $@) || mkdir -p $(dir $@)
+	bin/add-indelign-params.js `perl -e 'print 10 ** $*'`  `perl -e 'print 2 ** ($* + 2)'` .3 $(SYM8TREE) >$@
+	cat $@
 
-# the following targets will be made from within the subdirectory gp120sim/dna/$logLength
-dna%.seq:
-	cat params.isg | ../../../bin/indel-seq-gen --rng_seed `perl -e 'srand($*);print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile dna$* --quiet --outfile_format f -s 10000 --write_anc
+%/dna: %/$(GUIDETREE)
+	cat $(dir $@)$(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile $*/dna --quiet --outfile_format f -s 10000 --write_anc
+	mv $*/dna.seq $@
 
-dna%.hist.stk: dna%.seq
-	../../../bin/historian recon dna$*.seq -v2 >$@
+%/dna.hist.stk: %/dna
+	bin/historian recon $*/dna -fast -v2 >$@
 
 # keep intermediates
 .SECONDARY:
