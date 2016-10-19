@@ -21,7 +21,7 @@
 
 #define AncestralSequencePostProbTag "PP"
 
-#define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc",}
+#define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc","-norefine"}
 
 class Reconstructor {
 public:

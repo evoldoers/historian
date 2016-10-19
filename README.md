@@ -34,9 +34,11 @@ For example, using a test file of [HIV GP120 sequences](https://github.com/ihh/i
 
 	historian gp120.fa
 
-This will generally be pretty fast, but you can make it faster with the `-fast` option:
+This will generally be pretty fast, but you can make it faster (at a slight cost in accuracy) using the `-fast` option:
 
 	historian gp120.fa -fast
+
+The `-fast` option is an alias for several reconstruction options, as described in the [help message](#HelpText).
 
 #### Commands
 
@@ -76,7 +78,7 @@ Input sequence formats will usually be auto-detected, but this behavior can be o
 
 #### Fine-tuning the reconstruction
 
-As briefly alluded to above, Indel Historian does several performance-optimizing steps _en route_ to a reconstruction. First, it builds a quick-guess multiple alignment by a greedy maximal-spanning-tree type approach; this can optionally be accelerated by a k-mer match step (confining the alignment to diagonals of the dynamic programming matrix that pass a minimum threshold of k-mer matches) and by using a sparse [random spanning forest](https://www.ncbi.nlm.nih.gov/pubmed/19478997) instead of a dense all-vs-all comparison. Second, it uses this alignment to build a guide tree by neighbor-joining. And finally, it builds a progressive reconstruction that includes suboptimal alignments in something like a [partial-order graph](https://www.ncbi.nlm.nih.gov/pubmed/11934745). This last step can also be constrained to stay near the guide alignment for performance reasons.
+As briefly alluded to above, Indel Historian does several performance-optimizing steps _en route_ to a reconstruction. First, it builds a quick-guess multiple alignment by a greedy maximal-spanning-tree type approach; this can optionally be accelerated by a k-mer match step (confining the alignment to diagonals of the dynamic programming matrix that pass a minimum threshold of k-mer matches) and by using a sparse [random spanning forest](https://www.ncbi.nlm.nih.gov/pubmed/19478997) instead of a dense all-vs-all comparison. Second, it uses this alignment to build a guide tree by neighbor-joining. Third, it builds a progressive reconstruction that includes suboptimal alignments in something like a [partial-order graph](https://www.ncbi.nlm.nih.gov/pubmed/11934745). And fourth, it optionally does iterative refinement to optimize the reconstruction. The latter two steps (reconstruction and refinement) can be constrained to stay near the guide alignment for performance reasons.
 
 The default settings attempt to navigate this maze of options for you, mostly using the higher-accuracy options until memory becomes a limiting factor and then switching to the more approximate options. However, as a power user, you may want to take control of these options. Command-line arguments allow you to supply guide alignments and/or guide trees, and change the parameters or behavior of the standard workflow.
 
@@ -250,13 +252,18 @@ sensitivity vs performance.
                   Limit profile to at most S states
                    (default uses at most 5% of memory for DP matrix)
 
+  -norefine       Disable iterative refinement
+
 Following alignment, ancestral sequence reconstruction can be performed.
 
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
   -ancprob        Report posterior probabilities for ancestral residues
 
-MCMC sampling allows for additional accuracy in historical reconstruction.
+For additional accuracy in historical reconstruction, the alignment can be
+iteratively refined, or MCMC-sampled. By default, refinement is enabled and
+MCMC is disabled.
 
+  -norefine       Disable iterative refinement after initial reconstruction
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
   -trace &lt;file&gt;   Specify MCMC trace filename
@@ -295,7 +302,7 @@ If you are confident the guide alignment & tree should be reasonably obvious,
 and just want to get on to reconstruction as quickly as possible:
 
   -fast           Shorthand for the following options:
-                   -rndspan -kmatchn 3 -band 10 -profmaxstates 1 -jc
+                   -rndspan -kmatchn 3 -band 10 -profmaxstates 1 -jc -norefine
 
 Model-fitting and event-counting options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

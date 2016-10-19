@@ -40,7 +40,7 @@ Reconstructor::Reconstructor()
     keepGapsOpen (false),
     usePosteriorsForProfile (true),
     reconstructRoot (true),
-    refineReconstruction (false),
+    refineReconstruction (true),
     accumulateSubstCounts (false),
     accumulateIndelCounts (false),
     predictAncestralSequence (false),
