@@ -261,7 +261,7 @@ Following alignment, ancestral sequence reconstruction can be performed.
 
 For additional accuracy in historical reconstruction, the alignment can be
 iteratively refined, or MCMC-sampled. By default, refinement is enabled and
-MCMC is disabled.
+MCMC is disabled. (MCMC currently requires an ultrametric tree.)
 
   -norefine       Disable iterative refinement after initial reconstruction
   -mcmc           Run MCMC sampler after reconstruction
@@ -292,7 +292,7 @@ memory threshold can be set with -kmatchmb). It can be disabled with
   -kmatchoff      No kmer threshold, do full DP
 
 Following construction of the guide alignment, a tree is estimated using a
-distance matrix method. By default this is UPGMA.
+distance matrix method. By default this is neighbor-joining.
 
   -upgma          Use UPGMA to estimate tree (default for MCMC)
   -nj             Use neighbor-joining, not UPGMA, to estimate tree
