@@ -84,7 +84,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "  -profminpost <P>, -profsamples <N>\n"
     + "                  Specify minimum posterior prob. (P) for retaining DP states\n"
-    + "                   in profile (default " + TOSTRING(DefaultProfilePostProb) + "), or sample N states randomly\n"
+    + "                   in profile (default " + TOSTRING(DefaultProfilePostProb) + "), or sample N traces randomly\n"
     + "  -profmaxstates <S>\n"
     + "                  Limit profile to at most S states\n"
     + "                   (default of " + to_string(Reconstructor::defaultMaxProfileStates()) + " uses at most " + to_string((int) (.5+100*DefaultMaxDPMemoryFraction)) + "% of memory for DP matrix)\n"

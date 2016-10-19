@@ -245,7 +245,7 @@ sensitivity vs performance.
 
   -profminpost &lt;P&gt;, -profsamples &lt;N&gt;
                   Specify minimum posterior prob. (P) for retaining DP states
-                   in profile (default .01), or sample N states randomly
+                   in profile (default .01), or sample N traces randomly
   -profmaxstates &lt;S&gt;
                   Limit profile to at most S states
                    (default uses at most 5% of memory for DP matrix)
