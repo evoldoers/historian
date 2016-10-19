@@ -116,14 +116,17 @@ summing over the most probable alignments.
 
 \begin{figure}
   \includegraphics[width=\columnwidth]{gp120tree.pdf}
+%  \includegraphics[width=\columnwidth]{sym8tree.pdf}
   \caption{
-    Tree of HIV and SIV GP120 domains that was used for the simulation benchmark.
+    Tree of HIV and SIV GP120 domains, used for the simulation benchmark.
+%    Bottom: symmetric 8-taxon tree, also used for the simulation benchmark.
   }
 \end{figure}
 
 \begin{table}
-  \begin{tabular}{r|r}
-    & RMS error \\
+  \begin{tabular}{r|rr}
+    & \multicolumn{2}{c}{GP120 tree} \\
+    & $\epsilon_\lambda$ & $\epsilon_\mu$ \\
     \hline
 True alignment & \\
 Indel Historian & \\
@@ -151,8 +154,13 @@ We then simulated 100 different alignments under these conditions, using indel-S
 (a) from the true alignment; (b) using alignments or reconstructions created by ProbCons, MUSCLE, PRANK, and Indel Historian.
 In each case, we estimated insertion and deletion rates $(\hat{\lambda},\hat{\mu})$ and computed relative errors $(\frac{\hat{\lambda}-\lambda}{\lambda},\frac{\hat{\mu}-\mu}{\mu})$
 compared to the true indel rates ($\lambda = \mu = \log(1-p)$).
+We also repeated the benchmark with a symmetric 8-taxon binary tree whose 14 branches all had length 0.1.
 
-The RMS (root mean square) of these errors are reported in Table~1.
+The RMS (root mean square) errors
+$\epsilon_\lambda = \sqrt{\langle \left( \frac{\hat{\lambda}-\lambda}{\lambda} \right)^2 \rangle}$
+and
+$\epsilon_\mu = \sqrt{\langle \left( \frac{\hat{\mu}-\mu}{\mu} \right)^2 \rangle}$
+are reported in Table~1.
 Note that even perfect knowledge of the true alignment does not guarantee perfect reconstruction of the underlying indel rate parameters,
 due to the possibility of indel events that are not directly observable (for example, when multiple indel events overlap on the same branch,
 they will generally be conflated into a single event by the inference algorithm).
@@ -172,8 +180,8 @@ MUSCLE & 0.89 & 0.64 & 0.73 & 0.73
   \caption{
     Comparison of Indel Historian to other alignment programs using standard benchmarks
     and the SPS/TCS scores \citep{ThompsonEtAl2005}.
-    Average runtime per alignment was 55s for BAliBase and 39s for PREFAB (4 GHz Intel Core i7).
-    Data for CLUSTALW, PRANK (+F option, CLUSTALW tree), MAFFT (v6.603), ProbCons (v1.12) and MUSCLE (version 4.0) are from {\tt http://drive5.com/bench/} \citep{Edgar2010}.
+%    Average runtime per alignment was 55s for BAliBase and 39s for PREFAB (4 GHz Intel Core i7).
+%    Data for CLUSTALW, PRANK (+F option, CLUSTALW tree), MAFFT (v6.603), ProbCons (v1.12) and MUSCLE (version 4.0) are from {\tt http://drive5.com/bench/} \citep{Edgar2010}.
   }
 \end{table}
 
