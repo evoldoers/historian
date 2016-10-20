@@ -52,7 +52,6 @@ bin/qscore:
 # These are then used to make gp120guide.isg
 #  500 is the length of the root domain (GP120)
 #   30 is the max indel length (by inspection of gp120.recon.fa)
-#   .3 is the indel opening probability = 1 - exp(-(insRate+delRate)/2)
 # All these parameters are rounded to 1 significant figure
 gp120.json:
 	bin/historian fit ../../data/gp120.fa >$@
@@ -70,28 +69,26 @@ GUIDETREE := guide.isg
 # SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
 SUBRATESCALE := .83333
 
-# DEFAULTINDELPROB
-DEFAULTINDELPROB := .3
+# INDELRATE and INDELPROB
+# default rate is by inspection of gp120.json
+GP120JSON = gp120.json
+INDELRATE ?= $(shell node -e 'fs=require("fs");json=JSON.parse(fs.readFileSync("$(GP120JSON)"));process.stdout.write(((json.insrate + json.delrate) / 2).toPrecision(2))')
+INDELPROB := $(shell perl -e 'print 1-exp(-$(INDELRATE))')
+
+indelprob-test:
+	echo $(INDELRATE)
+	echo $(INDELPROB)
+
+# sequence length & max indel length
 SEQLEN := 500
 MAXINDELLEN := 30
 
-gp120sim/tree%/$(GUIDETREE):
-	test -e gp120sim/tree$* || mkdir -p gp120sim/tree$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(DEFAULTINDELPROB) $(GP120TREE) $* >$@
-
-gp120sim/sym%/$(GUIDETREE):
-	test -e gp120sim/sym$* || mkdir -p gp120sim/sym$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(DEFAULTINDELPROB) $(SYM8TREE) $* >$@
-
-# INDELPROB
-INDELPROB ?= $(DEFAULTINDELPROB)
-
-gp120sim/prob$(INDELPROB)/tree%/$(GUIDETREE):
-	test -e gp120sim/prob$(INDELPROB)/tree$* || mkdir -p gp120sim/prob$(INDELPROB)/tree$*
+gp120sim/rate$(INDELRATE)/tree%/$(GUIDETREE):
+	test -e gp120sim/rate$(INDELRATE)/tree$* || mkdir -p gp120sim/rate$(INDELRATE)/tree$*
 	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(GP120TREE) $* >$@
 
-gp120sim/prob$(INDELPROB)/sym%/$(GUIDETREE):
-	test -e gp120sim/sym$* || mkdir -p gp120sim/prob$(INDELPROB)/sym$*
+gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
+	test -e gp120sim/sym$* || mkdir -p gp120sim/rate$(INDELRATE)/sym$*
 	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(SYM8TREE) $* >$@
 
 # Simulation
@@ -173,10 +170,10 @@ gp120sim-sym%:
 	make `perl -e 'print map "gp120sim/sym$*/$$_.summary ", 1..$(REPS)'`
 
 gp120sim-rate-tree%:
-	make `perl -e 'print map "gp120sim/prob$(INDELPROB)/tree$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
 
 gp120sim-rate-sym%:
-	make `perl -e 'print map "gp120sim/prob$(INDELPROB)/sym$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/rate$(INDELRATE)a/sym$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
