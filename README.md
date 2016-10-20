@@ -252,8 +252,6 @@ sensitivity vs performance.
                   Limit profile to at most S states
                    (default uses at most 5% of memory for DP matrix)
 
-  -norefine       Disable iterative refinement
-
 Following alignment, ancestral sequence reconstruction can be performed.
 
   -ancseq         Predict ancestral sequences (default is to leave them as *'s)
@@ -264,6 +262,7 @@ iteratively refined, or MCMC-sampled. By default, refinement is enabled and
 MCMC is disabled. (MCMC currently requires an ultrametric tree.)
 
   -norefine       Disable iterative refinement after initial reconstruction
+
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
   -trace &lt;file&gt;   Specify MCMC trace filename

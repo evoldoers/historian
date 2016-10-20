@@ -88,11 +88,26 @@ gp120sim/sym%/$(GUIDETREE):
 %.hist.json: %.seq
 	bin/historian fit -fixsubrates $*.seq -v3 >$@
 
+%.histslow.json: %.seq
+	bin/historian fit -fixsubrates -profminpost .001 -profmaxstates 12000 $*.seq -v3 >$@
+
 %.histrec.stk: %.seq
-	bin/historian recon $*.seq -v3 >$@
+	bin/historian recon -norefine $*.seq -v3 >$@
 
 %.histrec.json: %.histrec.stk
 	bin/historian fit -fixsubrates -stockrecon $*.histrec.stk -v3 >$@
+
+%.histref.stk: %.seq
+	bin/historian recon -refine $*.seq -v3 >$@
+
+%.histref.json: %.histref.stk
+	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
+
+%.histref.stk: %.seq
+	bin/historian recon -refine $*.seq -v3 >$@
+
+%.histref.json: %.histref.stk
+	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
 
 %.muscle: %.seq
 	bin/muscle -in $*.seq >$@
@@ -107,15 +122,32 @@ gp120sim/sym%/$(GUIDETREE):
 	cp $*.prankout.1.fas $@
 	bin/historian fit -fixsubrates -band 1 $@ >$@.json
 
-%.summary: %.ma.json %.hist.json %.histrec.json %.muscle %.probcons %.prank
-	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' $*.ma.json $*.hist.json $*.muscle.json $*.probcons.json $*.prank.json >$@
-
+%.summary: %.ma.json %.hist.json %.histrec.json %.histref.json %.histslow.json %.muscle %.probcons %.prank
+	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' $*.ma.json $*.hist.json $*.histrec.json $*.histref.json $*.histslow.json $*.muscle.json $*.probcons.json $*.prank.json >$@
 
 # RMS error = sqrt(sum (r-1)^2) = sum (r^2 - 2r + 1)
 # where r = estimated_rate / true_rate
 REPS := 100
 %/1-$(REPS).summary:
-	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' 0.3 $(dir $@) ma hist histrec muscle probcons prank >$@
+	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' 0.3 $(dir $@) ma hist histrec histref histslow muscle probcons prank >$@
+
+%/histrecrefslow: %/histrec %/histref %/histslow
+	make `perl -e 'print join(" ",map("$*/$$_.histrec.json",1..$(REPS)))'`
+	make `perl -e 'print join(" ",map("$*/$$_.histref.json",1..$(REPS)))'`
+	make `perl -e 'print join(" ",map("$*/$$_.histslow.json",1..$(REPS)))'`
+
+%/histrec:
+	make `perl -e 'print join(" ",map("$*/$$_.histrec.json",1..$(REPS)))'`
+
+%/histrefslow: %/histref %/histslow
+	make `perl -e 'print join(" ",map("$*/$$_.histref.json",1..$(REPS)))'`
+	make `perl -e 'print join(" ",map("$*/$$_.histslow.json",1..$(REPS)))'`
+
+%/histref:
+	make `perl -e 'print join(" ",map("$*/$$_.histref.json",1..$(REPS)))'`
+
+%/histslow:
+	make `perl -e 'print join(" ",map("$*/$$_.histslow.json",1..$(REPS)))'`
 
 gp120sim-tree%:
 	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
