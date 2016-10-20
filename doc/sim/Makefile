@@ -145,34 +145,10 @@ REPS := 100
 %/1-$(REPS).summary:
 	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELPROB) $(dir $@) ma hist histrec histref histslow muscle probcons prank >$@
 
-%/histrecrefslow: %/histrec %/histref %/histslow
-	make `perl -e 'print join(" ",map("$*/$$_.histrec.json",1..$(REPS)))'`
-	make `perl -e 'print join(" ",map("$*/$$_.histref.json",1..$(REPS)))'`
-	make `perl -e 'print join(" ",map("$*/$$_.histslow.json",1..$(REPS)))'`
-
-%/histrec:
-	make `perl -e 'print join(" ",map("$*/$$_.histrec.json",1..$(REPS)))'`
-
-%/histrefslow: %/histref %/histslow
-	make `perl -e 'print join(" ",map("$*/$$_.histref.json",1..$(REPS)))'`
-	make `perl -e 'print join(" ",map("$*/$$_.histslow.json",1..$(REPS)))'`
-
-%/histref:
-	make `perl -e 'print join(" ",map("$*/$$_.histref.json",1..$(REPS)))'`
-
-%/histslow:
-	make `perl -e 'print join(" ",map("$*/$$_.histslow.json",1..$(REPS)))'`
-
 gp120sim-tree%:
-	make `perl -e 'print map "gp120sim/tree$*/$$_.summary ", 1..$(REPS)'`
-
-gp120sim-sym%:
-	make `perl -e 'print map "gp120sim/sym$*/$$_.summary ", 1..$(REPS)'`
-
-gp120sim-rate-tree%:
 	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
 
-gp120sim-rate-sym%:
+gp120sim-sym%:
 	make `perl -e 'print map "gp120sim/rate$(INDELRATE)a/sym$*/$$_.summary ", 1..$(REPS)'`
 
 
