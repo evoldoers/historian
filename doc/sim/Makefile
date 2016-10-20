@@ -149,7 +149,7 @@ gp120sim-tree%:
 	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
 
 gp120sim-sym%:
-	make `perl -e 'print map "gp120sim/rate$(INDELRATE)a/sym$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/sym$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
