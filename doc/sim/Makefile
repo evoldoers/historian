@@ -70,29 +70,29 @@ GUIDETREE := guide.isg
 # SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
 SUBRATESCALE := .83333
 
-# DEFAULTINDELRATE
-DEFAULTINDELRATE := .3
+# DEFAULTINDELPROB
+DEFAULTINDELPROB := .3
 SEQLEN := 500
 MAXINDELLEN := 30
 
 gp120sim/tree%/$(GUIDETREE):
 	test -e gp120sim/tree$* || mkdir -p gp120sim/tree$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(DEFAULTINDELRATE) $(GP120TREE) $* >$@
+	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(DEFAULTINDELPROB) $(GP120TREE) $* >$@
 
 gp120sim/sym%/$(GUIDETREE):
 	test -e gp120sim/sym$* || mkdir -p gp120sim/sym$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(DEFAULTINDELRATE) $(SYM8TREE) $* >$@
+	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(DEFAULTINDELPROB) $(SYM8TREE) $* >$@
 
-# INDELRATE
-INDELRATE ?= $(DEFAULTINDELRATE)
+# INDELPROB
+INDELPROB ?= $(DEFAULTINDELPROB)
 
-gp120sim/rate$(INDELRATE)/tree%/$(GUIDETREE):
-	test -e gp120sim/rate$(INDELRATE)/tree$* || mkdir -p gp120sim/rate$(INDELRATE)/tree$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELRATE) $(GP120TREE) $* >$@
+gp120sim/prob$(INDELPROB)/tree%/$(GUIDETREE):
+	test -e gp120sim/prob$(INDELPROB)/tree$* || mkdir -p gp120sim/prob$(INDELPROB)/tree$*
+	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(GP120TREE) $* >$@
 
-gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
-	test -e gp120sim/sym$* || mkdir -p gp120sim/rate$(INDELRATE)/sym$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELRATE) $(SYM8TREE) $* >$@
+gp120sim/prob$(INDELPROB)/sym%/$(GUIDETREE):
+	test -e gp120sim/sym$* || mkdir -p gp120sim/prob$(INDELPROB)/sym$*
+	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(SYM8TREE) $* >$@
 
 # Simulation
 %.seq:
@@ -146,7 +146,7 @@ gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
 # where r = estimated_rate / true_rate
 REPS := 100
 %/1-$(REPS).summary:
-	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELRATE) $(dir $@) ma hist histrec histref histslow muscle probcons prank >$@
+	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELPROB) $(dir $@) ma hist histrec histref histslow muscle probcons prank >$@
 
 %/histrecrefslow: %/histrec %/histref %/histslow
 	make `perl -e 'print join(" ",map("$*/$$_.histrec.json",1..$(REPS)))'`
@@ -173,10 +173,10 @@ gp120sim-sym%:
 	make `perl -e 'print map "gp120sim/sym$*/$$_.summary ", 1..$(REPS)'`
 
 gp120sim-rate-tree%:
-	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/prob$(INDELPROB)/tree$*/$$_.summary ", 1..$(REPS)'`
 
 gp120sim-rate-sym%:
-	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/sym$*/$$_.summary ", 1..$(REPS)'`
+	make `perl -e 'print map "gp120sim/prob$(INDELPROB)/sym$*/$$_.summary ", 1..$(REPS)'`
 
 
 # Simulation #2: DNA
