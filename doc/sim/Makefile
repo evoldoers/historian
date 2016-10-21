@@ -151,7 +151,7 @@ $(RATEDIR)/%/$(ISGPARAMS): $(RATEDIR)/%/$(GUIDETREE)
 
 # RMS error = sqrt(sum (r-1)^2) = sum (r^2 - 2r + 1)
 # where r = estimated_rate / true_rate
-REPS := 100
+REPS ?= 100
 %/1-$(REPS).summary:
 	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELPROB) $(dir $@) ma ma.tree hist histrec histref histslow muscle probcons prank >$@
 
