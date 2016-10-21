@@ -66,10 +66,8 @@ GUIDETREE := tree.nh
 
 # General recipe for indel-seq-gen usage (and PRANK usage) is from Text S1 of Westesson et al, 2012
 # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
+# but simplified a little (no substitution rate scaling)
 ISGPARAMS := guide.isg
-
-# SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
-SUBRATESCALE := .83333
 
 # INDELRATE and INDELPROB
 # default rate is by inspection of gp120.json
@@ -101,7 +99,7 @@ $(RATEDIR)/%/$(ISGPARAMS): $(RATEDIR)/%/$(GUIDETREE)
 # Simulation
 %.seq:
 	make $(dir $@)$(ISGPARAMS)
-	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile $* --quiet --outfile_format f -s 10000 --write_anc
+	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m JTT -u xia --outfile $* --quiet --outfile_format f -s 10000 --write_anc
 
 %.ma.json: %.seq
 	bin/historian fit -fixsubrates -band 1 $*.ma >$@
@@ -179,7 +177,7 @@ gp120sim/dna/%/$(ISGPARAMS):
 	cat $@
 
 %/dna: %/$(ISGPARAMS)
-	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile $*/dna --quiet --outfile_format f -s 10000 --write_anc
+	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m GTR -u ran --outfile $*/dna --quiet --outfile_format f --write_anc
 	mv $*/dna.seq $@
 
 %/dna.hist.stk: %/dna
