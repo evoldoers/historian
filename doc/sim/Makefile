@@ -85,10 +85,12 @@ MAXINDELLEN := 30
 
 gp120sim/rate$(INDELRATE)/tree%/$(GUIDETREE):
 	test -e gp120sim/rate$(INDELRATE)/tree$* || mkdir -p gp120sim/rate$(INDELRATE)/tree$*
+	cp $(GP120TREE) gp120sim/rate$(INDELRATE)/tree$*
 	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(GP120TREE) $* >$@
 
 gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
 	test -e gp120sim/sym$* || mkdir -p gp120sim/rate$(INDELRATE)/sym$*
+	cp $(SYM8TREE) gp120sim/rate$(INDELRATE)/sym$*/tree.nh
 	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(SYM8TREE) $* >$@
 
 # Simulation
@@ -98,6 +100,9 @@ gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
 
 %.ma.json: %.seq
 	bin/historian fit -fixsubrates -band 1 $*.ma >$@
+
+%.ma.tree.json: %.seq
+	bin/historian fit -fixsubrates -band 1 $*.ma -tree $(dir $@)/tree.nh >$@
 
 %.hist.json: %.seq
 	bin/historian fit -fixsubrates $*.seq -v3 >$@
@@ -136,14 +141,14 @@ gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
 	cp $*.prankout.1.fas $@
 	bin/historian fit -fixsubrates -band 1 $@ >$@.json
 
-%.summary: %.ma.json %.hist.json %.histrec.json %.histref.json %.histslow.json %.muscle %.probcons %.prank
-	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' $*.ma.json $*.hist.json $*.histrec.json $*.histref.json $*.histslow.json $*.muscle.json $*.probcons.json $*.prank.json >$@
+%.summary: %.ma.json %.ma.tree.json %.hist.json %.histrec.json %.histref.json %.histslow.json %.muscle %.probcons %.prank
+	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' $*.ma.json $*.ma.tree.json $*.hist.json $*.histrec.json $*.histref.json $*.histslow.json $*.muscle.json $*.probcons.json $*.prank.json >$@
 
 # RMS error = sqrt(sum (r-1)^2) = sum (r^2 - 2r + 1)
 # where r = estimated_rate / true_rate
 REPS := 100
 %/1-$(REPS).summary:
-	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELPROB) $(dir $@) ma hist histrec histref histslow muscle probcons prank >$@
+	node -e 'fs=require("fs");p=process.argv[1];i=d=-Math.log(1-p);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELPROB) $(dir $@) ma ma.tree hist histrec histref histslow muscle probcons prank >$@
 
 gp120sim-tree%:
 	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
@@ -151,6 +156,14 @@ gp120sim-tree%:
 gp120sim-sym%:
 	make `perl -e 'print map "gp120sim/rate$(INDELRATE)/sym$*/$$_.summary ", 1..$(REPS)'`
 
+# Top-level targets for simulation #1
+sim1:
+	make gp120sim-tree1
+	make gp120sim-sym1
+	make INDELRATE=0.014 gp120sim-tree1
+	make INDELRATE=0.014 gp120sim-sym1
+	make gp120sim-tree2
+	make gp120sim-sym2
 
 # Simulation #2: DNA
 gp120dna: gp120sim/dna/3/dna.hist.stk gp120sim/dna/4/dna.hist.stk gp120sim/dna/5/dna.hist.stk gp120sim/dna/6/dna.hist.stk gp120sim/dna/7/dna.hist.stk
