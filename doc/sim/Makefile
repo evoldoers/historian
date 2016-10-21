@@ -62,9 +62,11 @@ gp120.recon.fa: gp120.json
 GP120TREE := ../../data/gp120.tree.nh
 SYM8TREE  := sym8tree.nh
 
+GUIDETREE := tree.nh
+
 # General recipe for indel-seq-gen usage (and PRANK usage) is from Text S1 of Westesson et al, 2012
 # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572#s1
-GUIDETREE := guide.isg
+ISGPARAMS := guide.isg
 
 # SUBRATESCALE is 1/1.2 to compensate for indel-seq-gen's natural substitution rate of 1.2
 SUBRATESCALE := .83333
@@ -75,6 +77,8 @@ GP120JSON = gp120.json
 INDELRATE ?= $(shell node -e 'fs=require("fs");json=JSON.parse(fs.readFileSync("$(GP120JSON)"));process.stdout.write(((json.insrate + json.delrate) / 2).toPrecision(2))')
 INDELPROB := $(shell perl -e 'print 1-exp(-$(INDELRATE))')
 
+RATEDIR := gp120sim/rate$(INDELRATE)
+
 indelprob-test:
 	echo $(INDELRATE)
 	echo $(INDELPROB)
@@ -83,20 +87,21 @@ indelprob-test:
 SEQLEN := 500
 MAXINDELLEN := 30
 
-gp120sim/rate$(INDELRATE)/tree%/$(GUIDETREE):
-	test -e gp120sim/rate$(INDELRATE)/tree$* || mkdir -p gp120sim/rate$(INDELRATE)/tree$*
-	cp $(GP120TREE) gp120sim/rate$(INDELRATE)/tree$*
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(GP120TREE) $* >$@
+$(RATEDIR)/tree%/$(GUIDETREE):
+	test -e $(dir $@) || mkdir -p $(dir $@)
+	bin/scale-tree.js $(GP120TREE) $* >$(dir $@)/tree.nh
 
-gp120sim/rate$(INDELRATE)/sym%/$(GUIDETREE):
-	test -e gp120sim/sym$* || mkdir -p gp120sim/rate$(INDELRATE)/sym$*
-	cp $(SYM8TREE) gp120sim/rate$(INDELRATE)/sym$*/tree.nh
-	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(SYM8TREE) $* >$@
+$(RATEDIR)/sym%/$(GUIDETREE):
+	test -e $(dir $@) || mkdir -p $(dir $@)
+	bin/scale-tree.js $(SYM8TREE) $* >$(dir $@)/tree.nh
+
+$(RATEDIR)/%/$(ISGPARAMS): $(RATEDIR)/%/$(GUIDETREE)
+	bin/add-indelign-params.js $(SEQLEN) $(MAXINDELLEN) $(INDELPROB) $(dir $@)/tree.nh $* >$@
 
 # Simulation
 %.seq:
-	make $(dir $@)$(GUIDETREE)
-	cat $(dir $@)$(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile $* --quiet --outfile_format f -s 10000 --write_anc
+	make $(dir $@)$(ISGPARAMS)
+	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m JTT -u xia --num_gamma_cats 3 -a 0.372 --branch_scale $(SUBRATESCALE) --outfile $* --quiet --outfile_format f -s 10000 --write_anc
 
 %.ma.json: %.seq
 	bin/historian fit -fixsubrates -band 1 $*.ma >$@
@@ -168,13 +173,13 @@ sim1:
 # Simulation #2: DNA
 gp120dna: gp120sim/dna/3/dna.hist.stk gp120sim/dna/4/dna.hist.stk gp120sim/dna/5/dna.hist.stk gp120sim/dna/6/dna.hist.stk gp120sim/dna/7/dna.hist.stk
 
-gp120sim/dna/%/$(GUIDETREE):
+gp120sim/dna/%/$(ISGPARAMS):
 	test -e $(dir $@) || mkdir -p $(dir $@)
 	bin/add-indelign-params.js `perl -e 'print 10 ** $*'`  `perl -e 'print 2 ** ($* + 2)'` .3 $(SYM8TREE) >$@
 	cat $@
 
-%/dna: %/$(GUIDETREE)
-	cat $(dir $@)$(GUIDETREE) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile $*/dna --quiet --outfile_format f -s 10000 --write_anc
+%/dna: %/$(ISGPARAMS)
+	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m GTR -u ran --branch_scale $(SUBRATESCALE) --outfile $*/dna --quiet --outfile_format f -s 10000 --write_anc
 	mv $*/dna.seq $@
 
 %/dna.hist.stk: %/dna
