@@ -101,46 +101,49 @@ $(RATEDIR)/%/$(ISGPARAMS): $(RATEDIR)/%/$(GUIDETREE)
 	make $(dir $@)$(ISGPARAMS)
 	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m JTT -u xia --outfile $* --quiet --outfile_format f -s 10000 --write_anc
 
-%.ma.json: %.seq
+%.leaf: %.seq
+	cat $< | perl -e 'while(<>){if(/^>.*/){$$n=$$_}print if$$n && !($$n=~/^>\d+\s*$$/)}' >$@
+
+%.ma.json: %.leaf
 	bin/historian fit -fixsubrates -band 1 $*.ma >$@
 
-%.ma.tree.json: %.seq
+%.ma.tree.json: %.leaf
 	bin/historian fit -fixsubrates -band 1 $*.ma -tree $(dir $@)/tree.nh >$@
 
-%.hist.json: %.seq
-	bin/historian fit -fixsubrates $*.seq -v3 >$@
+%.hist.json: %.leaf
+	bin/historian fit -fixsubrates $*.leaf -v3 >$@
 
-%.histslow.json: %.seq
-	bin/historian fit -fixsubrates -profminpost .001 -profmaxstates 12000 $*.seq -v3 >$@
+%.histslow.json: %.leaf
+	bin/historian fit -fixsubrates -profminpost .001 -profmaxstates 12000 $*.leaf -v3 >$@
 
-%.histrec.stk: %.seq
-	bin/historian recon -norefine $*.seq -v3 >$@
+%.histrec.stk: %.leaf
+	bin/historian recon -norefine $*.leaf -v3 >$@
 
 %.histrec.json: %.histrec.stk
 	bin/historian fit -fixsubrates -stockrecon $*.histrec.stk -v3 >$@
 
-%.histref.stk: %.seq
-	bin/historian recon -refine $*.seq -v3 >$@
+%.histref.stk: %.leaf
+	bin/historian recon -refine $*.leaf -v3 >$@
 
 %.histref.json: %.histref.stk
 	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
 
-%.histref.stk: %.seq
-	bin/historian recon -refine $*.seq -v3 >$@
+%.histref.stk: %.leaf
+	bin/historian recon -refine $*.leaf -v3 >$@
 
 %.histref.json: %.histref.stk
 	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
 
-%.muscle: %.seq
-	bin/muscle -in $*.seq >$@
+%.muscle: %.leaf
+	bin/muscle -in $*.leaf >$@
 	bin/historian fit -fixsubrates -band 1 $@ >$@.json
 
-%.probcons: %.seq
-	bin/probcons $*.seq >$@
+%.probcons: %.leaf
+	bin/probcons $*.leaf >$@
 	bin/historian fit -fixsubrates -band 1 $@ >$@.json
 
-%.prank: %.seq
-	bin/prank -d=$*.seq -noxml -realbranches -writeanc -o=$*.prankout +F
+%.prank: %.leaf
+	bin/prank -d=$*.leaf -noxml -realbranches -writeanc -o=$*.prankout +F
 	cp $*.prankout.1.fas $@
 	bin/historian fit -fixsubrates -band 1 $@ >$@.json
 
@@ -167,21 +170,6 @@ sim1:
 	make INDELRATE=0.014 gp120sim-sym1
 	make gp120sim-tree2
 	make gp120sim-sym2
-
-# Simulation #2: DNA
-gp120dna: gp120sim/dna/3/dna.hist.stk gp120sim/dna/4/dna.hist.stk gp120sim/dna/5/dna.hist.stk gp120sim/dna/6/dna.hist.stk gp120sim/dna/7/dna.hist.stk
-
-gp120sim/dna/%/$(ISGPARAMS):
-	test -e $(dir $@) || mkdir -p $(dir $@)
-	bin/add-indelign-params.js `perl -e 'print 10 ** $*'`  `perl -e 'print 2 ** ($* + 2)'` .3 $(SYM8TREE) >$@
-	cat $@
-
-%/dna: %/$(ISGPARAMS)
-	cat $(dir $@)$(ISGPARAMS) | bin/indel-seq-gen --rng_seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` -m GTR -u ran --outfile $*/dna --quiet --outfile_format f --write_anc
-	mv $*/dna.seq $@
-
-%/dna.hist.stk: %/dna
-	bin/historian recon $*/dna -fast -v2 >$@
 
 # keep intermediates
 .SECONDARY:
