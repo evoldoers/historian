@@ -214,6 +214,7 @@ int main (int argc, char** argv) {
 
       while (logger.parseLogArgs (argvec)
 	     || recon.parseReconArgs (argvec)
+	     || recon.parseModelArgs (argvec)
 	     || recon.parseProfileArgs (argvec, false)
 	     || recon.parseSamplerArgs (argvec)
 	     || recon.parseAncSeqArgs (argvec)
@@ -233,6 +234,19 @@ int main (int argc, char** argv) {
   if (command == "reconstruct" || command == "recon" || command == "r") {
     reconstruct();
 
+  } else if (command == "generate" || command == "g") {
+
+    usage.implicitSwitches.push_back (string ("-tree"));
+    usage.unlimitImplicitSwitches = true;
+
+    while (logger.parseLogArgs (argvec)
+	   || recon.parseSimulatorArgs (argvec)
+	   || recon.parseModelArgs (argvec)
+	   || usage.parseUnknown())
+      { }
+
+    recon.simulate();
+    
   } else if (command == "mcmc" || command == "m") {
 
     recon.reconstructRoot = true;
@@ -246,6 +260,7 @@ int main (int argc, char** argv) {
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
+	   || recon.parseModelArgs (argvec)
 	   || recon.parseProfileArgs (argvec, true)
 	   || recon.parseSamplerArgs (argvec)
 	   || recon.parseAncSeqArgs (argvec)
@@ -270,6 +285,7 @@ int main (int argc, char** argv) {
 
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
+	   || recon.parseModelArgs (argvec)
 	   || recon.parseProfileArgs (argvec, true)
 	   || recon.parseCountArgs (argvec)
 	   || recon.parseSumArgs (argvec)
@@ -310,6 +326,7 @@ int main (int argc, char** argv) {
     
     while (logger.parseLogArgs (argvec)
 	   || recon.parsePremadeArgs (argvec)
+	   || recon.parseModelArgs (argvec)
 	   || recon.parseProfileArgs (argvec, true)
 	   || recon.parseCountArgs (argvec)
 	   || recon.parseSumArgs (argvec)

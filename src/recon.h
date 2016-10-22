@@ -23,6 +23,8 @@
 
 #define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc","-norefine"}
 
+#define DefaultSimulatorRootSeqLen 100
+
 class Reconstructor {
 public:
   typedef AlignColSumProduct::ReconPostProbMap ReconPostProbMap;
@@ -30,11 +32,11 @@ public:
   static const vguard<string> fastAliasArgs;
   
   string fastaReconFilename, treeFilename, modelFilename;
-  list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames;
+  list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames, simulatorTreeFilenames;
   string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
-  int maxDistanceFromGuide;
+  int maxDistanceFromGuide, simulatorRootSeqLen;
   bool tokenizeCodons, guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, refineReconstruction, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC, outputLeavesOnly;
   double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
@@ -78,7 +80,9 @@ public:
   
   Reconstructor();
 
+  bool parseModelArgs (deque<string>& argvec);
   bool parseReconArgs (deque<string>& argvec);
+  bool parseSimulatorArgs (deque<string>& argvec);
   bool parseAncSeqArgs (deque<string>& argvec);
   bool parseProfileArgs (deque<string>& argvec, bool allowReconstructions);
   bool parseSamplerArgs (deque<string>& argvec);
@@ -111,6 +115,8 @@ public:
   void count (Dataset& dataset);
   void fit();
 
+  void simulate();
+  
   struct HistoryLogger : Sampler::Logger {
     Reconstructor* recon;
     ofstream* out;

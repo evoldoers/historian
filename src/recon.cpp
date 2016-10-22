@@ -15,6 +15,7 @@
 #include "codon.h"
 #include "refiner.h"
 #include "memsize.h"
+#include "simulator.h"
 
 const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
 const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
@@ -60,7 +61,8 @@ Reconstructor::Reconstructor()
     mcmcTraceFiles (0),
     outputFormat (StockholmFormat),
     outputLeavesOnly (false),
-    guideFile (NULL)
+    guideFile (NULL),
+    simulatorRootSeqLen (DefaultSimulatorRootSeqLen)
 { }
 
 int Reconstructor::defaultMaxProfileStates() {
@@ -135,6 +137,63 @@ void Reconstructor::checkUniqueSeqFile() {
 void Reconstructor::checkUniqueTreeFile() {
   Require (treeFilename.empty() || (nexusGuideFilenames.empty() && nexusReconFilenames.empty() && stockholmGuideFilenames.empty() && stockholmReconFilenames.empty()), "If you have multiple datasets with trees, please encode each tree in its own Stockholm or Nexus file, rather than specifying the tree file separately.");
   Require (treeFilename.empty() || (seqFilenames.size() + fastaGuideFilenames.size() + (fastaReconFilename.empty() ? 0 : 1) == 1), "If you specify a tree file, there can be one and only one sequence file, otherwise matching up trees to sequence files involves too much guesswork for my liking. To avoid complication, I recommend that if you want to analyze multiple datasets, you please use Nexus or Stockholm format to encode the tree and sequence data directly into the same file.");
+}
+
+bool Reconstructor::parseSimulatorArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-rootlen") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      simulatorRootSeqLen = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-tree") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      simulatorTreeFilenames.push_back (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Reconstructor::parseModelArgs (deque<string>& argvec) {
+  if (argvec.size()) {
+    const string& arg = argvec[0];
+    if (arg == "-output") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const string format = toupper (argvec[1]);
+      if (format == "NEXUS")
+	outputFormat = NexusFormat;
+      else if (format == "FASTA")
+	outputFormat = FastaFormat;
+      else if (format == "STOCKHOLM")
+	outputFormat = StockholmFormat;
+      else
+	Fail ("Unrecognized format: %s", argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-seed") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      rndSeed = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-model") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      setModelFilename (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+    }
+  }
+  return false;
 }
 
 bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstructions) {
@@ -227,30 +286,8 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-output") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      const string format = toupper (argvec[1]);
-      if (format == "NEXUS")
-	outputFormat = NexusFormat;
-      else if (format == "FASTA")
-	outputFormat = FastaFormat;
-      else if (format == "STOCKHOLM")
-	outputFormat = StockholmFormat;
-      else
-	Fail ("Unrecognized format: %s", argvec[1].c_str());
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
     } else if (arg == "-noancs") {
       outputLeavesOnly = true;
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-model") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      setModelFilename (argvec[1]);
-      argvec.pop_front();
       argvec.pop_front();
       return true;
 
@@ -296,13 +333,6 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
 
     } else if (arg == "-keepgapsopen") {
       keepGapsOpen = true;
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-seed") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      rndSeed = atoi (argvec[1].c_str());
-      argvec.pop_front();
       argvec.pop_front();
       return true;
 
@@ -1205,4 +1235,27 @@ Reconstructor::FileFormat Reconstructor::detectFormat (const string& filename) {
 
   LogThisAt(3,"Format unknown" << endl);
   return UnknownFormat;
+}
+
+void Reconstructor::simulate() {
+  Require (simulatorTreeFilenames.size(), "No tree provided");
+  if (simulatorRootSeqLen) {
+    Warn ("Using default root sequence length of %d", DefaultSimulatorRootSeqLen);
+    simulatorRootSeqLen = DefaultSimulatorRootSeqLen;
+  }
+  loadModel();
+  seedGenerator();
+  for (const auto& simulatorTreeFilename: simulatorTreeFilenames) {
+    LogThisAt(1,"Loading tree from " << simulatorTreeFilename << endl);
+    ifstream treeFile (simulatorTreeFilename);
+    Tree tree (JsonUtil::readStringFromStream (treeFile));
+    tree.assignInternalNodeNames();
+    Stockholm stock = Simulator::simulateTree (generator, model, tree, simulatorRootSeqLen);
+    const auto& id = simulatorTreeFilename;
+    stock.gf[StockholmIDTag].push_back (id);
+    if (outputFormat == StockholmFormat)
+      stock.write (cout, 0);
+    else
+      writeTreeAlignment (tree, stock.gapped, id, cout, false, NULL);
+  }
 }
