@@ -62,7 +62,7 @@ Reconstructor::Reconstructor()
     outputFormat (StockholmFormat),
     outputLeavesOnly (false),
     guideFile (NULL),
-    simulatorRootSeqLen (DefaultSimulatorRootSeqLen)
+    simulatorRootSeqLen (-1)
 { }
 
 int Reconstructor::defaultMaxProfileStates() {
@@ -145,6 +145,7 @@ bool Reconstructor::parseSimulatorArgs (deque<string>& argvec) {
     if (arg == "-rootlen") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       simulatorRootSeqLen = atoi (argvec[1].c_str());
+      Require (simulatorRootSeqLen >= 0, "%s must be non-negative", arg.c_str());
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -1239,8 +1240,8 @@ Reconstructor::FileFormat Reconstructor::detectFormat (const string& filename) {
 
 void Reconstructor::simulate() {
   Require (simulatorTreeFilenames.size(), "No tree provided");
-  if (simulatorRootSeqLen) {
-    Warn ("Using default root sequence length of %d", DefaultSimulatorRootSeqLen);
+  if (simulatorRootSeqLen < 0) {
+    LogThisAt (1, "Using default root sequence length of " << DefaultSimulatorRootSeqLen << endl);
     simulatorRootSeqLen = DefaultSimulatorRootSeqLen;
   }
   loadModel();
@@ -1248,8 +1249,17 @@ void Reconstructor::simulate() {
   for (const auto& simulatorTreeFilename: simulatorTreeFilenames) {
     LogThisAt(1,"Loading tree from " << simulatorTreeFilename << endl);
     ifstream treeFile (simulatorTreeFilename);
+    if (!treeFile) {
+      Warn ("Couldn't open %s", simulatorTreeFilename.c_str());
+      continue;
+    }
     Tree tree (JsonUtil::readStringFromStream (treeFile));
-    tree.assignInternalNodeNames();
+    if (!tree.nodes()) {
+      Warn ("Tree %s is empty", simulatorTreeFilename.c_str());
+      continue;
+    }
+    if (outputFormat != FastaFormat)
+      tree.assignInternalNodeNames();
     Stockholm stock = Simulator::simulateTree (generator, model, tree, simulatorRootSeqLen);
     const auto& id = simulatorTreeFilename;
     stock.gf[StockholmIDTag].push_back (id);

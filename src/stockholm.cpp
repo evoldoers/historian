@@ -116,13 +116,13 @@ void Stockholm::write (ostream& out, size_t charsPerRow) const {
   }
 
   const int colStep = charsPerRow > 0 ? max (MinStockholmCharsPerRow, ((int) charsPerRow) - w - 1) : cols;
-  for (int col = 0; col < cols; col += colStep) {
+  for (int col = 0, block = 0; block == 0 || col < cols; ++block, col += colStep) {
     for (auto& tag_gc : gc)
-      if (col < tag_gc.second.size())
+      if (block == 0 || col < tag_gc.second.size())
 	out << "#=GC " << left << setw(w-5) << tag_gc.first << " " << tag_gc.second.substr(col,colStep) << endl;
 
     for (auto& fs : gapped) {
-      if (col < fs.seq.size())
+      if (block == 0 || col < fs.seq.size())
 	out << left << setw(w+1) << fs.name << fs.seq.substr(col,colStep) << endl;
       for (auto& tag_gr : gr)
 	if (tag_gr.second.count (fs.name))
@@ -133,7 +133,7 @@ void Stockholm::write (ostream& out, size_t charsPerRow) const {
     for (auto& tag_gr : gr)
       for (auto& name_gr : tag_gr.second)
 	if (!names.count (name_gr.first))
-	  if (col < name_gr.second.size())
+	  if (block == 0 || col < name_gr.second.size())
 	    out << "#=GR " << left << setw(nw+1) << name_gr.first << left << setw(tw+1) << tag_gr.first << name_gr.second.substr(col,colStep) << endl;
 
     if (col + colStep < cols)

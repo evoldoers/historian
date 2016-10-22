@@ -120,6 +120,7 @@ Stockholm Simulator::simulateTree (random_engine& generator, const RateModel& mo
   nodeLen[tree.root()] = rootLength;
   for (TreeNodeIndex node = tree.root() - 1; node >= 0; --node) {
     const auto parent = tree.parentNode(node);
+    LogThisAt(4,"Simulating branch from " << tree.seqName(parent) << " to " << tree.seqName(node) << endl);
     const auto parentLen = nodeLen[parent];
     const auto branchPath = simulateGapsByGillespie (generator, model, parentLen, tree.branchLength(node), parent, node);
     nodeLen[node] = alignPathResiduesInRow (branchPath.at(node));
@@ -130,12 +131,14 @@ Stockholm Simulator::simulateTree (random_engine& generator, const RateModel& mo
     wild[node].name = tree.seqName(node);
     wild[node].seq = string (rootLength, Alignment::wildcardChar);
   }
-  AlignPath path = alignPathMerge (branchPaths);
-  Alignment align (wild, path);
-  align.ungapped = simulateSubsByMatExp (generator, model, tree, path);
-  Stockholm stock (align.gapped(), tree);
+  const AlignPath path = alignPathMerge (branchPaths);
+  const vguard<FastSeq> gapped = simulateSubsByMatExp (generator, model, tree, path);
+  Stockholm stock (gapped, tree);
+  stock.assertFlush();
+  for (auto& fs: stock.gapped)
+    fs.qual.clear();
   if (model.components() > 1)
     for (TreeNodeIndex node = 0; node < tree.nodes(); ++node)
-      stock.gr[string(SimulatorComponentTag)][stock.gapped[node].name] = align.ungapped[node].qual;
+      stock.gr[string(SimulatorComponentTag)][stock.gapped[node].name] = stock.gapped[node].qual;
   return stock;
 }

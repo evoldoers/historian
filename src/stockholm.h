@@ -34,6 +34,8 @@ struct Stockholm {
   size_t rows() const;
   size_t columns() const;
   AlignPath path() const;
+
+  void assertFlush() const { (void) columns(); }
 };
 
 #endif /* STOCKHOLM_INCLUDED */
