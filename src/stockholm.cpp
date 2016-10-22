@@ -126,7 +126,7 @@ void Stockholm::write (ostream& out, size_t charsPerRow) const {
 	out << left << setw(w+1) << fs.name << fs.seq.substr(col,colStep) << endl;
       for (auto& tag_gr : gr)
 	if (tag_gr.second.count (fs.name))
-	  if (col < tag_gr.second.at(fs.name).size())
+	  if (block == 0 || col < tag_gr.second.at(fs.name).size())
 	    out << "#=GR " << left << setw(nw+1) << fs.name << left << setw(tw+1) << tag_gr.first << tag_gr.second.at(fs.name).substr(col,colStep) << endl;
     }
 

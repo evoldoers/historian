@@ -531,6 +531,7 @@ void Reconstructor::loadModel() {
     ifstream modelFile (modelFilename);
     ParsedJson pj (modelFile);
     model.read (pj.value);
+    LogThisAt(2,"Substitution model has " << plural(model.components(),"mixture component") << endl);
   } else if (tokenizeCodons) {
     LogThisAt(1,"Using default codon model" << endl);
     model = defaultCodonModel();

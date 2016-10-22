@@ -99,15 +99,17 @@ vguard<FastSeq> Simulator::simulateSubsByMatExp (random_engine& generator, const
       if (path.at(node)[col]) {
 	auto parent = tree.parentNode (node);
 	const bool isInsertion = parent < 0 || !path.at(parent)[col];
+	int cpt;
 	if (isInsertion) {
-	  component[node][col] = cptDist (generator);
-	  tok[node][col] = cptInsDist[component[node][col]] (generator);
+	  cpt = cptDist (generator);
+	  tok[node][col] = cptInsDist[cpt] (generator);
 	} else {
-	  component[node][col] = component[parent][col];
-	  tok[node][col] = nodeCptCondSubDist[node][component[node][col]][tok[parent][col]] (generator);
+	  cpt = component[parent][col];
+	  tok[node][col] = nodeCptCondSubDist[node][cpt][tok[parent][col]] (generator);
 	}
+	component[node][col] = cpt;
 	gapped[node].seq[col] = model.alphabet[tok[node][col]];
-	gapped[node].qual[col] = FastSeq::charForQualScore(component[node][col]);
+	gapped[node].qual[col] = cpt < 10 ? ('0' + cpt) : ('A' + cpt - 10);
       }
     }
   return gapped;
@@ -135,10 +137,10 @@ Stockholm Simulator::simulateTree (random_engine& generator, const RateModel& mo
   const vguard<FastSeq> gapped = simulateSubsByMatExp (generator, model, tree, path);
   Stockholm stock (gapped, tree);
   stock.assertFlush();
-  for (auto& fs: stock.gapped)
-    fs.qual.clear();
   if (model.components() > 1)
     for (TreeNodeIndex node = 0; node < tree.nodes(); ++node)
       stock.gr[string(SimulatorComponentTag)][stock.gapped[node].name] = stock.gapped[node].qual;
+  for (auto& fs: stock.gapped)
+    fs.qual.clear();
   return stock;
 }
