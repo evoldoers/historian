@@ -117,7 +117,7 @@ These arguments are all listed in the help text, available via the `-h` option a
 
 ## Model-fitting
 
-Indel Historian's underlying model is a simple one: there is a substitution rate matrix, an insertion rate, a deletion rate, and insertion/deletion extension probabilities. These are all specified in a JSON file format, an example of which can be found [here](https://github.com/ihh/indelhistorian/blob/master/data/testcount.jukescantor.json).
+Indel Historian's underlying model is a simple one: there is a substitution rate matrix, an insertion rate, a deletion rate, and insertion/deletion extension probabilities. These are all specified in a JSON file format, several examples of which can be found in the [model](https://github.com/ihh/indelhistorian/blob/master/model) directory.
 
 The default model `lg` is an amino acid substitution matrix estimated by [Le and Gascuel (2008)](https://www.ncbi.nlm.nih.gov/pubmed/18367465) using [XRate](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0036898) on a dataset of [Pfam](http://pfam.xfam.org/) alignments, with indel rates and probabilities that were also estimated from Pfam. However, the `historian` program allows you to load a model from a file using the `-model` option, or to use one of the preset models using the `-preset` option. Alternatively, the model parameters can be estimated directly from sequence data using the built-in EM algorithm that is the same algorithm used by XRate (as described in [this paper](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-428)).
 
