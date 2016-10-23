@@ -61,7 +61,11 @@ By default, the `historian` program runs in classic Unix mode, i.e. printing not
 
 This produces output somewhat like this (but more colorful - GitHub-flavored Markdown won't show the colors):
 
-	Using default amino acid model
+	Using default amino acid model (lg)
+	Alphabet: arndcqeghilkmfpstwyv
+	Substitution model has 1 mixture component, expected rate 1
+	Insertion rate 0.01, expected insertion length 2.94118
+	Deletion rate 0.01, expected deletion length 2.94118
 	Loading sequences from data/gp120.fa
 	Building guide alignment (data/gp120.fa)
 	Estimating initial tree by neighbor-joining (data/gp120.fa)
