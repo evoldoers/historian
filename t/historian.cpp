@@ -58,7 +58,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -auto <file>    Auto-detect file format and guess its purpose\n"
     + "  -model <file>   Specify substitution & indel model file (JSON)\n"
     + "  -preset <name>  Select preset model by name\n"
-    + "                   (gtr, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)\n"
+    + "                   (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)\n"
     + "  -seqs <file>    Specify unaligned sequence file (FASTA)\n"
     + "  -guide <file>   Specify guide alignment file (gapped FASTA)\n"
     + "  -tree <file>    Specify phylogeny file (New Hampshire)\n"

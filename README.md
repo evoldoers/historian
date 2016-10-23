@@ -226,7 +226,7 @@ Reconstruction file I/O options
   -auto &lt;file&gt;    Auto-detect file format and guess its purpose
   -model &lt;file&gt;   Specify substitution & indel model file (JSON)
   -preset &lt;name&gt;  Select preset model by name
-                   (gtr, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+                   (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
   -seqs &lt;file&gt;    Specify unaligned sequence file (FASTA)
   -guide &lt;file&gt;   Specify guide alignment file (gapped FASTA)
   -tree &lt;file&gt;    Specify phylogeny file (New Hampshire)

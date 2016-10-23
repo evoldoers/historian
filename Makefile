@@ -236,7 +236,7 @@ README.md: bin/$(MAIN)
 	mv temp.md $@
 
 # Common substitution models
-presets: $(addprefix src/,$(addsuffix .h,gtr lg dayhoff jones wag ECMrest ECMunrest))
+presets: $(addprefix src/,$(addsuffix .h,jc lg dayhoff jones wag ECMrest ECMunrest))
 
 # model/lg.json is the matrix from this paper, estimated from Pfam using XRATE:
 #  An improved general amino acid replacement matrix.

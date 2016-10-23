@@ -3,7 +3,7 @@
 
 #include "ECMrest.h"
 #include "ECMunrest.h"
-#include "gtr.h"
+#include "jc.h"
 #include "lg.h"
 #include "wag.h"
 #include "jones.h"
@@ -15,8 +15,8 @@ RateModel namedModel (const string& n) {
     return ECMrestModel();
   else if (name == "ecmunrest")
     return ECMunrestModel();
-  else if (name == "gtr")
-    return gtrModel();
+  else if (name == "jc")
+    return jcModel();
   else if (name == "lg")
     return lgModel();
   else if (name == "wag")
