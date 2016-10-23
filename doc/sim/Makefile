@@ -71,7 +71,7 @@ $(RATEDIR)/%/$(SIMPARAMS): $(RATEDIR)/%/$(GUIDETREE)
 # Simulation
 $(RATEDIR)/%.ma.stk:
 	make $(dir $@)$(SIMPARAMS) $(dir $@)$(GUIDETREE)
-	bin/historian generate -seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` `cat $(dir $@)$(SIMPARAMS)` $(dir $@)$(GUIDETREE) -rootlen $(SEQLEN) >$@
+	bin/historian generate -seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` `cat $(dir $@)$(SIMPARAMS)` $(dir $@)$(GUIDETREE) -rootlen $(SEQLEN) -savemodel $(RATEDIR)/$*.sim.json >$@
 
 %.ma: %.ma.stk
 	../../perl/stockholm2fasta.pl -g $< >$@
