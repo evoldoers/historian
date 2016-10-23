@@ -171,9 +171,12 @@ You can also use the `count` command to estimate counts for a bunch of alignment
 
 If you care to, you can simulate from a model using the `generate` command. You will need to specify a tree:
 
-	historian generate -tree data/gp120.tree.nh
+	historian generate data/gp120.tree.nh
 
 The simulator accepts the standard model-specification options (`-preset`, `-gamma`, `-scale` etc.). You can change the output format with `-output` and the random number seed with `-seed`.
+Thus, for example
+
+        historian generate data/gp120.tree.nh -seed 123 -scale 10 -preset dayhoff -output fasta
 
 ## MCMC
 
