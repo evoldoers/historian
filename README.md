@@ -232,18 +232,12 @@ If a command is omitted, 'reconstruct' is assumed.
 
 OPTIONS
 
-Reconstruction file I/O options
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  -auto &lt;file&gt;    Auto-detect file format and guess its purpose
-  -model &lt;file&gt;   Specify substitution & indel model file (JSON)
-  -seqs &lt;file&gt;    Specify unaligned sequence file (FASTA)
-  -guide &lt;file&gt;   Specify guide alignment file (gapped FASTA)
-  -tree &lt;file&gt;    Specify phylogeny file (New Hampshire)
-  -nexus &lt;file&gt;, -stockholm &lt;file&gt;
-                  Specify phylogeny & guide alignment together
-
+Model specification options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -model &lt;file&gt;   Load substitution & indel model from file (JSON)
   -preset &lt;name&gt;  Select preset model by name
                    (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+
   -normalize      Normalize expected substitution rate
   -insrate &lt;R&gt;, -delrate &lt;R&gt;, -insextprob &lt;P&gt;, -delextprob &lt;P&gt;
                   Override indel parameters
@@ -253,12 +247,23 @@ Reconstruction file I/O options
                   Shorthand to set both insertion & deletion params
   -subscale &lt;N&gt;, -indelscale &lt;N&gt;, -scale &lt;N&gt;
                   Scale substitution rates, indel rates, or both
+
   -gamma &lt;N&gt;      Add N discretized-gamma rate categories
   -shape &lt;S&gt;      Specify shape parameter for gamma distribution
 
+  -savemodel &lt;f&gt;  Save model to file, prior to any model-fitting
+
+Reconstruction file I/O options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  -auto &lt;file&gt;    Auto-detect file format and guess its purpose
+  -seqs &lt;file&gt;    Specify unaligned sequence file (FASTA)
+  -guide &lt;file&gt;   Specify guide alignment file (gapped FASTA)
+  -tree &lt;file&gt;    Specify phylogeny file (New Hampshire)
+  -nexus &lt;file&gt;, -stockholm &lt;file&gt;
+                  Specify phylogeny & guide alignment together
+
   -saveguide &lt;f&gt;  Save guide alignment to file
                    (guide tree too, if output format allows)
-  -savemodel &lt;f&gt;  Save model to file
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
   -noancs         Do not display ancestral sequences
