@@ -32,11 +32,11 @@ The simplest way to use Indel Historian is just to point it at a FASTA file. It 
 
 For example, using a test file of [HIV GP120 sequences](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa) that is included in the repository:
 
-	historian gp120.fa
+	historian data/gp120.fa
 
 This will generally be pretty fast, but you can make it faster (at a slight cost in accuracy) using the `-fast` option:
 
-	historian gp120.fa -fast
+	historian data/gp120.fa -fast
 
 The `-fast` option is an alias for several reconstruction options, as described in the [help message](#HelpText).
 
@@ -44,11 +44,11 @@ The `-fast` option is an alias for several reconstruction options, as described 
 
 Indel Historian is one of these toolbox programs where the first argument can be a command, specifying what action is to be performed. If you omit this first command-argument, Indel Historian assumes you want to reconstruct something. You can make this explicit as follows:
 
-	historian reconstruct gp120.fa
+	historian reconstruct data/gp120.fa
 
 You can also abbreviate `reconstruct` to `recon` or just `r`:
 
-	historian r gp120.fa
+	historian r data/gp120.fa
 
 All commands can be abbreviated to single letters.
 Of course, if you are doing reconstruction (as noted above), you can omit the command entirely, but the examples [further below](#ModelFitting) will use different commands.
@@ -57,7 +57,7 @@ Of course, if you are doing reconstruction (as noted above), you can omit the co
 
 By default, the `historian` program runs in classic Unix mode, i.e. printing nothing except the output. This can be a bit boring for long jobs, so run with `-v` for verbose colorized logging output, or `-vv` for more verbose, or `-vvv` (or equivalently `-v3`) for even more logging, and so on. Probably `-v2` is about the right balance between showing some feedback on progress and not drowning you in psychedelic rainbow log messages.
 
-	historian -v2 
+	historian -v2 data/gp120.fa
 
 This produces output somewhat like this (but more colorful - GitHub-flavored Markdown won't show the colors):
 
@@ -84,17 +84,17 @@ The default settings attempt to navigate this maze of options for you, mostly us
 
 For example, if you want to supply sequences in FASTA format ([gp120.fa](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa)) and a guide tree in New Hampshire format ([gp120.tree.nh](https://github.com/ihh/indelhistorian/blob/master/data/gp120.tree.nh))
 
-	historian -seqs gp120.fa -tree gp120.tree.nh
+	historian -seqs data/gp120.fa -tree gp120.tree.nh
 
 Alternatively, if your sequences are in Nexus or Stockholm format, you can encode the tree together with your sequences, using the appropriate syntax for encoding New Hampshire-format trees in those formats (`#=GF NH` for Stockholm).
 
 If you want to estimate the tree and use UPGMA instead of neighbor-joining, so as to enforce an ultrametric tree, use the `-upgma` option, e.g.
 
-	historian -upgma gp120.fa
+	historian -upgma data/gp120.fa
 
 To save the guide alignment, use the `-saveguide` option:
 
-	historian gp120.fa -saveguide gp120.guide.fa
+	historian data/gp120.fa -saveguide gp120.guide.fa
 
 If you already have your sequences aligned, and you want to use [this alignment](https://github.com/ihh/indelhistorian/blob/master/data/gp120.guide.fa) as the guide alignment, you only need to supply that alignment (not the sequences):
 
@@ -118,19 +118,19 @@ The default model `lg` is an amino acid substitution matrix estimated by [Le and
 
 To estimate rates from data, use the `fit` command. Model-fitting takes a little longer than reconstruction, since the EM algorithm typically takes a few iterations to converge, so you might want to turn on some logging. For example:
 
-	historian fit gp120.fa -fast -vv >gp120.model.json
+	historian fit data/gp120.fa -fast -vv >gp120.model.json
 
 You can then load this model using the `-model` option, and use it to reconstruct another sequence history. For example, using it to reconstruct the ancestors of the Cas9 bridge helix domain (Pfam family PF16593), included as file [data/PF16593.fa](https://github.com/ihh/indelhistorian/blob/master/data/PF16593.fa) in the repository:
 
-	historian reconstruct -model gp120.model.json PF16593.fa
+	historian reconstruct -model gp120.model.json data/PF16593.fa
 
 Often, a single protein family will not include enough information to reliably fit an amino acid rate matrix - the model will be over-trained. You can aggregate multiple datasets together into a larger training set simply by listing the files successively on the command line:
 
-	historian fit -fast gp120.fa PF16593.fa -v3 >aggregated.model.json
+	historian fit -fast data/gp120.fa data/PF16593.fa -v3 >aggregated.model.json
 
 If you only want to estimate the indel rates and not the substitution matrix, then you can use the `-fixsubrates` option to hold the substitution rates constant:
 
-	historian fit gp120.fa -fixsubrates >gp120.model.json
+	historian fit data/gp120.fa -fixsubrates >gp120.model.json
 
 Conversely, you can use `-fixgaprates` to hold the indel rates (and indel extension parameters) constant, while estimating substitution rates. Other aspects of the model-fitting algorithm (for example, the use of [Laplace pseudocounts](https://en.wikipedia.org/wiki/Additive_smoothing), or the EM convergence criteria) can be set via the [command-line options](#HelpText).
 
@@ -142,11 +142,11 @@ For some applications, these event counts and wait times - the so-called "suffic
 
 If you are just interested in these counts, you can get at them using the `count` command. For example:
 
-	historian count gp120.fa >gp120.counts.json
+	historian count data/gp120.fa >gp120.counts.json
 
 One application of the counts is as [pseudocounts](https://en.wikipedia.org/wiki/Pseudocount) representing hyperparameters of Dirichlet priors. JSON counts files that were computed using the `count` command can be passed as pseudocounts to the `fit` command via the `-counts` option:
 
-	historian fit PF16593.fa -counts gp120.counts.json -nolaplace >PF16593.model.json
+	historian fit data/PF16593.fa -counts gp120.counts.json -nolaplace >PF16593.model.json
 
 The `-nolaplace` option here indicates that we don't want to add the usual +1 Laplace pseudocounts in this case.
 
