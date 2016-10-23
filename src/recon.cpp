@@ -192,6 +192,15 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-insrate" || arg == "-delrate" || arg == "-insextprob" || arg == "-delextprob") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      const string param = arg.substr(1);
+      Require (!indelParam.count(param), "Multiple value for %s specified", arg.c_str());
+      indelParam[param] = atof (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-savemodel") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       modelSaveFilename = argvec[1];
@@ -543,6 +552,12 @@ bool Reconstructor::parseSumArgs (deque<string>& argvec) {
   return false;
 }
 
+void Reconstructor::setModelParam (double& modelParam, const char* paramName) const {
+  const string param (paramName);
+  if (indelParam.count(param))
+    modelParam = indelParam.at(param);
+}
+
 void Reconstructor::loadModel() {
   if (presetModelName.size()) {
     LogThisAt(1,"Loading preset model " << presetModelName << endl);
@@ -559,6 +574,12 @@ void Reconstructor::loadModel() {
     LogThisAt(1,"Using default amino acid model (" << DefaultAminoModel << ")" << endl);
     model = namedModel (string (DefaultAminoModel));
   }
+
+  setModelParam (model.insRate, "insrate");
+  setModelParam (model.delRate, "delrate");
+  setModelParam (model.insExtProb, "insextprob");
+  setModelParam (model.delExtProb, "delextprob");
+  
   LogThisAt(2,"Alphabet: " << model.alphabet << endl
 	    << "Substitution model has " << plural(model.components(),"mixture component")
 	    << ", expected rate " << model.expectedSubstitutionRate() << endl

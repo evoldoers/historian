@@ -225,13 +225,16 @@ Reconstruction file I/O options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   -auto &lt;file&gt;    Auto-detect file format and guess its purpose
   -model &lt;file&gt;   Specify substitution & indel model file (JSON)
-  -preset &lt;name&gt;  Select preset model by name
-                   (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
   -seqs &lt;file&gt;    Specify unaligned sequence file (FASTA)
   -guide &lt;file&gt;   Specify guide alignment file (gapped FASTA)
   -tree &lt;file&gt;    Specify phylogeny file (New Hampshire)
   -nexus &lt;file&gt;, -stockholm &lt;file&gt;
                   Specify phylogeny & guide alignment together
+
+  -preset &lt;name&gt;  Select preset model by name
+                   (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+  -insrate &lt;R&gt;, -delrate &lt;R&gt;, -insextprob &lt;P&gt;, -delextprob &lt;P&gt;
+                  Override indel parameters
 
   -saveguide &lt;f&gt;  Save guide alignment to file
                    (guide tree too, if output format allows)

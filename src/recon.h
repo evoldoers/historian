@@ -2,6 +2,7 @@
 #define RECON_INCLUDED
 
 #include <deque>
+#include <map>
 #include "tree.h"
 #include "alignpath.h"
 #include "model.h"
@@ -43,6 +44,7 @@ public:
   FileFormat outputFormat;
   ofstream* guideFile;
   size_t mcmcTraceFiles;
+  map<string,double> indelParam;
   
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
@@ -97,8 +99,9 @@ public:
   void setTreeFilename (const string& fn);
   void setModelFilename (const string& fn);
   void setPresetModelName (const string& n);
-  
+
   void loadModel();
+  void setModelParam (double& modelParam, const char* paramName) const;
   void loadSeqs();
   void loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename, const string& stockholmFilename);
   void loadRecon();
