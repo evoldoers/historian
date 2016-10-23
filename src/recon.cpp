@@ -192,6 +192,13 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-savemodel") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      modelSaveFilename = argvec[1];
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-preset") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       setPresetModelName (argvec[1]);

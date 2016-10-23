@@ -235,6 +235,7 @@ Reconstruction file I/O options
 
   -saveguide &lt;f&gt;  Save guide alignment to file
                    (guide tree too, if output format allows)
+  -savemodel &lt;f&gt;  Save model to file
   -output (nexus|fasta|stockholm)
                   Specify output format (default is Stockholm)
   -noancs         Do not display ancestral sequences

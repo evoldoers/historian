@@ -67,6 +67,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "\n"
     + "  -saveguide <f>  Save guide alignment to file\n"
     + "                   (guide tree too, if output format allows)\n"
+    + "  -savemodel <f>  Save model to file\n"
     + "  -output (nexus|fasta|stockholm)\n"
     + "                  Specify output format (default is Stockholm)\n"
     + "  -noancs         Do not display ancestral sequences\n"
