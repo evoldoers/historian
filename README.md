@@ -72,6 +72,7 @@ This produces output somewhat like this (but more colorful - GitHub-flavored Mar
 	Starting reconstruction on 19-node tree (data/gp120.fa)
 	Aligning ENV_HV2BE/24-510 (489 states, 488 transitions) and ENV_HV2D1/24-501 (480 states, 479 transitions)
 	Aligning ENV_HV2G1/23-502 (482 states, 481 transitions) and (ENV_HV2BE/24-510:0.106114,ENV_HV2D1/24-501:0.0784677) (689 states, 808 transitions)
+	...
 ...and so on.
 
 #### File formats
