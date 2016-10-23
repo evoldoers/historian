@@ -9,10 +9,6 @@
 #include "jones.h"
 #include "dayhoff.h"
 
-RateModel defaultAminoModel() { return lgModel(); }
-RateModel defaultCodonModel() { return ECMunrestModel(); }
-RateModel defaultBaseModel() { return gtrModel(); }
-
 RateModel namedModel (const string& n) {
   const string name = tolower(n);
   if (name == "ecmrest")
@@ -31,5 +27,5 @@ RateModel namedModel (const string& n) {
     return dayhoffModel();
   else
     Fail ("Unknown model: %s", name.c_str());
-  return defaultAminoModel();
+  return RateModel();
 }

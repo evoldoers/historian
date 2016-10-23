@@ -198,6 +198,11 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
       argvec.pop_front();
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-codon") {
+      tokenizeCodons = true;
+      argvec.pop_front();
+      return true;
     }
   }
   return false;
@@ -285,11 +290,6 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       guideSaveFilename = argvec[1];
       argvec.pop_front();
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-codon") {
-      tokenizeCodons = true;
       argvec.pop_front();
       return true;
 
@@ -546,11 +546,11 @@ void Reconstructor::loadModel() {
     ParsedJson pj (modelFile);
     model.read (pj.value);
   } else if (tokenizeCodons) {
-    LogThisAt(1,"Using default codon model" << endl);
-    model = defaultCodonModel();
+    LogThisAt(1,"Using default codon model (" << DefaultCodonModel << ")" << endl);
+    model = namedModel (string (DefaultCodonModel));
   } else {
-    LogThisAt(1,"Using default amino acid model" << endl);
-    model = defaultAminoModel();
+    LogThisAt(1,"Using default amino acid model (" << DefaultAminoModel << ")" << endl);
+    model = namedModel (string (DefaultAminoModel));
   }
   LogThisAt(2,"Alphabet: " << model.alphabet << endl
 	    << "Substitution model has " << plural(model.components(),"mixture component")
@@ -559,6 +559,10 @@ void Reconstructor::loadModel() {
 	    << ", expected insertion length " << model.expectedInsertionLength() << endl
 	    << "Deletion rate " << model.delRate
 	    << ", expected deletion length " << model.expectedDeletionLength() << endl);
+
+  if (tokenizeCodons)
+    codonTokenizer.assertAlphabetTokenized (model.alphabet);
+
   dataCounts = EventCounts (model, model.components());
 
   if (modelSaveFilename.size()) {
@@ -1286,6 +1290,11 @@ void Reconstructor::simulate() {
     if (outputFormat != FastaFormat)
       tree.assignInternalNodeNames();
     Stockholm stock = Simulator::simulateTree (generator, model, tree, simulatorRootSeqLen);
+    if (tokenizeCodons) {
+      stock.gapped = codonTokenizer.detokenize (stock.gapped);
+      // for now, just throw away component annotation for codon models
+      stock.gr.clear();
+    }
     const auto& id = simulatorTreeFilename;
     stock.gf[StockholmIDTag].push_back (id);
     if (outputFormat == StockholmFormat)

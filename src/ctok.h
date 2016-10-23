@@ -23,6 +23,8 @@ public:
   vguard<FastSeq> detokenize (const vguard<FastSeq>& gappedSeq) const;
   Stockholm detokenize (const Stockholm& stock) const;
 
+  void assertAlphabetTokenized (const string& alphabet) const;
+  
   inline static bool isStopCodon (const char c) {
     return c == '0' || c == '1' || c == '2';
   };

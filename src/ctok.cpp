@@ -160,3 +160,10 @@ Stockholm CodonTokenizer::detokenize (const Stockholm& tokStock) const {
   stock.gs = tokStock.gs;
   return stock;
 }
+
+void CodonTokenizer::assertAlphabetTokenized (const string& alphabet) const {
+  for (auto c: alphabet)
+    Require (tok2cod.count(c), "Character %c in alphabet %s is not a tokenized codon", c, alphabet.c_str());
+  if (alphabet.size() < 61)
+    Warn ("Alphabet %s contains only %u characters, doesn't look like a tokenized codon alphabet", alphabet.c_str(), alphabet.size());
+}

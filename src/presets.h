@@ -3,9 +3,8 @@
 
 #include "model.h"
 
-RateModel defaultAminoModel();
-RateModel defaultCodonModel();
-RateModel defaultBaseModel();
+#define DefaultAminoModel "lg"
+#define DefaultCodonModel "ECMunrest"
 
 RateModel namedModel (const string& name);
 
