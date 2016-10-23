@@ -199,7 +199,7 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
     } else if (arg == "-insrate" || arg == "-delrate" || arg == "-insextprob" || arg == "-delextprob"
 	       || arg == "-subscale" || arg == "-indelscale" || arg == "-scale"
 	       || arg == "-inslen" || arg == "-dellen"
-	       || arg == "-gaprate" || arg == "-gaplen") {
+	       || arg == "-gaprate" || arg == "-gaplen" || arg == "-gapextprob") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       const string param = arg.substr(1);
       Require (!modelParam.count(param), "Multiple value for %s specified", arg.c_str());
@@ -628,13 +628,13 @@ void Reconstructor::loadModel() {
   setModelParam (model.delRate, "delrate");
   setModelParam (model.insExtProb, "insextprob");
   setModelParam (model.delExtProb, "delextprob");
-
   setModelExtProbByExpectedLength (model.insExtProb, "inslen");
   setModelExtProbByExpectedLength (model.delExtProb, "dellen");
 
   setModelParam (model.insRate, "gaprate");
   setModelParam (model.delRate, "gaprate");
-
+  setModelParam (model.insExtProb, "gapextprob");
+  setModelParam (model.delExtProb, "gapextprob");
   setModelExtProbByExpectedLength (model.insExtProb, "gaplen");
   setModelExtProbByExpectedLength (model.delExtProb, "gaplen");
 

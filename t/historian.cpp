@@ -64,7 +64,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "                  Override indel parameters\n"
     + "  -inslen <L>, -dellen <L>\n"
     + "                  Alternate way of setting -insextprob & -delextprob\n"
-    + "  -gaprate <R>, -gaplen <L>\n"
+    + "  -gaprate <R>, -gapextprob <P>, -gaplen <L>\n"
     + "                  Shorthand to set both insertion & deletion params\n"
     + "  -subscale <N>, -indelscale <N>, -scale <N>\n"
     + "                  Scale substitution rates, indel rates, or both\n"

@@ -246,7 +246,7 @@ Model specification options
                   Override indel parameters
   -inslen &lt;L&gt;, -dellen &lt;L&gt;
                   Alternate way of setting -insextprob & -delextprob
-  -gaprate &lt;R&gt;, -gaplen &lt;L&gt;
+  -gaprate &lt;R&gt;, -gapextprob &lt;P&gt;, -gaplen &lt;L&gt;
                   Shorthand to set both insertion & deletion params
   -subscale &lt;N&gt;, -indelscale &lt;N&gt;, -scale &lt;N&gt;
                   Scale substitution rates, indel rates, or both
