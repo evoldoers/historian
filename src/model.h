@@ -61,6 +61,8 @@ struct RateModel : AlphabetOwner {
   virtual vguard<gsl_matrix*> getSubProbMatrix (double t) const;
 
   double expectedSubstitutionRate() const;
+  double expectedInsertionLength() const;
+  double expectedDeletionLength() const;
   
   double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = DefaultDistanceMatrixIterations) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = DefaultDistanceMatrixIterations) const;

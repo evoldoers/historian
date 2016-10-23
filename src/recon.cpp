@@ -6,13 +6,12 @@
 #include "jsonutil.h"
 #include "logger.h"
 #include "span.h"
-#include "amino.h"
+#include "presets.h"
 #include "nexus.h"
 #include "stockholm.h"
 #include "seqgraph.h"
 #include "regexmacros.h"
 #include "ctok.h"
-#include "codon.h"
 #include "refiner.h"
 #include "memsize.h"
 #include "simulator.h"
@@ -189,6 +188,13 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
     } else if (arg == "-model") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       setModelFilename (argvec[1]);
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-preset") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      setPresetModelName (argvec[1]);
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -506,8 +512,13 @@ void Reconstructor::setTreeFilename (const string& fn) {
 }
 
 void Reconstructor::setModelFilename (const string& fn) {
-  Require (modelFilename.empty(), "Please specify one model only.");
+  Require (modelFilename.empty() && presetModelName.empty(), "Please specify one model only.");
   modelFilename = fn;
+}
+
+void Reconstructor::setPresetModelName (const string& n) {
+  Require (modelFilename.empty() && presetModelName.empty(), "Please specify one model only.");
+  presetModelName = n;
 }
 
 bool Reconstructor::parseSumArgs (deque<string>& argvec) {
@@ -526,12 +537,14 @@ bool Reconstructor::parseSumArgs (deque<string>& argvec) {
 }
 
 void Reconstructor::loadModel() {
-  if (modelFilename.size()) {
+  if (presetModelName.size()) {
+    LogThisAt(1,"Loading preset model " << presetModelName << endl);
+    model = namedModel (presetModelName);
+  } else if (modelFilename.size()) {
     LogThisAt(1,"Loading model from " << modelFilename << endl);
     ifstream modelFile (modelFilename);
     ParsedJson pj (modelFile);
     model.read (pj.value);
-    LogThisAt(2,"Substitution model has " << plural(model.components(),"mixture component") << endl);
   } else if (tokenizeCodons) {
     LogThisAt(1,"Using default codon model" << endl);
     model = defaultCodonModel();
@@ -539,7 +552,13 @@ void Reconstructor::loadModel() {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
   }
-  LogThisAt(3,"Expected substitution rate is " << model.expectedSubstitutionRate() << endl);
+  LogThisAt(2,"Alphabet: " << model.alphabet << endl
+	    << "Substitution model has " << plural(model.components(),"mixture component")
+	    << ", expected rate " << model.expectedSubstitutionRate() << endl
+	    << "Insertion rate " << model.insRate
+	    << ", expected insertion length " << model.expectedInsertionLength() << endl
+	    << "Deletion rate " << model.delRate
+	    << ", expected deletion length " << model.expectedDeletionLength() << endl);
   dataCounts = EventCounts (model, model.components());
 
   if (modelSaveFilename.size()) {

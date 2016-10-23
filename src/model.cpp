@@ -310,6 +310,14 @@ double RateModel::expectedSubstitutionRate() const {
   return R;
 }
 
+double RateModel::expectedInsertionLength() const {
+  return 1. / (1. - insExtProb);
+}
+
+double RateModel::expectedDeletionLength() const {
+  return 1. / (1. - delExtProb);
+}
+
 ProbModel::ProbModel (const RateModel& model, double t)
   : AlphabetOwner (model),
     t (t),

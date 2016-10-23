@@ -183,7 +183,7 @@ Very briefly, the idea of this method is as follows. The main recursion of Felse
 The following is the message that appears when you type `historian help`:
 
 <pre><code>
-Usage: historian {recon[struct],count,fit,mcmc,help,version} [options]
+Usage: historian {recon[struct],count,fit,mcmc,generate,help,version} [options]
 
 EXAMPLES
 
@@ -202,10 +202,14 @@ Model fitting:
   historian fit seqs.fa &gt;newmodel.json
   historian fit -counts counts.json &gt;newmodel.json
 
+Simulation:
+  historian generate [-model model.json] [-rootlen N] tree.nh &gt;sim.stk
+
 Commands can be abbreviated to single letters, like so:
   historian r seqs.fa &gt;reconstruction.stk
   historian c seqs.fa &gt;counts.json
   historian f -counts counts.json &gt;model.json
+  historian g tree.nh &gt;sim.stk
 (etc.)
 
 If a command is omitted, 'reconstruct' is assumed.
@@ -215,10 +219,12 @@ OPTIONS
 Reconstruction file I/O options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   -auto &lt;file&gt;    Auto-detect file format and guess its purpose
-  -model &lt;file&gt;   Specify substitution & indel model (JSON)
-  -seqs &lt;file&gt;    Specify unaligned sequences (FASTA)
-  -guide &lt;file&gt;   Specify guide alignment (gapped FASTA)
-  -tree &lt;file&gt;    Specify phylogeny (New Hampshire)
+  -model &lt;file&gt;   Specify substitution & indel model file (JSON)
+  -preset &lt;name&gt;  Select preset model by name
+                   (gtr, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+  -seqs &lt;file&gt;    Specify unaligned sequence file (FASTA)
+  -guide &lt;file&gt;   Specify guide alignment file (gapped FASTA)
+  -tree &lt;file&gt;    Specify phylogeny file (New Hampshire)
   -nexus &lt;file&gt;, -stockholm &lt;file&gt;
                   Specify phylogeny & guide alignment together
 

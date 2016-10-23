@@ -1,14 +1,14 @@
-#include "amino.h"
+#include "lg.h"
 #include "jsonutil.h"
 
-RateModel defaultAminoModel() {
+RateModel lgModel() {
   RateModel m;
-  ParsedJson pj (defaultAminoModelText);
+  ParsedJson pj (lgModelText);
   m.read (pj.value);
   return m;
 }
 
-const char* defaultAminoModelText =
+const char* lgModelText =
 "{\n"
 "  \"insrate\": 0.01,\n"
 "  \"delrate\": 0.01,\n"

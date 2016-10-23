@@ -31,7 +31,7 @@ public:
 
   static const vguard<string> fastAliasArgs;
   
-  string fastaReconFilename, treeFilename, modelFilename;
+  string fastaReconFilename, treeFilename, modelFilename, presetModelName;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames, simulatorTreeFilenames;
   string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
@@ -96,6 +96,7 @@ public:
 
   void setTreeFilename (const string& fn);
   void setModelFilename (const string& fn);
+  void setPresetModelName (const string& n);
   
   void loadModel();
   void loadSeqs();

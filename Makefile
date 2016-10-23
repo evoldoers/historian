@@ -235,44 +235,42 @@ README.md: bin/$(MAIN)
 	PATH=bin:$(PATH); $(MAIN) help | perl -pe 's/</&lt;/g;s/>/&gt;/g;' | perl -e 'open FILE,"<README.md";while(<FILE>){last if/<pre>/;print}close FILE;print"<pre><code>\n";while(<>){s/(default) of \S+ (uses at most \S+ of memory for DP matrix)/$$1 $$2/;print};print"</code></pre>\n"' >temp.md
 	mv temp.md $@
 
-# data/lg.json is the matrix from this paper, estimated from Pfam using XRATE:
+# Common substitution models
+presets: $(addprefix src/,$(addsuffix .h,gtr lg dayhoff jones wag ECMrest ECMunrest))
+
+# model/lg.json is the matrix from this paper, estimated from Pfam using XRATE:
 #  An improved general amino acid replacement matrix.
 #  Le SQ, Gascuel O.
 #  Mol Biol Evol. 2008 Jul;25(7):1307-20. doi: 10.1093/molbev/msn067
 #  https://www.ncbi.nlm.nih.gov/pubmed/18367465
-# PAML-format file downloaded from this URL on 10/22/2016:
-#  http://www.atgc-montpellier.fr/download/datasets/models/lg_LG.PAML.txt
-data/lg.json: data/lg_LG.PAML.txt
-	node/paml2json.js $< >$@
-# data/dayhoff.json:
+
+# model/dayhoff.json:
 #  Dayhoff MO, Schwartz RM, Orcutt BC. 1978.
 #  A model of evolutionary change in proteins.
 #  In: Atlas of Protein Sequence and Structure. M.O. Dayhoff, ed., pp. 345–352.
-data/dayhoff.json: data/dayhoff.dat
-	node/paml2json.js $< >$@
-# data/jones.json:
+
+# model/jones.json:
 #  Jones D.T., Taylor W.R. and Thornton J.M. 1992.
 #  The rapid generation of mutation data matrices from protein sequences.
 #  CABIOS 8:275-282
-data/jones.json: data/jones.dat
-	node/paml2json.js $< >$@
-# data/wag.json:
+
+# model/wag.json:
 #  Whelan, S. and N. Goldman.  2001.
 #  A general empirical model of protein evolution derived from multiple protein families
 #  using a maximum likelihood approach.
 #  Molecular Biology and Evolution 18, 691-699.
-data/wag.json: data/wag.dat
-	node/paml2json.js $< >$@
+
+# lg.dat downloaded from this URL on 10/22/2016:
+#  http://www.atgc-montpellier.fr/download/datasets/models/lg_LG.PAML.txt
+
 # dayhoff.dat, jones.dat and wag.dat were extracted from this CPAN archive on 10/22/2016:
 #  http://cpansearch.perl.org/src/HVALVERDE/Mecom-1.13/paml4.7/dat/
 # Several files in this archive are credited to Ziheng Yang, 1998.
 
-# The default amino acid model is Le & Gascuel (2008)
-src/amino.cpp: data/lg.json
-	perl -e 'open S,"<".shift();while(<S>){print;last if/defaultAminoModelText =/}close S;open A,"<".shift();$$q=chr(34);while(<A>){chomp;s/$$q/\\$$q/g;print chr(34),$$_,"\\n",chr(34),"\n"}print";\n"' $@ $< >temp.cpp
-	mv temp.cpp $@
+model/%.json: model/amino/%.dat
+	node/paml2json.js $< >$@
 
-# data/ECMrest.json and data/ECMunrest.json are the empirical codon models from this paper:
+# model/ECMrest.json and model/ECMunrest.json are the empirical codon models from this paper:
 #  An empirical codon model for protein sequence evolution.
 #  Kosiol C, Holmes I, Goldman N.
 #  Mol Biol Evol. 2007 Jul;24(7):1464-79.
@@ -280,20 +278,24 @@ src/amino.cpp: data/lg.json
 # ECMrest is restricted (no multi-nucleotide mutations), ECMunrest is unrestricted.
 # The tokenization scheme is as defined in perl/tokenize.pl and also in src/ctok.cpp
 CODTOKENS := $(shell perl/tokenize.pl -alphabet)
-data/ECM%.json: data/ECM%.dat
+model/ECM%.json: model/codon/ECM%.dat
 	node/paml2json.js -a '$(CODTOKENS)' $< >$@
 
+src/%.cpp src/%.h: model/%.json
+	perl/model2cpp.pl $*
+
+# Conversion of old-format xrate models to IndelHistorian JSON models
+model/%.json: model/hsm/%.hsm
+	perl/xrate2json.pl $< >$@
+
+# The default amino acid model is Le & Gascuel (2008)
 # The default codon model is the unrestricted model from Kosiol, Goldman & Holmes (2007)
-src/codon.cpp: data/ECMunrest.json
+src/codon.cpp: model/ECMunrest.json
 	perl -e 'open S,"<".shift();while(<S>){print;last if/defaultCodonModelText =/}close S;open A,"<".shift();$$q=chr(34);while(<A>){chomp;s/$$q/\\$$q/g;print chr(34),$$_,"\\n",chr(34),"\n"}print";\n"' $@ $< >temp.cpp
 	mv temp.cpp $@
 
-# Conversion of old-format xrate models to IndelHistorian JSON models
-data/%.json: data/%.hsm
-	perl/xrate2json.pl $< >$@
-
 # Example of adding discretized-gamma rate classes to a model
-data/prot1-4.json: data/prot1.json
+model/prot1-4.json: model/prot1.json
 	perl/gamma-sites.pl $< -bins 4 -pretty -verbose >$@
 
 # Rules for building release binaries

@@ -1,14 +1,14 @@
-#include "codon.h"
+#include "ECMunrest.h"
 #include "jsonutil.h"
 
-RateModel defaultCodonModel() {
+RateModel ECMunrestModel() {
   RateModel m;
-  ParsedJson pj (defaultCodonModelText);
+  ParsedJson pj (ECMunrestModelText);
   m.read (pj.value);
   return m;
 }
 
-const char* defaultCodonModelText =
+const char* ECMunrestModelText =
 "{\n"
 "  \"insrate\": 0.01,\n"
 "  \"delrate\": 0.01,\n"
