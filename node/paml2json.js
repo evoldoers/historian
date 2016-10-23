@@ -77,6 +77,20 @@ fs.readFile (pamlFile, 'utf8', (err, data) => {
                 }
             }
         }
+        // normalize by expected substitution rate
+        var expectedRate = 0
+        alph.forEach ((i) => {
+            var p = model.rootprob[i]
+            Object.keys(model.subrate[i]).forEach ((j) => {
+                expectedRate += p * model.subrate[i][j]
+            })
+        })
+        alph.forEach ((i) => {
+            Object.keys(model.subrate[i]).forEach ((j) => {
+                model.subrate[i][j] /= expectedRate
+            })
+        })
+        // and, write
         process.stdout.write (JSON.stringify (model, null, 2))
     }
 })

@@ -15,6 +15,7 @@
 #include "refiner.h"
 #include "memsize.h"
 #include "simulator.h"
+#include "gamma.h"
 
 const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
 const regex stockholm_re (RE_WHITE_OR_EMPTY "#" RE_WHITE_OR_EMPTY "STOCKHOLM" RE_DOT_STAR);
@@ -61,7 +62,10 @@ Reconstructor::Reconstructor()
     outputFormat (StockholmFormat),
     outputLeavesOnly (false),
     guideFile (NULL),
-    simulatorRootSeqLen (-1)
+    simulatorRootSeqLen (-1),
+    gammaCategories (0),
+    gammaShape (1),
+    normalizeModel (false)
 { }
 
 int Reconstructor::defaultMaxProfileStates() {
@@ -192,12 +196,37 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
-    } else if (arg == "-insrate" || arg == "-delrate" || arg == "-insextprob" || arg == "-delextprob") {
+    } else if (arg == "-insrate" || arg == "-delrate" || arg == "-insextprob" || arg == "-delextprob"
+	       || arg == "-subscale" || arg == "-indelscale" || arg == "-scale"
+	       || arg == "-inslen" || arg == "-dellen"
+	       || arg == "-gaprate" || arg == "-gaplen") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       const string param = arg.substr(1);
-      Require (!indelParam.count(param), "Multiple value for %s specified", arg.c_str());
-      indelParam[param] = atof (argvec[1].c_str());
+      Require (!modelParam.count(param), "Multiple value for %s specified", arg.c_str());
+      modelParam[param] = atof (argvec[1].c_str());
+      Require (modelParam[param] >= 0, "%s must be nonnegative", arg.c_str());
       argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-gamma") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      gammaCategories = atoi (argvec[1].c_str());
+      if (gammaCategories < 2)
+	Warn ("%s must be set to 2 or greater to create discretized-gamma rate categories", arg.c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-shape") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      gammaShape = atof (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-normalize") {
+      normalizeModel = true;
       argvec.pop_front();
       return true;
 
@@ -552,10 +581,27 @@ bool Reconstructor::parseSumArgs (deque<string>& argvec) {
   return false;
 }
 
-void Reconstructor::setModelParam (double& modelParam, const char* paramName) const {
+void Reconstructor::setModelParam (double& p, const char* paramName) const {
   const string param (paramName);
-  if (indelParam.count(param))
-    modelParam = indelParam.at(param);
+  if (modelParam.count(param))
+    p = modelParam.at(param);
+}
+
+void Reconstructor::setModelExtProbByExpectedLength (double& modelProb, const char* lenParamName) const {
+  const string param (lenParamName);
+  if (modelParam.count(param))
+    modelProb = max (0., 1. - 1. / modelParam.at(param));
+}
+
+double Reconstructor::getModelParam (const char* paramName, double defaultValue) const {
+  const string param (paramName ? paramName : "");
+  return (paramName && modelParam.count(param)) ? modelParam.at(param) : defaultValue;
+}
+
+void Reconstructor::scaleModel (RateModel& model, const char* subScaleParamName, const char* indelScaleParamName) const {
+  const double i = getModelParam(subScaleParamName,1), s = getModelParam(indelScaleParamName,1);
+  if (i != 1 || s != 1)
+    model = model.scaleRates (i, s);
 }
 
 void Reconstructor::loadModel() {
@@ -575,11 +621,30 @@ void Reconstructor::loadModel() {
     model = namedModel (string (DefaultAminoModel));
   }
 
+  if (normalizeModel)
+    model = model.normalizeSubstitutionRate();
+
   setModelParam (model.insRate, "insrate");
   setModelParam (model.delRate, "delrate");
   setModelParam (model.insExtProb, "insextprob");
   setModelParam (model.delExtProb, "delextprob");
-  
+
+  setModelExtProbByExpectedLength (model.insExtProb, "inslen");
+  setModelExtProbByExpectedLength (model.delExtProb, "dellen");
+
+  setModelParam (model.insRate, "gaprate");
+  setModelParam (model.delRate, "gaprate");
+
+  setModelExtProbByExpectedLength (model.insExtProb, "gaplen");
+  setModelExtProbByExpectedLength (model.delExtProb, "gaplen");
+
+  scaleModel (model, "subscale", NULL);
+  scaleModel (model, NULL, "indelscale");
+  scaleModel (model, "scale", "scale");
+
+  if (gammaCategories > 1)
+    model = makeDiscretizedGammaModel (model, gammaCategories, gammaShape);
+
   LogThisAt(2,"Alphabet: " << model.alphabet << endl
 	    << "Substitution model has " << plural(model.components(),"mixture component")
 	    << ", expected rate " << model.expectedSubstitutionRate() << endl

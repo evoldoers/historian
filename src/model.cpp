@@ -83,6 +83,17 @@ RateModel::RateModel (const RateModel& model)
   *this = model;
 }
 
+RateModel::RateModel (const string& alph, int components) {
+  initAlphabet (alph);
+  cptWeight = vguard<double> (components, 1. / (double) components);
+  for (int c = 0; c < components; ++c) {
+    auto ip = newAlphabetVector();
+    auto sr = newAlphabetMatrix();
+    insProb.push_back (ip);
+    subRate.push_back (sr);
+  }
+}
+
 RateModel::~RateModel()
 {
   clear();
@@ -92,10 +103,7 @@ RateModel& RateModel::operator= (const RateModel& model) {
   clear();
 
   initAlphabet (model.alphabet);
-  insRate = model.insRate;
-  delRate = model.delRate;
-  insExtProb = model.insExtProb;
-  delExtProb = model.delExtProb;
+  copyIndelParams (model);
   cptWeight = model.cptWeight;
   for (int c = 0; c < model.components(); ++c) {
     auto ip = newAlphabetVector();
@@ -105,6 +113,14 @@ RateModel& RateModel::operator= (const RateModel& model) {
     insProb.push_back (ip);
     subRate.push_back (sr);
   }
+  return *this;
+}
+
+RateModel& RateModel::copyIndelParams (const RateModel& model) {
+  insRate = model.insRate;
+  delRate = model.delRate;
+  insExtProb = model.insExtProb;
+  delExtProb = model.delExtProb;
   return *this;
 }
 
@@ -308,6 +324,23 @@ double RateModel::expectedSubstitutionRate() const {
     gsl_vector_free (eqm);
   }
   return R;
+}
+
+RateModel RateModel::normalizeSubstitutionRate() const {
+  return scaleRates (1. / expectedSubstitutionRate());
+}
+
+RateModel RateModel::scaleRates (double multiplier) const {
+  return scaleRates (multiplier, multiplier);
+}
+
+RateModel RateModel::scaleRates (double substMultiplier, double indelMultiplier) const {
+  RateModel model (*this);
+  for (auto& sub: model.subRate)
+    CheckGsl (gsl_matrix_scale (sub, substMultiplier));
+  model.insRate *= indelMultiplier;
+  model.delRate *= indelMultiplier;
+  return model;
 }
 
 double RateModel::expectedInsertionLength() const {

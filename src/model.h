@@ -44,10 +44,12 @@ struct RateModel : AlphabetOwner {
 
   RateModel();
   RateModel(const RateModel& model);
+  RateModel(const string& alphabet, int components);
   ~RateModel();
 
   RateModel& operator= (const RateModel& model);
-
+  RateModel& copyIndelParams (const RateModel& model);
+  
   inline int components() const { return cptWeight.size(); }
 
   void clear();
@@ -63,6 +65,10 @@ struct RateModel : AlphabetOwner {
   double expectedSubstitutionRate() const;
   double expectedInsertionLength() const;
   double expectedDeletionLength() const;
+
+  RateModel normalizeSubstitutionRate() const;
+  RateModel scaleRates (double multiplier) const;
+  RateModel scaleRates (double substMultiplier, double indelMultiplier) const;
   
   double mlDistance (const FastSeq& xGapped, const FastSeq& yGapped, int maxIterations = DefaultDistanceMatrixIterations) const;
   vguard<vguard<double> > distanceMatrix (const vguard<FastSeq>& gappedSeq, int maxIterations = DefaultDistanceMatrixIterations) const;

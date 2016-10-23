@@ -37,14 +37,14 @@ public:
   string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
-  int maxDistanceFromGuide, simulatorRootSeqLen;
-  bool tokenizeCodons, guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, refineReconstruction, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC, outputLeavesOnly;
-  double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb;
+  int maxDistanceFromGuide, simulatorRootSeqLen, gammaCategories;
+  bool tokenizeCodons, guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, refineReconstruction, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC, outputLeavesOnly, normalizeModel;
+  double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb, gammaShape;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
   ofstream* guideFile;
   size_t mcmcTraceFiles;
-  map<string,double> indelParam;
+  map<string,double> modelParam;
   
   ForwardMatrix::random_engine generator;
   unsigned rndSeed;
@@ -102,6 +102,10 @@ public:
 
   void loadModel();
   void setModelParam (double& modelParam, const char* paramName) const;
+  void setModelExtProbByExpectedLength (double& modelProb, const char* lenParamName) const;
+  double getModelParam (const char* paramName, double defaultValue) const;
+  void scaleModel (RateModel& model, const char* subScaleParamName, const char* indelScaleParamName) const;
+
   void loadSeqs();
   void loadSeqs (const string& seqsFilename, const string& guideFilename, const string& nexusFilename, const string& stockholmFilename);
   void loadRecon();

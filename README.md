@@ -89,7 +89,7 @@ The default settings attempt to navigate this maze of options for you, mostly us
 
 For example, if you want to supply sequences in FASTA format ([gp120.fa](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa)) and a guide tree in New Hampshire format ([gp120.tree.nh](https://github.com/ihh/indelhistorian/blob/master/data/gp120.tree.nh))
 
-	historian -seqs data/gp120.fa -tree gp120.tree.nh
+	historian -seqs data/gp120.fa -tree data/gp120.tree.nh
 
 Alternatively, if your sequences are in Nexus or Stockholm format, you can encode the tree together with your sequences, using the appropriate syntax for encoding New Hampshire-format trees in those formats (`#=GF NH` for Stockholm).
 
@@ -119,8 +119,11 @@ These arguments are all listed in the help text, available via the `-h` option a
 
 Indel Historian's underlying model is a simple one: there is a substitution rate matrix, an insertion rate, a deletion rate, and insertion/deletion extension probabilities. These are all specified in a JSON file format, several examples of which can be found in the [model](https://github.com/ihh/indelhistorian/blob/master/model) directory.
 
-The default model `lg` is an amino acid substitution matrix estimated by [Le and Gascuel (2008)](https://www.ncbi.nlm.nih.gov/pubmed/18367465) using [XRate](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0036898) on a dataset of [Pfam](http://pfam.xfam.org/) alignments, with indel rates and probabilities that were also estimated from Pfam. However, the `historian` program allows you to load a model from a file using the `-model` option, or to use one of the preset models using the `-preset` option. Alternatively, the model parameters can be estimated directly from sequence data using the built-in EM algorithm that is the same algorithm used by XRate (as described in [this paper](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-428)).
+The default model `lg` is an amino acid substitution matrix estimated by [Le and Gascuel (2008)](https://www.ncbi.nlm.nih.gov/pubmed/18367465) using [XRate](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0036898) on a dataset of [Pfam](http://pfam.xfam.org/) alignments, with indel rates and probabilities that were also estimated from Pfam. However, the `historian` program allows you to load a model from a file using the `-model` option, or to use one of the preset models using the `-preset` option. You can also add discretized-gamma rate categories using the `-gamma` and `-shape` options. For example, to use the [Whelan and Goldman](https://www.ncbi.nlm.nih.gov/pubmed/11319253) model with 4 rate categories and gamma shape parameter 1.5:
 
+    	historian data/gp120.fa -preset wag -gamma 4 -shape 1.5 -v2
+
+Alternatively, the model parameters can be estimated directly from sequence data using the built-in EM algorithm that is the same algorithm used by XRate (as described in [this paper](http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-428)).
 To estimate rates from data, use the `fit` command. Model-fitting takes a little longer than reconstruction, since the EM algorithm typically takes a few iterations to converge, so you might want to turn on some logging. For example:
 
 	historian fit data/gp120.fa -fast -vv >gp120.model.json
@@ -163,6 +166,14 @@ You can also use the `count` command to estimate counts for a bunch of alignment
 	historian count fileN.fa >fileN.counts.json
 	historian sum file1.counts.json file2.counts.json ... fileN.counts.json >summed.counts.json
 	historian fit -nolaplace -counts summed.counts.json >updated.model.json
+
+## Simulation
+
+If you care to, you can simulate from a model using the `generate` command. You will need to specify a tree:
+
+	historian generate -tree data/gp120.tree.nh
+
+The simulator accepts the standard model-specification options (`-preset`, `-gamma`, `-scale` etc.). You can change the output format with `-output` and the random number seed with `-seed`.
 
 ## MCMC
 
@@ -233,8 +244,17 @@ Reconstruction file I/O options
 
   -preset &lt;name&gt;  Select preset model by name
                    (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+  -normalize      Normalize expected substitution rate
   -insrate &lt;R&gt;, -delrate &lt;R&gt;, -insextprob &lt;P&gt;, -delextprob &lt;P&gt;
                   Override indel parameters
+  -inslen &lt;L&gt;, -dellen &lt;L&gt;
+                  Alternate way of setting -insextprob & -delextprob
+  -gaprate &lt;R&gt;, -gaplen &lt;L&gt;
+                  Shorthand to set both insertion & deletion params
+  -subscale &lt;N&gt;, -indelscale &lt;N&gt;, -scale &lt;N&gt;
+                  Scale substitution rates, indel rates, or both
+  -gamma &lt;N&gt;      Add N discretized-gamma rate categories
+  -shape &lt;S&gt;      Specify shape parameter for gamma distribution
 
   -saveguide &lt;f&gt;  Save guide alignment to file
                    (guide tree too, if output format allows)
