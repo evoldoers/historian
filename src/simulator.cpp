@@ -25,13 +25,13 @@ AlignPath Simulator::simulateGapsByGillespie (random_engine& generator, const Ra
     const bool isInsertion = r < totalInsRate;
     if (isInsertion) {
       const SeqIdx insPos = (SeqIdx) (r / model.insRate);
-      const SeqIdx insLen = insLenDist (generator);
+      const SeqIdx insLen = 1 + insLenDist (generator);
       LogThisAt(5,"Insertion of " << plural(insLen,"residue") << " before position #" << insPos << endl);
       child2parent.insert (child2parent.begin() + insPos, insLen, -1);
     } else {
       const double rDel = r - totalInsRate;
       const SeqIdx delPos = (SeqIdx) (rDel / model.delRate);
-      const SeqIdx delLen = insLenDist (generator);
+      const SeqIdx delLen = 1 + delLenDist (generator);
       const SeqIdx delEnd = min (delPos + delLen, (SeqIdx) child2parent.size());
       LogThisAt(5,"Deletion of " << plural(delEnd-delPos,"residue") << " starting at position #" << delPos << endl);
       child2parent.erase (child2parent.begin() + delPos, child2parent.begin() + delEnd);

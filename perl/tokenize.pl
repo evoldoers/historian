@@ -17,7 +17,7 @@ my ($progname) = fileparse($0);
 my $usage = "";
 $usage .= "$progname -- convert DNA to tokenized-codon sequence (or protein sequence)\n";
 $usage .= "\n";
-$usage .= "Usage: $progname [-table] [-f <frame>] [-revcomp] [-aa] [-rna] [-decode] [-truncate] [-align <Stockholm alignment file>] [FASTA filename(s)]\n";
+$usage .= "Usage: $progname [-table] [-alphabet] [-f <frame>] [-revcomp] [-aa] [-rna] [-decode] [-truncate] [-align <Stockholm alignment file>] [FASTA filename(s)]\n";
 $usage .= "\n";
 $usage .= "The 'frame' (i.e. reading frame) can be 0, 1, or 2.\n";
 $usage .= "If '-truncate' is specified, terminal stop codons will be discarded,\n";
@@ -40,6 +40,9 @@ $usage .= "EXAMPLES\n";
 $usage .= "\n";
 $usage .= "$progname -table\n";
 $usage .= "...to print the table of codons, tokens and amino acids\n";
+$usage .= "\n";
+$usage .= "$progname -alphabet\n";
+$usage .= "...to print the token alphabet in one line, in the order used by Kosiol, Goldman & Holmes (2007)\n";
 $usage .= "\n";
 $usage .= "$progname DNASEQS.fasta  > TOKSEQS.fasta\n";
 $usage .= "...to get a FASTA file of token sequences from the DNA sequences in DNASEQS.fasta\n";
@@ -69,7 +72,7 @@ $usage .= "\n";
 my $gr_aa = "AA";  # 3-letter amino acid annotation
 my $colWidth = 50;    # column width for output
 
-my (%aa, %tok);
+my (%aa, %coretok, %tok);
 %aa = ( 'ttt'=>'F',  'tct'=>'S',  'tat'=>'Y',  'tgt'=>'C',
         'ttc'=>'F',  'tcc'=>'S',  'tac'=>'Y',  'tgc'=>'C',
         'tta'=>'L',  'tca'=>'S',  'taa'=>'!',  'tga'=>'!',
@@ -129,27 +132,29 @@ my %aa3 = map (($_ => $aa_to_aa3{$aa{$_}}), keys %aa);
 # ( ) ; " ' \ (used by S-expression & JSON formats)
 # - * ? . (used for alignment/reconstruction/ambiguity)
 # > @ + (used by FASTA & FASTQ formats)
-%tok = ( 'ttt'=>'F',  'tct'=>'S',  'tat'=>'Y',  'tgt'=>'C',
-	 'ttc'=>'f',  'tcc'=>'s',  'tac'=>'y',  'tgc'=>'c',
-	 'tta'=>'L',  'tca'=>'5',  'taa'=>'0',  'tga'=>'2',
-	 'ttg'=>'l',  'tcg'=>'$',  'tag'=>'1',  'tgg'=>'W',
-       
-	 'ctt'=>'<',  'cct'=>'P',  'cat'=>'H',  'cgt'=>'R',
-	 'ctc'=>'[',  'ccc'=>'p',  'cac'=>'h',  'cgc'=>'r',
-	 'cta'=>'{',  'cca'=>',',  'caa'=>'Q',  'cga'=>'=',
-	 'ctg'=>'/',  'ccg'=>'8',  'cag'=>'q',  'cgg'=>'}',
-       
-	 'att'=>'I',  'act'=>'T',  'aat'=>'N',  'agt'=>'%',
-	 'atc'=>'i',  'acc'=>'t',  'aac'=>'n',  'agc'=>'#',
-	 'ata'=>'|',  'aca'=>'~',  'aaa'=>'K',  'aga'=>'3',
-	 'atg'=>'M',  'acg'=>'`',  'aag'=>'k',  'agg'=>']',
-       
-	 'gtt'=>'V',  'gct'=>'A',  'gat'=>'D',  'ggt'=>'G',
-	 'gtc'=>'v',  'gcc'=>'a',  'gac'=>'d',  'ggc'=>'g',
-	 'gta'=>'^',  'gca'=>'4',  'gaa'=>'E',  'gga'=>'9',
-	 'gtg'=>'7',  'gcg'=>'&',  'gag'=>'e',  'ggg'=>'6',
+%coretok = ( 'ttt'=>'F',  'tct'=>'S',  'tat'=>'Y',  'tgt'=>'C',
+	     'ttc'=>'f',  'tcc'=>'s',  'tac'=>'y',  'tgc'=>'c',
+	     'tta'=>'L',  'tca'=>'5',
+	     'ttg'=>'l',  'tcg'=>'$',               'tgg'=>'W',
+	     
+	     'ctt'=>'<',  'cct'=>'P',  'cat'=>'H',  'cgt'=>'R',
+	     'ctc'=>'[',  'ccc'=>'p',  'cac'=>'h',  'cgc'=>'r',
+	     'cta'=>'{',  'cca'=>',',  'caa'=>'Q',  'cga'=>'=',
+	     'ctg'=>'/',  'ccg'=>'8',  'cag'=>'q',  'cgg'=>'}',
+	     
+	     'att'=>'I',  'act'=>'T',  'aat'=>'N',  'agt'=>'%',
+	     'atc'=>'i',  'acc'=>'t',  'aac'=>'n',  'agc'=>'#',
+	     'ata'=>'|',  'aca'=>'~',  'aaa'=>'K',  'aga'=>'3',
+	     'atg'=>'M',  'acg'=>'`',  'aag'=>'k',  'agg'=>']',
+	     
+	     'gtt'=>'V',  'gct'=>'A',  'gat'=>'D',  'ggt'=>'G',
+	     'gtc'=>'v',  'gcc'=>'a',  'gac'=>'d',  'ggc'=>'g',
+	     'gta'=>'^',  'gca'=>'4',  'gaa'=>'E',  'gga'=>'9',
+	     'gtg'=>'7',  'gcg'=>'&',  'gag'=>'e',  'ggg'=>'6' );
 
-	 map (($_ x 3 => $_), qw(* - ? . x)) );
+my %tok = (%coretok,
+	   'taa'=>'0', 'tag'=>'1', 'tga'=>'2',
+	   map (($_ x 3 => $_), qw(* - ? . x)) );
 
 my %is_stop = map (($_ => 1), qw(tag taa tga));
 
@@ -167,12 +172,27 @@ GetOptions ("frame=i" => \$frame,
 	    "aa"  => \$use_aa,
 	    "rna"  => \$is_rna,
 	    "truncate" => \$truncate,
-	    "table" => \$table,
+	    "table" => \$print_table,
+	    "alphabet" => \$print_alphabet,
 	    "align=s" => \$align_file,
 	    "decode" => \$untokenize) or die $usage;
 
-if ($table) {
+if ($print_table) {
     print map (join(" ",$_,$aa3{$_},$aa{$_},$tok{$_})."\n", sort keys %tok);
+    exit;
+}
+
+if ($print_alphabet) {
+    my @sort = qw(t c a g);
+    for my $i (@sort) {
+	for my $j (@sort) {
+	    for my $k (@sort) {
+		my $tok = $coretok{$i.$j.$k};
+		print $tok if $tok;
+	    }
+	}
+    }
+    print "\n";
     exit;
 }
 

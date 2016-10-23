@@ -539,6 +539,7 @@ void Reconstructor::loadModel() {
     LogThisAt(1,"Using default amino acid model" << endl);
     model = defaultAminoModel();
   }
+  LogThisAt(3,"Expected substitution rate is " << model.expectedSubstitutionRate() << endl);
   dataCounts = EventCounts (model, model.components());
 
   if (modelSaveFilename.size()) {
@@ -879,6 +880,7 @@ void Reconstructor::refine (Dataset& dataset) {
 }
 
 void Reconstructor::refineAll() {
+  Require (datasets.size() > 0, "Please supply some data");
   for (auto& ds : datasets)
     refine (ds);
 }
@@ -1078,6 +1080,7 @@ void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) 
 }
 
 void Reconstructor::sampleAll() {
+  Require (datasets.size() > 0, "Please supply some data");
   if (runMCMC) {
     SimpleTreePrior treePrior;
     vguard<Sampler> samplers;
@@ -1128,11 +1131,13 @@ void Reconstructor::sampleAll() {
 }
 
 void Reconstructor::reconstructAll() {
+  Require (datasets.size() > 0, "Please supply some data");
   for (auto& ds : datasets)
     reconstruct (ds);
 }
 
 void Reconstructor::countAll() {
+  Require (datasets.size() > 0, "Please supply some data");
   dataCounts = EventCounts (model, model.components());
   for (auto& ds : datasets)
     if (ds.hasReconstruction())
@@ -1240,7 +1245,7 @@ Reconstructor::FileFormat Reconstructor::detectFormat (const string& filename) {
 }
 
 void Reconstructor::simulate() {
-  Require (simulatorTreeFilenames.size(), "No tree provided");
+  Require (simulatorTreeFilenames.size(), "Please provide a tree");
   if (simulatorRootSeqLen < 0) {
     LogThisAt (1, "Using default root sequence length of " << DefaultSimulatorRootSeqLen << endl);
     simulatorRootSeqLen = DefaultSimulatorRootSeqLen;

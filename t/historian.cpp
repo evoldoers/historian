@@ -18,7 +18,7 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon[struct],count,fit,mcmc,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon[struct],count,fit,mcmc,generate,help,version} [options]")
 {
   text = briefText
     + "\n"
@@ -39,10 +39,14 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  " + prog + " fit seqs.fa >newmodel.json\n"
     + "  " + prog + " fit -counts counts.json >newmodel.json\n"
     + "\n"
+    + "Simulation:\n"
+    + "  " + prog + " generate [-model model.json] [-rootlen N] tree.nh >sim.stk\n"
+    + "\n"
     + "Commands can be abbreviated to single letters, like so:\n"
     + "  " + prog + " r seqs.fa >reconstruction.stk\n"
     + "  " + prog + " c seqs.fa >counts.json\n"
     + "  " + prog + " f -counts counts.json >model.json\n"
+    + "  " + prog + " g tree.nh >sim.stk\n"
     + "(etc.)\n"
     + "\n"
     + "If a command is omitted, 'reconstruct' is assumed.\n"
