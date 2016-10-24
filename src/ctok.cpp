@@ -2,9 +2,9 @@
 #include "util.h"
 #include "logger.h"
 
-CodonTokenizer codonTokenizer;
+UniversalCodonTokenizer codonTokenizer;
 
-void CodonTokenizer::addToken (char tok, const char* cod) {
+void CodonTokenizer::addToken (char tok, const char* cod, bool isStop) {
   string cods (tolower (cod));
   tok2cod[tok] = cods;
   cod2tok[cods] = tok;
@@ -12,9 +12,16 @@ void CodonTokenizer::addToken (char tok, const char* cod) {
     if (c == 't')
       c = 'u';
   cod2tok[cods] = tok;
+  if (isStop)
+    stopTok.insert (tok);
 }
 
-CodonTokenizer::CodonTokenizer() {
+void CodonTokenizer::addWildGap() {
+  addToken('-',"---");
+  addToken('*',"***");
+}
+
+UniversalCodonTokenizer::UniversalCodonTokenizer() {
   addToken('K',"aaa");
   addToken('n',"aac");
   addToken('k',"aag");
@@ -63,15 +70,15 @@ CodonTokenizer::CodonTokenizer() {
   addToken('v',"gtc");
   addToken('7',"gtg");
   addToken('V',"gtt");
-  addToken('0',"taa");
+  addToken('0',"taa",true);
   addToken('y',"tac");
-  addToken('1',"tag");
+  addToken('1',"tag",true);
   addToken('Y',"tat");
   addToken('5',"tca");
   addToken('s',"tcc");
   addToken('$',"tcg");
   addToken('S',"tct");
-  addToken('2',"tga");
+  addToken('2',"tga",true);
   addToken('c',"tgc");
   addToken('W',"tgg");
   addToken('C',"tgt");
@@ -80,8 +87,7 @@ CodonTokenizer::CodonTokenizer() {
   addToken('l',"ttg");
   addToken('F',"ttt");
 
-  addToken('-',"---");
-  addToken('*',"***");
+  addWildGap();
 }
 
 string CodonTokenizer::tokenize (const string& gappedSeq, bool allowStopCodons, const char* name) const {
@@ -94,7 +100,7 @@ string CodonTokenizer::tokenize (const string& gappedSeq, bool allowStopCodons, 
     const char tok = cod2tok.at(cod);
     if (!allowStopCodons && isStopCodon(tok)) {
       if (pos + 3 == gappedSeq.size()) {
-	Warn ("Ignoring stop codon '%s' at end of %s", cod.c_str(), name);
+	LogThisAt (5, "Ignoring stop codon '" << cod << "' at end of " << name << endl);
 	continue;
       }
       Abort ("Illegal stop codon '%s' at position %u in %s", cod.c_str(), pos, name);
@@ -166,4 +172,23 @@ void CodonTokenizer::assertAlphabetTokenized (const string& alphabet) const {
     Require (tok2cod.count(c), "Character %c in alphabet %s is not a tokenized codon", c, alphabet.c_str());
   if (alphabet.size() < 61)
     Warn ("Alphabet %s contains only %u characters, doesn't look like a tokenized codon alphabet", alphabet.c_str(), alphabet.size());
+}
+
+string CodonTokenizer::tokenAlphabet (bool allowStopCodons) const {
+  const string dna ("tcag");
+  string cod ("xxx"), alph;
+  alph.reserve (allowStopCodons ? 64 : 61);
+  for (size_t i = 0; i < 4; ++i) {
+    cod[0] = dna[i];
+    for (size_t j = 0; j < 4; ++j) {
+      cod[1] = dna[j];
+      for (size_t k = 0; k < 4; ++k) {
+	cod[2] = dna[k];
+	const char tok = cod2tok.at(cod);
+	if (allowStopCodons || !isStopCodon(tok))
+	  alph.push_back (tok);
+      }
+    }
+  }
+  return alph;
 }

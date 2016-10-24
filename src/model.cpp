@@ -59,6 +59,10 @@ bool AlphabetOwner::isValidSymbol (char c) const {
   return tokenize(c) >= 0;
 }
 
+string AlphabetOwner::alphabetSymbol (AlphTok tok) const {
+  return string (1, alphabet[tok]);
+}
+
 AlphTok AlphabetOwner::tokenizeOrDie (char c) const {
   UnvalidatedAlphTok tok = tokenize (c);
   if (tok >= 0 && tok < alphabetSize())
@@ -179,21 +183,20 @@ void RateModel::readComponent (const JsonMap& jm) {
   gsl_matrix_set_zero (sr);
 
   const JsonMap rateMatrix = jm.getObject ("subrate");
-  for (auto ci : alphabet) {
-    AlphTok i = (AlphTok) tokenize (ci);
-    const string si (1, ci);
+  for (AlphTok i = 0; i < alphabet.size(); ++i) {
+    const string si = alphabetSymbol(i);
     if (rateMatrix.contains (si)) {
       const JsonMap rateMatrixRow = rateMatrix.getObject (si);
-      for (auto cj : alphabet)
-	if (cj != ci) {
-	  AlphTok j = (AlphTok) tokenize (cj);
-	  const string sj (1, cj);
+      for (AlphTok j = 0; j < alphabet.size(); ++j) {
+	if (j != i) {
+	  const string sj = alphabetSymbol(j);
 	  if (rateMatrixRow.contains (sj)) {
-	    const double rate = rateMatrixRow.getNumber (string (1, cj));
+	    const double rate = rateMatrixRow.getNumber (sj);
 	    *(gsl_matrix_ptr (sr, i, j)) += rate;
 	    *(gsl_matrix_ptr (sr, i, i)) -= rate;
 	  }
 	}
+      }
     }
   }
 
@@ -203,15 +206,14 @@ void RateModel::readComponent (const JsonMap& jm) {
     ip = newAlphabetVector();
     gsl_vector_set_zero (ip);
 
-    for (auto ci : alphabet) {
-      AlphTok i = (AlphTok) tokenize (ci);
-      const string si (1, ci);
+    for (AlphTok i = 0; i < alphabet.size(); ++i) {
+      const string si = alphabetSymbol(i);
       if (insVec.contains (si))
 	gsl_vector_set (ip, i, insVec.getNumber(si));
     }
   } else
     ip = getEqmProbVector (sr);
-
+  
   cptWeight.push_back (jm.containsType("weight",JSON_NUMBER) ? jm.getNumber("weight") : 1);
   insProb.push_back (ip);
   subRate.push_back (sr);
@@ -244,16 +246,16 @@ void RateModel::writeComponent (int cpt, ostream& out) const {
   out << indent << "\"rootprob\":" << endl;
   out << indent << "{";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i>0 ? "," : "") << "\n" << indent << " \"" << alphabet[i] << "\": " << gsl_vector_get(insProb[cpt],i);
+    out << (i>0 ? "," : "") << "\n" << indent << " \"" << alphabetSymbol(i) << "\": " << gsl_vector_get(insProb[cpt],i);
   out << endl;
   out << indent << "}," << endl;
   out << indent << "\"subrate\":" << endl;
   out << indent << "{" << endl;
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << indent << " \"" << alphabet[i] << "\": {";
+    out << indent << " \"" << alphabetSymbol(i) << "\": {";
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
-	out << " \"" << alphabet[j] << "\": " << gsl_matrix_get(subRate[cpt],i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
+	out << " \"" << alphabetSymbol(j) << "\": " << gsl_matrix_get(subRate[cpt],i,j) << (j < alphabetSize() - (i == alphabetSize() - 1 ? 2 : 1) ? "," : "");
     out << " }" << (i < alphabetSize() - 1 ? "," : "") << endl;
   }
   out << indent << "}" << endl;
@@ -451,13 +453,13 @@ void ProbModel::writeComponent (int cpt, ostream& out) const {
   const string indent (components() > 1 ? "   " : " ");
   out << indent << "\"insVec\": {" << endl;
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << indent << " \"" << alphabet[i] << "\": " << gsl_vector_get(insVec[cpt],i) << (i < alphabetSize() - 1 ? ",\n" : "");
+    out << indent << " \"" << alphabetSymbol(i) << "\": " << gsl_vector_get(insVec[cpt],i) << (i < alphabetSize() - 1 ? ",\n" : "");
   out << endl << indent << "}," << endl;
   out << indent << "\"subMat\": {" << endl;
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << indent << " \"" << alphabet[i] << "\": {" << endl;
+    out << indent << " \"" << alphabetSymbol(i) << "\": {" << endl;
     for (AlphTok j = 0; j < alphabetSize(); ++j)
-      out << indent << "  \"" << alphabet[j] << "\": " << gsl_matrix_get(subMat[cpt],i,j) << (j < alphabetSize() - 1 ? ",\n" : "");
+      out << indent << "  \"" << alphabetSymbol(j) << "\": " << gsl_matrix_get(subMat[cpt],i,j) << (j < alphabetSize() - 1 ? ",\n" : "");
     out << endl << indent << " }" << (i < alphabetSize() - 1 ? "," : "") << endl;
   }
   out << indent << "}" << endl;
@@ -657,15 +659,15 @@ void AlphabetOwner::writeSubCountsComponent (ostream& out, const vguard<double>&
   out << ind << " \"root\":" << endl;
   out << ind << "  {";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << rootCounts[i];
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabetSymbol(i) << "\": " << rootCounts[i];
   out << endl << ind << "  }," << endl;
   out << ind << " \"sub\":" << endl;
   out << ind << "  {";
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": {";
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabetSymbol(i) << "\": {";
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j)
-	out << (j == (i == 0 ? 1 : 0) ? "" : ",") << " " << "\"" << alphabet[j] << "\": " << subCountsAndWaitTimes[i][j];
+	out << (j == (i == 0 ? 1 : 0) ? "" : ",") << " " << "\"" << alphabetSymbol(j) << "\": " << subCountsAndWaitTimes[i][j];
     out << " }";
   }
   out << endl;
@@ -673,7 +675,7 @@ void AlphabetOwner::writeSubCountsComponent (ostream& out, const vguard<double>&
   out << ind << " \"wait\":" << endl;
   out << ind << "  {";
   for (AlphTok i = 0; i < alphabetSize(); ++i)
-    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabet[i] << "\": " << subCountsAndWaitTimes[i][i];
+    out << (i == 0 ? "" : ",") << endl << ind << "   \"" << alphabetSymbol(i) << "\": " << subCountsAndWaitTimes[i][i];
   out << endl;
   out << ind << "  }" << endl;
   out << ind << "}";
@@ -985,13 +987,13 @@ void EventCounts::readComponent (const JsonMap& jm) {
   JsonMap sub = subBlock.getObject("sub");
   JsonMap wait = subBlock.getObject("wait");
   for (AlphTok i = 0; i < alphabetSize(); ++i) {
-    const string si (1, alphabet[i]);
+    const string si = alphabetSymbol(i);
     rc[i] = root.getNumber(si);
     sc[i][i] = wait.getNumber(si);
     JsonMap sub_i = sub.getObject(si);
     for (AlphTok j = 0; j < alphabetSize(); ++j)
       if (i != j) {
-	const string sj (1, alphabet[j]);
+	const string sj = alphabetSymbol(j);
 	sc[i][j] = sub_i.getNumber(sj);
       }
   }

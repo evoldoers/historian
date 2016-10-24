@@ -29,6 +29,7 @@ struct AlphabetOwner {
   UnvalidatedAlphTok tokenize (char c) const;
   AlphTok tokenizeOrDie (char c) const;
   bool isValidSymbol (char c) const;
+  string alphabetSymbol (AlphTok tok) const;
   gsl_matrix* newAlphabetMatrix() const;
   gsl_vector* newAlphabetVector() const;
 
