@@ -131,8 +131,8 @@ $(RATEDIR)/%.ma.stk:
 # RMS error = sqrt(sum (r-1)^2) = sum (r^2 - 2r + 1)
 # where r = estimated_rate / true_rate
 REPS ?= 100
-%/1-$(REPS).summary:
-	node -e 'fs=require("fs");i=d=process.argv[1];function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}process.argv.slice(3).forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(process.argv[2]+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(INDELRATE) $(dir $@) ma ma.tree hist histrec histref histslow muscle probcons prank >$@
+gp120sim/rate%/1-$(REPS).summary:
+	node -e 'fs=require("fs");i=d=parseFloat("$*");dir=process.argv[1];files=process.argv.slice(2);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}files.forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(dir+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(dir $@) ma ma.tree hist histrec histref histslow muscle probcons prank >$@
 
 gp120sim-tree%:
 	make INDELRATE=$(INDELRATE) `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
