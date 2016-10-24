@@ -12,7 +12,7 @@ UnvalidatedAlphTok tokenize (char c, const string& alphabet) {
   const char* ptok = strchr (alphStr, c);
   if (ptok == NULL)
     ptok = strchr (alphStr, isupper(c) ? tolower(c) : toupper(c));
-  return ptok ? (UnvalidatedAlphTok) (ptok - alphStr) : -1;
+  return ptok ? (UnvalidatedAlphTok) (ptok - alphStr) : InvalidAlphabetToken;
 }
 
 UnvalidatedTokSeq tokenize (const string& s, const string& alphabet) {
@@ -65,6 +65,74 @@ string detokenize (const TokSeq& toks, const string& alphabet) {
     seq.push_back (alphabet[tok]);
   }
   return seq;
+}
+
+size_t minSymbolLength (const ExtendedAlphabet& alphabet) {
+  vguard<size_t> len;
+  len.reserve (alphabet.size());
+  for (const auto& sym: extract_keys(alphabet))
+    len.push_back (sym.size());
+  return *min_element (len.begin(), len.end());
+}
+
+ExtendedAlphabetIndex makeAlphabetIndex (const ExtendedAlphabet& alphabet) {
+  ExtendedAlphabetIndex inv;
+  for (const auto& sym_tok: alphabet)
+    inv[sym_tok.second] = sym_tok.first;
+  return inv;
+}
+
+UnvalidatedTokSeq tokenize (const string& s, const ExtendedAlphabet& alphabet) {
+  UnvalidatedTokSeq result;
+  const size_t minLen = minSymbolLength(alphabet);
+  size_t pos = 0;
+  while (pos < s.size()) {
+    UnvalidatedAlphTok tok = InvalidAlphabetToken;
+    size_t len;
+    for (len = minLen; pos + len <= s.size(); ++len) {
+      const AlphSym sym = s.substr (pos, len);
+      if (alphabet.count(sym)) {
+	tok = alphabet.at(sym);
+	break;
+      }
+    }
+    result.push_back (tok);
+    pos += (tok < 0 ? 1 : len);
+  }
+  return result;
+}
+
+TokSeq validTokenize (const string& s, const ExtendedAlphabet& alphabet, const char* seqname) {
+  TokSeq result;
+  const size_t minLen = minSymbolLength(alphabet);
+  size_t pos = 0;
+  while (pos < s.size()) {
+    bool found = false;
+    size_t len;
+    for (len = minLen; pos + len <= s.size(); ++len) {
+      const AlphSym sym = s.substr (pos, len);
+      if (alphabet.count(sym)) {
+	result.push_back (alphabet.at(sym));
+	found = true;
+	break;
+      }
+    }
+    if (!found)
+      cerr << "Unknown token '" << s.substr(pos,minLen) << "' in sequence"
+	   << (seqname ? ((string(" ") + seqname)) : string()) << endl;
+    pos += found ? len : 1;
+  }
+  return result;
+}
+
+string detokenize (const TokSeq& s, const ExtendedAlphabet& alphabet) {
+  string result;
+  const size_t minLen = minSymbolLength(alphabet);
+  result.reserve (minLen * s.size());
+  const auto inv = makeAlphabetIndex (alphabet);
+  for (auto tok: s)
+    result.append (inv.count(tok) ? inv.at(tok) : string(1,Alignment::wildcardChar));
+  return result;
 }
 
 TokSeq FastSeq::tokens (const string& alphabet) const {

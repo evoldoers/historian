@@ -12,12 +12,15 @@
 using namespace std;
 
 #define DefaultFastaCharsPerLine 50
+#define InvalidAlphabetToken -1
 
+// alphabets
 typedef unsigned int SeqIdx;
 typedef unsigned int AlphTok;
 typedef int UnvalidatedAlphTok;
 typedef unsigned long long Kmer;
 typedef unsigned int QualScore;
+typedef string AlphSym;
 
 typedef vguard<AlphTok> TokSeq;
 typedef vguard<UnvalidatedAlphTok> UnvalidatedTokSeq;
@@ -27,11 +30,23 @@ UnvalidatedTokSeq tokenize (const string& s, const string& alphabet);
 TokSeq validTokenize (const string& s, const string& alphabet, const char* seqname = NULL);
 string detokenize (const TokSeq& s, const string& alphabet);
 
+// kmers
 bool kmerValid (SeqIdx k, vector<UnvalidatedAlphTok>::const_iterator tok);
 Kmer makeKmer (SeqIdx k, vector<UnvalidatedAlphTok>::const_iterator tok, AlphTok alphabetSize);
 Kmer numberOfKmers (SeqIdx k, AlphTok alphabetSize);
 string kmerToString (Kmer kmer, SeqIdx k, const string& alphabet);
 
+// extended alphabets
+typedef map<AlphSym,AlphTok> ExtendedAlphabet;
+typedef map<AlphTok,AlphSym> ExtendedAlphabetIndex;
+size_t minSymbolLength (const ExtendedAlphabet& alphabet);
+ExtendedAlphabetIndex makeAlphabetIndex (const ExtendedAlphabet& alphabet);
+
+UnvalidatedTokSeq tokenize (const string& s, const ExtendedAlphabet& alphabet);
+TokSeq validTokenize (const string& s, const ExtendedAlphabet& alphabet, const char* seqname = NULL);
+string detokenize (const TokSeq& s, const ExtendedAlphabet& alphabet);
+
+// FASTA- and FASTQ-format sequences
 struct FastSeq {
   // basic FASTQ data
   string name, comment, seq, qual;
