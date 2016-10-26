@@ -125,7 +125,7 @@ $(RATEDIR)/%.ma.stk:
 	bin/historian fit -preset wag -gaprate .005 -gapextprob .5 -fixsubrates -stockrecon $< -v3 >$@
 
 %.histmcmc.stk: %.histfit.stk %.hist.json
-	bin/historian mcmc -fixtree -model $*.hist.json $*.histfit.stk -v4 >$@
+	bin/historian mcmc -fixtree -model $*.hist.json $*.histfit.stk -v3 >$@
 
 %.histmcmc.json: %.histmcmc.stk
 	bin/historian fit -stockrecon $< -v3 >$@
