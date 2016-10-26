@@ -106,17 +106,17 @@ $(RATEDIR)/%.ma.stk:
 %.histref.json: %.histref.stk
 	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
 
-%.histfit.stk: %.leaf %.hist.json
+%.histfit.stk: %.hist.json
 	bin/historian recon -model $*.hist.json $*.leaf -v3 >$@
 
 %.histfit.json: %.histfit.stk
 	bin/historian fit -fixsubrates -model $*.hist.json -stockrecon $*.histfit.stk -v3 >$@
 
-%.histref.stk: %.leaf
-	bin/historian recon -refine $*.leaf -v3 >$@
+%.histfit.fa: %.histfit.stk
+	../../perl/stockholm2fasta.pl -g $< >$@
 
-%.histref.json: %.histref.stk
-	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
+%.hist2.json: %.histfit.fa
+	bin/historian fit -fixsubrates -model $*.hist.json -guide $*.histfit.fa -v3 >$@
 
 %.muscle: %.leaf
 	bin/muscle -in $*.leaf >$@
@@ -142,6 +142,11 @@ gp120sim/rate%/1-$(REPS).summary:
 
 %/histfit:
 	make `perl -e 'print map "$*/$$_.histfit.json ", 1..$(REPS)'`
+
+%/hist2:
+	make `perl -e 'print map "$*/$$_.hist2.json ", 1..$(REPS)'`
+
+all-hist2: $(patsubst %/1-$(REPS).summary,%/hist2,$(wildcard gp120sim/*/*/1-$(REPS).summary))
 
 gp120sim-tree%:
 	make INDELRATE=$(INDELRATE) `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
