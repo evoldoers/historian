@@ -284,7 +284,7 @@ model/ECM%.json: model/codon/ECM%.dat
 src/%.cpp src/%.h: model/%.json
 	perl/model2cpp.pl $*
 
-# Conversion of old-format xrate models to IndelHistorian JSON models
+# Conversion of old-format xrate models to Historian JSON models
 model/%.json: model/hsm/%.hsm
 	perl/xrate2json.pl $< >$@
 

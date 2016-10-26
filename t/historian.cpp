@@ -127,6 +127,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  -mcmc           Run MCMC sampler after reconstruction\n"
     + "  -samples <N>    Number of MCMC iterations per sequence (default " + to_string(DefaultMCMCSamplesPerSeq) + ")\n"
     + "  -trace <file>   Specify MCMC trace filename\n"
+    + "  -fixtree        Fix tree during MCMC (sample alignment only)\n"
     //    + "  -fixguide       Fix guide alignment during MCMC\n"
     + "\n"
     + "Guide alignment & tree estimation options\n"

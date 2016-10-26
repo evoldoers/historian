@@ -1654,6 +1654,12 @@ void Sampler::initialize (const History& initialHistory, const string& samplerNa
   moveRate[Move::Rescale] = 2;
 }
 
+void Sampler::fixTree() {
+  moveRate[Move::PruneAndRegraft] = 0;
+  moveRate[Move::NodeHeight] = 0;
+  moveRate[Move::Rescale] = 0;
+}
+
 void Sampler::sample (random_engine& generator) {
     // propose
     const std::chrono::system_clock::time_point before = std::chrono::system_clock::now();

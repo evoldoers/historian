@@ -96,7 +96,6 @@ bool Reconstructor::parseReconArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-mcmc") {
       runMCMC = true;
-      useUPGMA = true;
       argvec.pop_front();
       return true;
 
@@ -472,7 +471,6 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       mcmcSamplesPerSeq = atoi (argvec[1].c_str());
       runMCMC = true;
-      useUPGMA = true;
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -480,7 +478,12 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
     } else if (arg == "-fixguide") {
       fixGuideMCMC = true;
       runMCMC = true;
-      useUPGMA = true;
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-fixtree") {
+      fixTreeMCMC = true;
+      runMCMC = true;
       argvec.pop_front();
       return true;
 
@@ -489,7 +492,6 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       mcmcTraceFilename = argvec[1].c_str();
       outputTraceMCMC = true;
       runMCMC = true;
-      useUPGMA = true;
       argvec.pop_front();
       argvec.pop_front();
       return true;
@@ -676,6 +678,10 @@ void Reconstructor::loadTree (Dataset& dataset) {
 }
 
 void Reconstructor::buildTree (Dataset& dataset) {
+  if (runMCMC && !fixTreeMCMC && !useUPGMA) {
+    LogThisAt(1,"Switching to UPGMA tree-estimation algorithm to ensure ultrametric tree for MCMC sampler" << endl);
+    useUPGMA = true;
+  }
   LogThisAt(1,"Estimating initial tree by " << (useUPGMA ? "UPGMA" : "neighbor-joining") << " (" << dataset.name << ")" << endl);
   auto dist = model.distanceMatrix (dataset.gappedGuide, jukesCantorDistanceMatrix ? 0 : DefaultDistanceMatrixIterations);
   if (useUPGMA)
@@ -1216,6 +1222,8 @@ void Reconstructor::sampleAll() {
       sampler.addLogger (*loggers.back());
       sampler.useFixedGuide = fixGuideMCMC;
       sampler.sampleAncestralSeqs = dataset.hasAncestralReconstruction();
+      if (fixTreeMCMC)
+	sampler.fixTree();
       Sampler::History history;
       history.tree = dataset.tree;
       history.gapped = gappedRecon;

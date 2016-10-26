@@ -390,7 +390,8 @@ struct Sampler : TreeAlignFuncs {
   // Sampler setup methods
   void addLogger (Logger& logger);
   void initialize (const History& initialHistory, const string& name);
-
+  void fixTree();  // do alignment-sampling moves only
+  
   // Sampler sampling methods
   inline LogProb logLikelihood (const History& history, const char* prefix = "") const {
     return TreeAlignFuncs::logLikelihood (treePrior, model, history, prefix);
