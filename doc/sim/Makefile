@@ -175,11 +175,11 @@ gp120sim/rate%/1-$(REPS).summary:
 
 all-hist2: $(patsubst %/1-$(REPS).summary,%/hist2,$(wildcard gp120sim/*/*/1-$(REPS).summary))
 
-all-prk: $(patsubst %/1-$(REPS).summary,%/histprk,$(wildcard gp120sim/*/*/1-$(REPS).summary))
+all-prk: $(patsubst %/1-$(REPS).summary,%/prk,$(wildcard gp120sim/*/*/1-$(REPS).summary))
 
-all-mcmc: $(patsubst %/1-$(REPS).summary,%/histmcmc,$(wildcard gp120sim/*/*/1-$(REPS).summary))
+all-mcmc: $(patsubst %/1-$(REPS).summary,%/mcmc,$(wildcard gp120sim/*/*/1-$(REPS).summary))
 
-all-rand: $(patsubst %/1-$(REPS).summary,%/histrand,$(wildcard gp120sim/*/*/1-$(REPS).summary))
+all-rand: $(patsubst %/1-$(REPS).summary,%/rand,$(wildcard gp120sim/*/*/1-$(REPS).summary))
 
 gp120sim-tree%:
 	make INDELRATE=$(INDELRATE) `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
