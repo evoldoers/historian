@@ -1222,12 +1222,12 @@ void Reconstructor::sampleAll() {
       sampler.addLogger (*loggers.back());
       sampler.useFixedGuide = fixGuideMCMC;
       sampler.sampleAncestralSeqs = dataset.hasAncestralReconstruction();
-      if (fixTreeMCMC)
-	sampler.fixTree();
       Sampler::History history;
       history.tree = dataset.tree;
       history.gapped = gappedRecon;
       sampler.initialize (history, dataset.name);
+      if (fixTreeMCMC)
+	sampler.fixTree();
       totalNodes += history.tree.nodes();
     }
 
