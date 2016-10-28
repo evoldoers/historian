@@ -152,8 +152,14 @@ ALLJSON := $(addprefix %.,$(addsuffix .json,$(ALLMETHODS)))
 # RMS error = sqrt((1/N) sum (r-1)^2) = sqrt(sum ((r^2)/N - 2r/N + 1))
 # where r = estimated_rate / true_rate
 REPS ?= 100
-gp120sim/rate%/1-$(REPS).summary:
-	node -e 'fs=require("fs");i=d=parseFloat("$*");dir=process.argv[1];methods=process.argv.slice(2);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}methods.forEach(function(method){try{m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(dir+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))}catch(err){}})' $(dir $@) $(ALLMETHODS) >$@
+%/1-$(REPS).summary:
+	bin/summary.js "$(ALLMETHODS)" $* >$@
+
+gp120sim/alltree.1-$(REPS).summary:
+	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/tree*) >$@
+
+gp120sim/allsym.1-$(REPS).summary:
+	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/sym*) >$@
 
 gp120sim/results.1-$(REPS).dat:
 	bin/results.js .1 2 false "$(ALLMETHODS)" $(wildcard gp120sim/rate*/*) >$@

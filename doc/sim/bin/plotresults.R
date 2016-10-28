@@ -3,7 +3,9 @@ install.packages("gridExtra")
 library(ggplot2)
 library(gridExtra)
 
-data <- read.csv(file="gp120sim/together.1-100.dat",sep=" ")
+data.raw <- read.csv(file="gp120sim/results.1-100.dat",sep=" ")
+
+data <- data.raw[data$tree="tree"]
 
 maIns <- ggplot(data[data$method=="ma.tree"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
 prankIns <- ggplot(data[data$method=="prank"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
