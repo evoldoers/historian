@@ -17,4 +17,5 @@ histDel <- ggplot(data[data$method=="hist"&data$event=="del",],aes(x=bin,weight=
 muscleDel <- ggplot(data[data$method=="muscle"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
 probDel <- ggplot(data[data$method=="probcons"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
 
-grid.arrange(maIns,maDel,histIns,histDel,prankIns,prankDel,muscleIns,muscleDel,probIns,probDel,ncol=2)
+g <- arrangeGrob(maIns,maDel,histIns,histDel,prankIns,prankDel,muscleIns,muscleDel,probIns,probDel,ncol=2)
+ggsave("together.pdf",g)
