@@ -124,62 +124,44 @@ $(RATEDIR)/%.ma.stk:
 %.histprk.json: %.histprk.stk
 	bin/historian fit -preset wag -gaprate .005 -gapextprob .5 -fixsubrates -stockrecon $< -v3 >$@
 
-%.histmcmc.stk: %.histfit.stk %.hist.json
-	bin/historian mcmc -fixtree -model $*.hist.json $*.histfit.stk -v3 >$@
-
-%.histmcmc.json: %.histmcmc.stk
-	bin/historian fit -stockrecon $< -v3 >$@
-
 %.histrand.stk: %.hist.json
 	bin/historian recon -model $*.hist.json -profsamples 100 $*.leaf -v3 >$@
 
 %.histrand.json: %.histrand.stk
 	bin/historian fit -fixsubrates -model $*.hist.json -stockrecon $< -v3 >$@
 
-%.muscle: %.leaf
-	bin/muscle -in $*.leaf >$@
-	bin/historian fit -fixsubrates -band 1 $@ >$@.json
+%.muscle.json: %.leaf
+	bin/muscle -in $*.leaf >$*.muscle
+	bin/historian fit -fixsubrates -band 1 $*.muscle >$@
 
-%.probcons: %.leaf
-	bin/probcons $*.leaf >$@
-	bin/historian fit -fixsubrates -band 1 $@ >$@.json
+%.probcons.json: %.leaf
+	bin/probcons $*.leaf >$*.probcons
+	bin/historian fit -fixsubrates -band 1 $*.probcons >$@
 
-%.prank: %.leaf
+%.prank.json: %.leaf
 	bin/prank -d=$*.leaf -noxml -realbranches -writeanc -o=$*.prankout +F
-	cp $*.prankout.1.fas $@
-	bin/historian fit -fixsubrates -band 1 $@ >$@.json
+	cp $*.prankout.1.fas $*.prank
+	bin/historian fit -fixsubrates -band 1 $*.prank >$@
 
-%.summary: %.ma %.ma.json %.ma.tree.json %.hist.json %.histrec.json %.histref.json %.histslow.json %.histfit.json %.hist2 %.histprk %.histmcmc %.histrand %.muscle %.probcons %.prank
+ALLMETHODS := ma ma.tree hist histrec histref histslow histfit hist2 histprk histrand muscle probcons prank
+ALLJSON := $(addprefix %.,$(addsuffix .json,$(ALLMETHODS)))
+
+%.summary: $(ALLJSON)
 	node -e 'fs=require("fs");process.argv.slice(1).forEach(function(arg){json=JSON.parse(fs.readFileSync(arg));console.log([arg,json.insrate,json.delrate].join(" "))})' $*.ma.json $*.ma.tree.json $*.hist.json $*.histrec.json $*.histref.json $*.histslow.json $*.histfit.json $*.muscle.json $*.probcons.json $*.prank.json >$@
 
 # RMS error = sqrt((1/N) sum (r-1)^2) = sqrt(sum ((r^2)/N - 2r/N + 1))
 # where r = estimated_rate / true_rate
 REPS ?= 100
 gp120sim/rate%/1-$(REPS).summary:
-	node -e 'fs=require("fs");i=d=parseFloat("$*");dir=process.argv[1];files=process.argv.slice(2);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}files.forEach(function(method){m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(dir+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))})' $(dir $@) ma ma.tree hist histrec histref histslow histfit hist2 histprk histmcmc histrand muscle probcons prank >$@
+	node -e 'fs=require("fs");i=d=parseFloat("$*");dir=process.argv[1];methods=process.argv.slice(2);function mean_rmserr(m1,m2){m=m1/$(REPS);return [m,Math.sqrt(m2/$(REPS)-2*m+1)]}methods.forEach(function(method){try{m1i=m2i=m1d=m2d=0;for(n=1;n<=$(REPS);++n){json=JSON.parse(fs.readFileSync(dir+n+"."+method+".json"));ir=json.insrate/i;dr=json.delrate/d;m1i+=ir;m2i+=ir*ir;m1d+=dr;m2d+=dr*dr}console.log([method].concat(mean_rmserr(m1i,m2i)).concat(mean_rmserr(m1d,m2d)).join(" "))}catch(err){}})' $(dir $@) $(ALLMETHODS) >$@
 
-%/histfit:
-	make `perl -e 'print map "$*/$$_.histfit.json ", 1..$(REPS)'`
+gp120sim/results.1-$(REPS).dat:
+	bin/results.js .1 2 false "$(ALLMETHODS)" $(wildcard gp120sim/rate*/*) >$@
 
-%/hist2:
-	make `perl -e 'print map "$*/$$_.hist2.json ", 1..$(REPS)'`
+gp120sim/together.1-$(REPS).dat:
+	bin/results.js .1 2 true "$(ALLMETHODS)" $(wildcard gp120sim/rate*/*) >$@
 
-%/prk:
-	make `perl -e 'print map "$*/$$_.histprk.json ", 1..$(REPS)'`
-
-%/mcmc:
-	make `perl -e 'print map "$*/$$_.histmcmc.json ", 1..$(REPS)'`
-
-%/rand:
-	make `perl -e 'print map "$*/$$_.histrand.json ", 1..$(REPS)'`
-
-all-hist2: $(patsubst %/1-$(REPS).summary,%/hist2,$(wildcard gp120sim/*/*/1-$(REPS).summary))
-
-all-prk: $(patsubst %/1-$(REPS).summary,%/prk,$(wildcard gp120sim/*/*/1-$(REPS).summary))
-
-all-mcmc: $(patsubst %/1-$(REPS).summary,%/mcmc,$(wildcard gp120sim/*/*/1-$(REPS).summary))
-
-all-rand: $(patsubst %/1-$(REPS).summary,%/rand,$(wildcard gp120sim/*/*/1-$(REPS).summary))
+allsummary: $(addsuffix /1-$(REPS).summary,$(wildcard gp120sim/rate*/*))
 
 gp120sim-tree%:
 	make INDELRATE=$(INDELRATE) `perl -e 'print map "gp120sim/rate$(INDELRATE)/tree$*/$$_.summary ", 1..$(REPS)'`
