@@ -16,17 +16,21 @@ function incbin(r,bins) {
 
 var binStart = Array.apply(null,Array(nbins)).map (function(x,n) { return (n*binsize).toPrecision(2) })
 function printbins(label,headers,bins) {
+    var total = 0
+    Object.keys(bins).forEach (function (n) {
+        total += bins[n]
+    })
     binStart.forEach (function (start, n) {
         process.stdout.write ([label]
                               .concat(headers)
-                              .concat([start,bins[n] || 0,"\n"])
-                              .join(" "))
+                              .concat([start,(bins[n] || 0) / total])
+                              .join(" ") + "\n")
     })
 }
 
 process.stdout.write (["event","method"]
                       .concat (togetherFlag ? [] : ["rate","tree","multiplier"])
-                      .concat(["bin","count","\n"])
+                      .concat(["bin","count\n"])
                       .join (" "))
 
 methods.forEach (function(method) {
