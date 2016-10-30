@@ -1,27 +1,39 @@
 #!/usr/bin/env R
 
-install.packages("ggplot2")
-install.packages("gridExtra")
+# install.packages("ggplot2")
+# install.packages("gridExtra")
 library(ggplot2)
 library(gridExtra)
 
+rms.all <- read.csv(file="gp120sim/all.1-100.summary",sep=" ")
 rms.sym <- read.csv(file="gp120sim/allsym.1-100.summary",sep=" ")
 rms.tree <- read.csv(file="gp120sim/alltree.1-100.summary",sep=" ")
-data.raw <- read.csv(file="gp120sim/results.1-100.dat",sep=" ")
 
-data <- data.raw[data$tree="tree"]
+data.all <- read.csv(file="gp120sim/results.1-100.dat",sep=" ")
+data.sym <- data.all[data.all$tree=="sym",]
+data.tree <- data.all[data.all$tree=="tree",]
 
-maIns <- ggplot(data[data$method=="ma.tree"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
-prankIns <- ggplot(data[data$method=="prank"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
-histIns <- ggplot(data[data$method=="hist"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
-muscleIns <- ggplot(data[data$method=="muscle"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
-probIns <- ggplot(data[data$method=="probcons"&data$event=="ins",],aes(x=bin,weight=count))+geom_bar()
+simplot <- function(method,title) {
+	rms <- rms.tree
+	data <- data.tree
+	err.mean <- rms$insdelmean[rms$method==method]
+	err.rms <- rms$insdelrmse[rms$method==method]
+	return (ggplot(data[data$method==method,],aes(x=bin,weight=count))
+		+geom_bar()
+		+annotate("text",label=paste0(title,"\nMean error: ",sprintf("%.2f",round(err.mean-1,digits=2)),"\nRMS error: ",sprintf("%.2f",round(err.rms,digits=2))),x=1.6,y=1.75)
+		+xlab("Estimated rate / true rate")
+		+scale_x_continuous(limits = c(0.25,1.75))
+		+scale_y_continuous(limits = c(0,3))
+		+theme(axis.title.y=element_blank(),
+		       axis.text.y=element_blank(),
+		       axis.ticks.y=element_blank()))
+}
 
-maDel <- ggplot(data[data$method=="ma.tree"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
-prankDel <- ggplot(data[data$method=="prank"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
-histDel <- ggplot(data[data$method=="hist"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
-muscleDel <- ggplot(data[data$method=="muscle"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
-probDel <- ggplot(data[data$method=="probcons"&data$event=="del",],aes(x=bin,weight=count))+geom_bar()
+ma <- simplot("ma.tree","True alignment")
+prank <- simplot("prank","Prank")
+hist <- simplot("histslow","Historian")
+prob <- simplot("probcons","ProbCons")
+muscle <- simplot("muscle","Muscle")
 
-g <- arrangeGrob(maIns,maDel,histIns,histDel,prankIns,prankDel,muscleIns,muscleDel,probIns,probDel,ncol=2)
-ggsave("together.pdf",g)
+g <- arrangeGrob(ma,hist,prank,prob,muscle,ncol=1)
+ggsave("results.pdf",g)

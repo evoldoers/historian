@@ -154,10 +154,16 @@ REPS ?= 100
 	bin/summary.js "$(ALLMETHODS)" $* >$@
 
 gp120sim/all.1-$(REPS).summary:
-	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/*) >$@
+	bin/summary.js "$(ALLMETHODS)" $(wildcard gp120sim/rate*/*) >$@
 
 gp120sim/alltree.1-$(REPS).summary:
-	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/tree*) >$@
+	bin/summary.js "$(ALLMETHODS)" $(wildcard gp120sim/rate*/tree*) >$@
+
+gp120sim/rate%/alltree.1-$(REPS).summary:
+	bin/summary.js "$(ALLMETHODS)" $(wildcard gp120sim/rate$*/tree*) >$@
+
+gp120sim/rate%/allsym.1-$(REPS).summary:
+	bin/summary.js "$(ALLMETHODS)" $(wildcard gp120sim/rate$*/sym*) >$@
 
 gp120sim/allsym.1-$(REPS).summary:
 	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/sym*) >$@
@@ -178,12 +184,24 @@ gp120sim-sym%:
 
 # Top-level targets for simulation #1
 sim1:
-	make gp120sim-tree1
-	make gp120sim-sym1
-	make INDELRATE=0.014 gp120sim-tree1
-	make INDELRATE=0.014 gp120sim-sym1
-	make gp120sim-tree2
-	make gp120sim-sym2
+	make INDELRATE=0.005 gp120sim-tree5
+	make INDELRATE=0.005 gp120sim-sym5
+	make INDELRATE=0.01 gp120sim-tree5
+	make INDELRATE=0.01 gp120sim-sym5
+	make INDELRATE=0.028 gp120sim-tree1
+	make INDELRATE=0.028 gp120sim-sym1
+	make INDELRATE=0.028 gp120sim-tree2
+	make INDELRATE=0.028 gp120sim-sym2
+	make INDELRATE=0.028 gp120sim-tree5
+	make INDELRATE=0.028 gp120sim-sym5
+	make INDELRATE=0.056 gp120sim-tree2
+	make INDELRATE=0.056 gp120sim-sym2
+	make INDELRATE=0.056 gp120sim-tree5
+	make INDELRATE=0.056 gp120sim-sym5
+	make results.pdf
+
+results.pdf:
+	R -f bin/plotresults.R
 
 # keep intermediates
 .SECONDARY:
