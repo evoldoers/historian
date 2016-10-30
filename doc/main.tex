@@ -33,13 +33,13 @@ The previous best tool for this purpose was ProtPal,
 but this tool was too slow for practical use.
 {\bf Results.}
 Historian combines an efficient reimplementation of the ProtPal algorithm with performance-improving heuristics from other alignment tools.
-Simulation results on fidelity of ancestral sequence reconstruction,
-along with evaluations on the structurally-informed dataset BAliBase 3.0,
-recommend Historian for evolutionary applications.
+Simulation results on fidelity of rate estimation via ancestral reconstruction,
+along with evaluations on the structurally-informed alignment dataset BAliBase 3.0,
+recommend Historian over other alignment tools for evolutionary applications.
 {\bf Availability and Implementation.}
 Historian is available at \url{https://github.com/ihh/indelhistorian} under the Creative Commons Attribution 3.0 US license.
 {\bf Contact.}
-Ian Holmes {\tt ihholmes+indelhistorian@gmail.com}.
+Ian Holmes {\tt ihholmes+historian@gmail.com}.
 {\bf Supplementary Information.}
 None.
 }
@@ -134,6 +134,7 @@ and using the posterior counts to weight the phylo-EM updates.
     For each method evaluated, the distribution of the ratio of inferred to true
     indel rate is shown, along with the mean and root-mean-squared error for this
     ratio (which, for a perfect rate inference, would be equal to 1).
+    Tool versions are as shown in Table~1.
   }
 \end{figure}
 
@@ -235,8 +236,8 @@ Muscle v3.8.31 & 1.9s \\
 \end{table}
 
 As noted in Table~2, some of the results were taken from the Muscle website, {\tt drive5.com/bench/} \citep{Edgar2010}.
-To make a direct comparison of runtimes, we re-ran the benchmarks for Prank and Muscle on the same machine as the Historian benchmark.
-These runtimes are summarized in Table~3: Historian is an order of magnitude slower than Muscle, but an order of magnitude faster than Prank.
+To make a direct comparison of runtimes, we re-ran the benchmarks for Prank and Muscle on the same CPU as the Historian benchmark (Intel Xeon 3.20GHz).
+The runtimes are summarized in Table~3: Historian is an order of magnitude slower than Muscle, but an order of magnitude faster than Prank.
 Re-running Prank and Muscle resulted in a slight improvement for Prank
 and a slight deterioration for Muscle compared to the {\tt drive5.com} data,
 presumably due to versioning issues
@@ -272,8 +273,13 @@ Incorporating additional data such as structural annotations may further improve
 
 \section{Availability}
 
-Historian is available at \url{github.com/ihh/indelhistorian} under the CC BY 3.0 US license. It is written in C++11, compiles on a POSIX system with Clang (v.6.1.0) and requires several free libaries (libgsl, libz and Boost).
-The simulation data reported in this paper are available at \url{github.com/ihh/gp120sim}.
+Historian is available at \url{github.com/ihh/indelhistorian} under the CC BY 3.0 US license.
+Precompiled binaries for Linux or OSX are available.
+The program may also be compiled from the C++11 source
+on a POSIX system with Clang (v.6.1.0) and several free libaries (libgsl, libz and Boost).
+Makefiles to reproduce the analyses reported in this paper
+are included in the repository, and the simulation data
+are available at \url{github.com/ihh/gp120sim}.
 
 \section*{Acknowledgements}
 

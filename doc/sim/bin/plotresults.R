@@ -29,11 +29,11 @@ simplot <- function(method,title) {
 		       axis.ticks.y=element_blank()))
 }
 
-ma <- simplot("ma.tree","True alignment")
-prank <- simplot("prank","Prank")
-hist <- simplot("histslow","Historian")
-prob <- simplot("probcons","ProbCons")
-muscle <- simplot("muscle","Muscle")
+ma <- simplot("ma.tree","(a) True alignment")
+hist <- simplot("histslow","(b) Historian")
+prank <- simplot("prank","(c) Prank")
+prob <- simplot("probcons","(d) ProbCons")
+muscle <- simplot("muscle","(e) Muscle")
 
 g <- arrangeGrob(ma,hist,prank,prob,muscle,ncol=1)
 ggsave("results.pdf",g)
