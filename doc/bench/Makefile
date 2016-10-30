@@ -1,0 +1,171 @@
+
+MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+HISTDIR := $(MAKEDIR)/../..
+
+HISTPROG = $(HISTDIR)/bin/historian
+HISTARGS = -v3 -output fasta -noancs
+HISTORIAN = $(HISTPROG) $(HISTARGS)
+
+QSCORE = qscore/qscore
+
+PROT1 = $(HISTDIR)/models/prot1.json
+PROT3 = $(HISTDIR)/models/prot3.json
+PROT4 = $(HISTDIR)/models/prot4.json
+PROT14 = $(HISTDIR)/models/prot1-4.json
+
+ALL_FILES = $(notdir $(wildcard in/*))
+
+# top level
+METHOD ?= nj
+ALL = $(addprefix historian/$(METHOD)/qscore/,$(ALL_FILES))
+
+all: $(ALL)
+
+DOT = $(addprefix historian/dot/,$(ALL_FILES))
+dot:
+	make $(DOT)
+
+# Download benchmark & qscore
+bench1.0:
+	curl -O http://www.drive5.com/bench/bench.tar.gz
+	tar xvzf bench.tar.gz
+	cp Makefile $@
+
+$(QSCORE):
+	test -e qscore || mkdir qscore
+	cd qscore; curl -O http://www.drive5.com/qscore/qscore_src.tar.gz
+	cd qscore; tar xvzf qscore_src.tar.gz; make
+
+# convenient pseudotarget
+%: historian/$(METHOD)/qscore/%
+	 make METHOD=$(METHOD) historian/$(METHOD)/qscore/$@
+
+# directories
+historian/$(METHOD)/align historian/$(METHOD)/qscore historian/$(METHOD)/guide historian/$(METHOD)/params historian/dot:
+	mkdir -p $@
+
+# qscore
+historian/$(METHOD)/qscore/%: historian/$(METHOD)/align/% historian/$(METHOD)/qscore
+	$(QSCORE) -seqdiffwarn -ignoremissingseqs -ignoretestcase -test historian/$(METHOD)/align/$* -ref ref/$* -truncname -quiet >$@
+
+# refine
+historian/refine/align/%: in/% historian/refine/align
+	$(HISTORIAN) in/$* -model $(PROT1) -refine >$@
+
+# nj
+historian/nj/align/%: in/% historian/nj/align
+	$(HISTORIAN) in/$* -model $(PROT1) -refine -nj >$@
+
+# fit
+historian/fit/align/%: in/% historian/fit/align historian/fit/guide historian/fit/params
+	$(HISTPROG) in/$* -nj -v3 >historian/fit/guide/$*
+	$(HISTPROG) fit -v3 -model $(PROT1) -fixsubrates -stockholm historian/fit/guide/$* >historian/fit/params/$*
+	$(HISTORIAN) -model historian/fit/params/$* -stockholm historian/fit/guide/$* -norefine >historian/fit/align/$*
+
+# mcmc
+historian/mcmc/align/%: in/% historian/mcmc/align
+	$(HISTORIAN) in/$* -model $(PROT1) -refine -mcmc >$@
+
+# prot3
+historian/prot3/align/%: in/% historian/prot3/align
+	$(HISTORIAN) in/$* -refine -nj -model $(PROT3) >$@
+
+# prot4
+historian/prot4/align/%: in/% historian/prot4/align
+	$(HISTORIAN) in/$* -refine -nj -model $(PROT4) >$@
+
+# prot14
+historian/prot1-4/align/%: in/% historian/prot1-4/align
+	$(HISTORIAN) in/$* -refine -nj -model $(PROT14) >$@
+
+# fit4
+historian/fit4/align/%: in/% historian/fit4/align historian/fit4/guide historian/fit4/params
+	$(HISTPROG) in/$* -nj -v3 >historian/fit4/guide/$*
+	$(HISTPROG) fit -v3 -model $(PROT4) -fixsubrates -stockholm historian/fit4/guide/$* >historian/fit4/params/$*
+	$(HISTORIAN) -model historian/fit4/params/$* -stockholm historian/fit4/guide/$* >historian/fit4/align/$*
+
+# wag
+historian/wag/align/%: in/% historian/wag/align
+	$(HISTORIAN) in/$* -refine -nj -preset wag >$@
+
+# lg
+historian/lg/align/%: in/% historian/lg/align
+	$(HISTORIAN) in/$* -refine -nj -preset lg >$@
+
+# wag4
+historian/wag4/align/%: in/% historian/wag4/align
+	$(HISTORIAN) in/$* -refine -nj -preset wag -gamma 4 >$@
+
+# lg4
+historian/lg4/align/%: in/% historian/lg4/align
+	$(HISTORIAN) in/$* -refine -nj -preset lg -gamma 4 >$@
+
+# dot
+historian/dot/%: in/% historian/dot
+	$(HISTORIAN) in/$* -savedot $@
+
+# table
+GETMEANS = perl -e 'use List::Util qw(sum);my(@q,@tc);while(<>){if(/Q=([\d\.]+);TC=([\d\.]+)/){push@q,$$1;push@tc,$$2}}print" & ",sum(@q)/@q," & ",sum(@tc)/@tc'
+table.tex:
+	@echo "IndelHistorian"
+	@cat bali3/historian/nj/qscore/* | $(GETMEANS)
+#	@cat prefab4/historian/nj/qscore/* | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "IndelHistorian (WAG)"
+	@cat bali3/historian/wag/qscore/* | $(GETMEANS)
+#	@cat prefab4/historian/wag/qscore/* | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "IndelHistorian (LG)"
+	@cat bali3/historian/lg/qscore/* | $(GETMEANS)
+#	@cat prefab4/historian/lg/qscore/* | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "CLUSTALW"
+	@cat bali3/qscore/clw | $(GETMEANS)
+#	@cat prefab4/qscore/clw | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "PRANK +F, CLUSTALW tree"
+	@cat bali3/qscore/prankfclwtree | $(GETMEANS)
+#	@cat prefab4/qscore/prankfclwtree | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "MUSCLE v4.0"
+	@cat bali3/qscore/mus4 | $(GETMEANS)
+#	@cat prefab4/qscore/mus4 | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "MAFFT v6.603"
+	@cat bali3/qscore/mafft6.603einsi | $(GETMEANS)
+#	@cat prefab4/qscore/mafft6.603einsi | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "ProbCons 1.12"
+	@cat bali3/qscore/pc1.12 | $(GETMEANS)
+#	@cat prefab4/qscore/pc1.12 | $(GETMEANS)
+	@echo " \\\\\\\\"
+
+
+
+# Muscle
+MUSCLE := muscle
+
+ALLMUSCLE = $(addprefix muscle/qscore/,$(ALL_FILES))
+
+allmuscle: $(ALLMUSCLE)
+
+muscle/qscore/%: in/%
+	$(MUSCLE) -in in/$* >muscle/align/$*
+	$(QSCORE) -seqdiffwarn -ignoremissingseqs -ignoretestcase -test muscle/align/$* -ref ref/$* -truncname -quiet >muscle/qscore/$*
+
+
+# Prank
+
+PRANK := prank
+
+ALLPRANK = $(addprefix prank/qscore/,$(ALL_FILES))
+
+allprank: $(ALLPRANK)
+
+prank/qscore/%: in/%
+	$(PRANK) -d=in/$* -noxml -realbranches -writeanc -o=prank/output/$* +F
+	cp prank/output/$*.1.fas prank/align/$*
+	$(QSCORE) -seqdiffwarn -ignoremissingseqs -ignoretestcase -test prank/align/$* -ref ref/$* -truncname -quiet >prank/qscore/$*
+
+# don't delete intermediate files
+.SECONDARY:

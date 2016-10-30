@@ -2,6 +2,7 @@
 # Installation
 
 MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+HISTDIR := $(MAKEDIR)/../..
 
 progs: bin/prank bin/muscle bin/probcons bin/historian bin/qscore
 	rm *.tar.gz *.tgz
@@ -23,8 +24,8 @@ bin/probcons:
 	mv probcons/probcons $@
 
 bin/historian:
-	cd ../..; make historian
-	cp ../../bin/historian $@
+	cd $(HISTDIR); make historian
+	cp $(HISTDIR)/bin/historian $@
 
 bin/qscore:
 	test -e qscore || mkdir qscore
@@ -38,10 +39,10 @@ bin/qscore:
 
 # First estimate rough parameters of indel evolution on GP120 tree
 gp120.json:
-	bin/historian fit ../../data/gp120.fa >$@
+	bin/historian fit $(HISTDIR)/data/gp120.fa >$@
 
 gp120.recon.fa: gp120.json
-	bin/historian ../../data/gp120.fa -model gp120.json >$@
+	bin/historian $(HISTDIR)/data/gp120.fa -model gp120.json >$@
 
 # Simulation model parameters
 PRESET ?= dayhoff
@@ -53,7 +54,7 @@ SEQLEN := 500
 SIMPARAMS := simparams.txt
 
 RATEDIR := gp120sim/rate$(INDELRATE)
-GP120TREE := ../../data/gp120.tree.nh
+GP120TREE := $(HISTDIR)/data/gp120.tree.nh
 SYM8TREE  := sym8tree.nh
 GUIDETREE := tree.nh
 
@@ -74,10 +75,10 @@ $(RATEDIR)/%.ma.stk:
 	bin/historian generate -seed `perl -e 'srand($(notdir $*));print int(rand()*0xffffffff)'` `cat $(dir $@)$(SIMPARAMS)` $(dir $@)$(GUIDETREE) -rootlen $(SEQLEN) -savemodel $(RATEDIR)/$*.sim.json >$@
 
 %.ma: %.ma.stk
-	../../perl/stockholm2fasta.pl -g $< >$@
+	$(HISTDIR)/perl/stockholm2fasta.pl -g $< >$@
 
 %.seq: %.ma.stk
-	../../perl/stockholm2fasta.pl $< >$@
+	$(HISTDIR)/perl/stockholm2fasta.pl $< >$@
 
 %.leaf: %.seq
 	cat $< | perl -e 'while(<>){if(/^>.*/){$$n=$$_}print if$$n && !($$n=~/^>node\d+\s*$$/)}' >$@
@@ -113,10 +114,7 @@ $(RATEDIR)/%.ma.stk:
 	bin/historian fit -fixsubrates -model $*.hist.json -stockrecon $*.histfit.stk -v3 >$@
 
 %.histfit.fa: %.histfit.stk
-	../../perl/stockholm2fasta.pl -g $< >$@
-
-%.hist2.json: %.histfit.fa
-	bin/historian fit -fixsubrates -model $*.hist.json -guide $*.histfit.fa -v3 >$@
+	$(HISTDIR)/perl/stockholm2fasta.pl -g $< >$@
 
 %.histprk.stk: %.leaf
 	bin/historian recon -preset wag -gaprate .005 -gapextprob .5 -keepgapsopen $*.leaf -v3 >$@
@@ -143,7 +141,7 @@ $(RATEDIR)/%.ma.stk:
 	cp $*.prankout.1.fas $*.prank
 	bin/historian fit -fixsubrates -band 1 $*.prank >$@
 
-ALLMETHODS := ma ma.tree hist histrec histref histslow histfit hist2 histprk histrand muscle probcons prank
+ALLMETHODS := ma ma.tree hist histrec histref histslow histfit histprk histrand muscle probcons prank
 ALLJSON := $(addprefix %.,$(addsuffix .json,$(ALLMETHODS)))
 
 %.summary: $(ALLJSON)
@@ -154,6 +152,9 @@ ALLJSON := $(addprefix %.,$(addsuffix .json,$(ALLMETHODS)))
 REPS ?= 100
 %/1-$(REPS).summary:
 	bin/summary.js "$(ALLMETHODS)" $* >$@
+
+gp120sim/all.1-$(REPS).summary:
+	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/*) >$@
 
 gp120sim/alltree.1-$(REPS).summary:
 	bin/summary.js "$(ALLMETHODS)" $* $(wildcard gp120sim/rate*/tree*) >$@

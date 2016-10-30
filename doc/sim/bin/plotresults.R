@@ -1,8 +1,12 @@
+#!/usr/bin/env R
+
 install.packages("ggplot2")
 install.packages("gridExtra")
 library(ggplot2)
 library(gridExtra)
 
+rms.sym <- read.csv(file="gp120sim/allsym.1-100.summary",sep=" ")
+rms.tree <- read.csv(file="gp120sim/alltree.1-100.summary",sep=" ")
 data.raw <- read.csv(file="gp120sim/results.1-100.dat",sep=" ")
 
 data <- data.raw[data$tree="tree"]
