@@ -39,10 +39,10 @@ bin/qscore:
 
 # First estimate rough parameters of indel evolution on GP120 tree
 gp120.json:
-	bin/historian fit $(HISTDIR)/data/gp120.fa >$@
+	bin/historian -fast fit $(HISTDIR)/data/gp120.fa >$@
 
 gp120.recon.fa: gp120.json
-	bin/historian $(HISTDIR)/data/gp120.fa -model gp120.json >$@
+	bin/historian -fast $(HISTDIR)/data/gp120.fa -model gp120.json >$@
 
 # Simulation model parameters
 PRESET ?= dayhoff
@@ -84,62 +84,62 @@ $(RATEDIR)/%.ma.stk:
 	cat $< | perl -e 'while(<>){if(/^>.*/){$$n=$$_}print if$$n && !($$n=~/^>node\d+\s*$$/)}' >$@
 
 %.ma.json: %.leaf
-	bin/historian fit -fixsubrates -band 1 $*.ma >$@
+	bin/historian fit -fast -fixsubrates -band 1 $*.ma >$@
 
 %.ma.tree.json: %.leaf
-	bin/historian fit -fixsubrates -band 1 $*.ma -tree $(dir $@)/tree.nh >$@
+	bin/historian fit -fast -fixsubrates -band 1 $*.ma -tree $(dir $@)/tree.nh >$@
 
 %.hist.json: %.leaf
-	bin/historian fit -fixsubrates $*.leaf -v3 >$@
+	bin/historian fit -fast -fixsubrates $*.leaf -v3 >$@
 
 %.histslow.json: %.leaf
 	bin/historian fit -fixsubrates -profminpost .001 -profmaxstates 12000 $*.leaf -v3 >$@
 
 %.histrec.stk: %.leaf
-	bin/historian recon -norefine $*.leaf -v3 >$@
+	bin/historian recon -fast -norefine $*.leaf -v3 >$@
 
 %.histrec.json: %.histrec.stk
-	bin/historian fit -fixsubrates -stockrecon $*.histrec.stk -v3 >$@
+	bin/historian fit -fast -fixsubrates -stockrecon $*.histrec.stk -v3 >$@
 
 %.histref.stk: %.leaf
-	bin/historian recon -refine $*.leaf -v3 >$@
+	bin/historian recon -fast -refine $*.leaf -v3 >$@
 
 %.histref.json: %.histref.stk
-	bin/historian fit -fixsubrates -stockrecon $*.histref.stk -v3 >$@
+	bin/historian fit -fast -fixsubrates -stockrecon $*.histref.stk -v3 >$@
 
 %.histfit.stk: %.hist.json
-	bin/historian recon -model $*.hist.json $*.leaf -v3 >$@
+	bin/historian recon -fast -model $*.hist.json $*.leaf -v3 >$@
 
 %.histfit.json: %.histfit.stk
-	bin/historian fit -fixsubrates -model $*.hist.json -stockrecon $*.histfit.stk -v3 >$@
+	bin/historian fit -fast -fixsubrates -model $*.hist.json -stockrecon $*.histfit.stk -v3 >$@
 
 %.histfit.fa: %.histfit.stk
 	$(HISTDIR)/perl/stockholm2fasta.pl -g $< >$@
 
 %.histprk.stk: %.leaf
-	bin/historian recon -preset wag -gaprate .005 -gapextprob .5 -keepgapsopen $*.leaf -v3 >$@
+	bin/historian recon -fast -preset wag -gaprate .005 -gapextprob .5 -keepgapsopen $*.leaf -v3 >$@
 
 %.histprk.json: %.histprk.stk
-	bin/historian fit -preset wag -gaprate .005 -gapextprob .5 -fixsubrates -stockrecon $< -v3 >$@
+	bin/historian fit -fast -preset wag -gaprate .005 -gapextprob .5 -fixsubrates -stockrecon $< -v3 >$@
 
 %.histrand.stk: %.hist.json
-	bin/historian recon -model $*.hist.json -profsamples 100 $*.leaf -v3 >$@
+	bin/historian recon -fast -model $*.hist.json -profsamples 100 $*.leaf -v3 >$@
 
 %.histrand.json: %.histrand.stk
-	bin/historian fit -fixsubrates -model $*.hist.json -stockrecon $< -v3 >$@
+	bin/historian fit -fast -fixsubrates -model $*.hist.json -stockrecon $< -v3 >$@
 
 %.muscle.json: %.leaf
 	bin/muscle -in $*.leaf >$*.muscle
-	bin/historian fit -fixsubrates -band 1 $*.muscle >$@
+	bin/historian fit -fast -fixsubrates -band 1 $*.muscle >$@
 
 %.probcons.json: %.leaf
 	bin/probcons $*.leaf >$*.probcons
-	bin/historian fit -fixsubrates -band 1 $*.probcons >$@
+	bin/historian fit -fast -fixsubrates -band 1 $*.probcons >$@
 
 %.prank.json: %.leaf
 	bin/prank -d=$*.leaf -noxml -realbranches -writeanc -o=$*.prankout +F
 	cp $*.prankout.1.fas $*.prank
-	bin/historian fit -fixsubrates -band 1 $*.prank >$@
+	bin/historian fit -fast -fixsubrates -band 1 $*.prank >$@
 
 ALLMETHODS := ma ma.tree hist histrec histref histslow histfit histprk histrand muscle probcons prank
 ALLJSON := $(addprefix %.,$(addsuffix .json,$(ALLMETHODS)))

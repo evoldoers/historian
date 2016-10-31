@@ -27,10 +27,12 @@ const regex newick_re (RE_WHITE_OR_EMPTY "\\(" RE_DOT_STAR);  // '('
 const regex json_re (RE_WHITE_OR_EMPTY "\\{" RE_DOT_STAR);    // '{'
 
 const vguard<string> Reconstructor::fastAliasArgs = ReconFastAliasArgs;
+const vguard<string> Reconstructor::fasterAliasArgs = ReconFasterAliasArgs;
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
-    profileNodeLimit (defaultMaxProfileStates()),
+    profileNodeLimit (DefaultProfileMaxStates),
+    maxDPMemoryFraction (DefaultMaxDPMemoryFraction),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     tokenizeCodons (false),
@@ -68,8 +70,8 @@ Reconstructor::Reconstructor()
     normalizeModel (false)
 { }
 
-int Reconstructor::defaultMaxProfileStates() {
-  return sqrt (DefaultMaxDPMemoryFraction * getMemorySize() / DPMatrix::cellSize());
+int Reconstructor::maxProfileStates() const {
+  return profileNodeLimit ? (int) profileNodeLimit : (int) sqrt (maxDPMemoryFraction * getMemorySize() / DPMatrix::cellSize());
 }
 
 bool Reconstructor::parseAncSeqArgs (deque<string>& argvec) {
@@ -377,6 +379,14 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-profmaxmem") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      maxDPMemoryFraction = atof (argvec[1].c_str()) / 100;
+      profileNodeLimit = 0;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-nobest") {
       includeBestTraceInProfile = false;
       argvec.pop_front();
@@ -391,6 +401,12 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       argvec.pop_front();
       for (auto fastArgIter = fastAliasArgs.rbegin(); fastArgIter != fastAliasArgs.rend(); ++fastArgIter)
 	argvec.push_front (*fastArgIter);
+      return true;
+
+    } else if (arg == "-faster") {
+      argvec.pop_front();
+      for (auto fasterArgIter = fasterAliasArgs.rbegin(); fasterArgIter != fasterAliasArgs.rend(); ++fasterArgIter)
+	argvec.push_front (*fasterArgIter);
       return true;
 
     } else if (arg == "-rndspan") {
@@ -943,9 +959,9 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	  nodeProf = forward->bestProfile();
 	}
       } else if (usePosteriorsForProfile)
-	nodeProf = backward->postProbProfile (minPostProb, profileNodeLimit, strategy);
+	nodeProf = backward->postProbProfile (minPostProb, maxProfileStates(), strategy);
       else
-	nodeProf = forward->sampleProfile (generator, profileSamples, profileNodeLimit, strategy);
+	nodeProf = forward->sampleProfile (generator, profileSamples, maxProfileStates(), strategy);
 
       if ((accumulateSubstCounts || accumulateIndelCounts) && node == dataset.tree.root())
 	dataset.eigenCounts = backward->getCounts();

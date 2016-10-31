@@ -290,10 +290,10 @@ sensitivity vs performance.
 
   -profminpost &lt;P&gt;, -profsamples &lt;N&gt;
                   Specify minimum posterior prob. (P) for retaining DP states
-                   in profile (default .01), or sample N traces randomly
-  -profmaxstates &lt;S&gt;
-                  Limit profile to at most S states
-                   (default uses at most 5% of memory for DP matrix)
+                   in profile (default .001), or sample N traces randomly
+  -profmaxstates &lt;S&gt;, -profmaxmem &lt;M&gt;
+                  Limit profile to at most S states, or to use at most M% of
+                   memory for DP matrix (default is -profmaxstates 12000)
 
 Following alignment, ancestral sequence reconstruction can be performed.
 
@@ -344,7 +344,10 @@ distance matrix method. By default this is neighbor-joining.
 If you are confident the guide alignment & tree should be reasonably obvious,
 and just want to get on to reconstruction as quickly as possible:
 
-  -fast           Shorthand for the following options:
+  -fast           Run fast. Shorthand for the following:
+                   -profminpost .01 -profmaxstates 5000
+
+  -faster         Run even faster. Shorthand for the following:
                    -rndspan -kmatchn 3 -band 10 -profmaxstates 1 -jc -norefine
 
 Model-fitting and event-counting options

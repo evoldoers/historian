@@ -207,27 +207,27 @@ testcountio: bin/testcountio
 	$(TEST) bin/testcountio data/testcount.count.json data/testcount.count.json
 
 testhist: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
 
 testcount: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
-	$(TEST) bin/$(MAIN) count -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
-	$(TEST) bin/$(MAIN) count -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
+	$(TEST) bin/$(MAIN) count -fast -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
+	$(TEST) bin/$(MAIN) count -fast -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
+	$(TEST) bin/$(MAIN) count -fast -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
 
 testsum: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) sum data/testcount.out.json data/testcount.out.json data/testcount.sum.json
 
 testgp120:
-	bin/$(MAIN) recon -norefine -guide data/gp120.guide.fa -tree data/gp120.tree.nh
+	bin/$(MAIN) recon -fast -norefine -guide data/gp120.guide.fa -tree data/gp120.tree.nh
 
 testpost:
-	bin/$(MAIN) post -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
+	bin/$(MAIN) post -fast -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
 
 # Rules for building files in the repository
 # For updating README.md

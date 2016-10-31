@@ -50,59 +50,63 @@ historian/$(METHOD)/qscore/%: historian/$(METHOD)/align/% historian/$(METHOD)/qs
 
 # refine
 historian/refine/align/%: in/% historian/refine/align
-	$(HISTORIAN) in/$* -model $(PROT1) -refine >$@
+	$(HISTORIAN) -fast in/$* -model $(PROT1) -refine >$@
 
 # nj
 historian/nj/align/%: in/% historian/nj/align
-	$(HISTORIAN) in/$* -model $(PROT1) -refine -nj >$@
+	$(HISTORIAN) -fast in/$* -model $(PROT1) -refine -nj >$@
 
 # fit
 historian/fit/align/%: in/% historian/fit/align historian/fit/guide historian/fit/params
-	$(HISTPROG) in/$* -nj -v3 >historian/fit/guide/$*
-	$(HISTPROG) fit -v3 -model $(PROT1) -fixsubrates -stockholm historian/fit/guide/$* >historian/fit/params/$*
-	$(HISTORIAN) -model historian/fit/params/$* -stockholm historian/fit/guide/$* -norefine >historian/fit/align/$*
+	$(HISTPROG) -fast in/$* -nj -v3 >historian/fit/guide/$*
+	$(HISTPROG) -fast fit -v3 -model $(PROT1) -fixsubrates -stockholm historian/fit/guide/$* >historian/fit/params/$*
+	$(HISTORIAN) -fast -model historian/fit/params/$* -stockholm historian/fit/guide/$* -norefine >historian/fit/align/$*
 
 # mcmc
 historian/mcmc/align/%: in/% historian/mcmc/align
-	$(HISTORIAN) in/$* -model $(PROT1) -refine -mcmc >$@
+	$(HISTORIAN) -fast in/$* -model $(PROT1) -refine -mcmc >$@
 
 # prot3
 historian/prot3/align/%: in/% historian/prot3/align
-	$(HISTORIAN) in/$* -refine -nj -model $(PROT3) >$@
+	$(HISTORIAN) -fast in/$* -refine -nj -model $(PROT3) >$@
 
 # prot4
 historian/prot4/align/%: in/% historian/prot4/align
-	$(HISTORIAN) in/$* -refine -nj -model $(PROT4) >$@
+	$(HISTORIAN) -fast in/$* -refine -nj -model $(PROT4) >$@
 
 # prot14
 historian/prot1-4/align/%: in/% historian/prot1-4/align
-	$(HISTORIAN) in/$* -refine -nj -model $(PROT14) >$@
+	$(HISTORIAN) -fast in/$* -refine -nj -model $(PROT14) >$@
 
 # fit4
 historian/fit4/align/%: in/% historian/fit4/align historian/fit4/guide historian/fit4/params
-	$(HISTPROG) in/$* -nj -v3 >historian/fit4/guide/$*
-	$(HISTPROG) fit -v3 -model $(PROT4) -fixsubrates -stockholm historian/fit4/guide/$* >historian/fit4/params/$*
-	$(HISTORIAN) -model historian/fit4/params/$* -stockholm historian/fit4/guide/$* >historian/fit4/align/$*
+	$(HISTPROG) -fast in/$* -nj -v3 >historian/fit4/guide/$*
+	$(HISTPROG) -fast fit -v3 -model $(PROT4) -fixsubrates -stockholm historian/fit4/guide/$* >historian/fit4/params/$*
+	$(HISTORIAN) -fast -model historian/fit4/params/$* -stockholm historian/fit4/guide/$* >historian/fit4/align/$*
 
 # wag
 historian/wag/align/%: in/% historian/wag/align
-	$(HISTORIAN) in/$* -refine -nj -preset wag >$@
+	$(HISTORIAN) -fast in/$* -refine -nj -preset wag >$@
 
 # lg
 historian/lg/align/%: in/% historian/lg/align
+	$(HISTORIAN) -fast in/$* -refine -nj -preset lg >$@
+
+# lg, slow
+historian/lgslow/align/%: in/% historian/lgslow/align
 	$(HISTORIAN) in/$* -refine -nj -preset lg >$@
 
 # wag4
 historian/wag4/align/%: in/% historian/wag4/align
-	$(HISTORIAN) in/$* -refine -nj -preset wag -gamma 4 >$@
+	$(HISTORIAN) -fast in/$* -refine -nj -preset wag -gamma 4 >$@
 
 # lg4
 historian/lg4/align/%: in/% historian/lg4/align
-	$(HISTORIAN) in/$* -refine -nj -preset lg -gamma 4 >$@
+	$(HISTORIAN) -fast in/$* -refine -nj -preset lg -gamma 4 >$@
 
 # dot
 historian/dot/%: in/% historian/dot
-	$(HISTORIAN) in/$* -savedot $@
+	$(HISTORIAN) -fast in/$* -savedot $@
 
 # table
 GETMEANS = perl -e 'use List::Util qw(sum);my(@q,@tc);while(<>){if(/Q=([\d\.]+);TC=([\d\.]+)/){push@q,$$1;push@tc,$$2}}print" & ",sum(@q)/@q," & ",sum(@tc)/@tc'

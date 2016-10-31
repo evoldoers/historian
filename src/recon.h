@@ -11,7 +11,8 @@
 #include "sampler.h"
 
 #define DefaultProfileSamples 100
-#define DefaultProfilePostProb .01
+#define DefaultProfilePostProb .001
+#define DefaultProfileMaxStates 12000
 #define DefaultMaxDPMemoryFraction .05
 
 #define DefaultMaxDistanceFromGuide 40
@@ -22,7 +23,8 @@
 
 #define AncestralSequencePostProbTag "PP"
 
-#define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc","-norefine"}
+#define ReconFastAliasArgs {"-profminpost",".01","-profmaxstates","5000"}
+#define ReconFasterAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc","-norefine"}
 
 #define DefaultSimulatorRootSeqLen 100
 
@@ -31,6 +33,7 @@ public:
   typedef AlignColSumProduct::ReconPostProbMap ReconPostProbMap;
 
   static const vguard<string> fastAliasArgs;
+  static const vguard<string> fasterAliasArgs;
   
   string fastaReconFilename, treeFilename, modelFilename, presetModelName;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames, simulatorTreeFilenames;
@@ -39,7 +42,7 @@ public:
   size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
   int maxDistanceFromGuide, simulatorRootSeqLen, gammaCategories;
   bool tokenizeCodons, guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, refineReconstruction, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC, fixTreeMCMC, outputLeavesOnly, normalizeModel;
-  double minPostProb, minEMImprovement, minDotPostProb, minDotSubPostProb, gammaShape;
+  double minPostProb, maxDPMemoryFraction, minEMImprovement, minDotPostProb, minDotSubPostProb, gammaShape;
   typedef enum { FastaFormat, GappedFastaFormat, NexusFormat, StockholmFormat, NewickFormat, JsonFormat, UnknownFormat } FileFormat;
   FileFormat outputFormat;
   ofstream* guideFile;
@@ -142,7 +145,7 @@ public:
 
   static FileFormat detectFormat (const string& filename);
 
-  static int defaultMaxProfileStates();
+  int maxProfileStates() const;
   
 private:
   Dataset& newDataset();
