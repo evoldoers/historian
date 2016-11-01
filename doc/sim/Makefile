@@ -171,7 +171,7 @@ gp120sim/allsym.1-$(REPS).summary:
 gp120sim/results.1-$(REPS).dat:
 	bin/results.js .1 2 false "$(ALLMETHODS)" $(wildcard gp120sim/rate*/*) >$@
 
-gp120sim/together.1-$(REPS).dat:
+gp120sim/quartiles.1-$(REPS).dat:
 	bin/results.js .1 2 true "$(ALLMETHODS)" $(wildcard gp120sim/rate*/*) >$@
 
 allsummary: $(addsuffix /1-$(REPS).summary,$(wildcard gp120sim/rate*/*))
@@ -198,6 +198,11 @@ sim1:
 	make INDELRATE=0.056 gp120sim-sym2
 	make INDELRATE=0.056 gp120sim-tree5
 	make INDELRATE=0.056 gp120sim-sym5
+	make gp120sim/results.1-$(REPS).dat
+	make gp120sim/quartiles.1-$(REPS).dat
+	make gp120sim/all.1-$(REPS).summary
+	make gp120sim/allsym.1-$(REPS).summary
+	make gp120sim/alltree.1-$(REPS).summary
 	make results.pdf
 
 results.pdf:

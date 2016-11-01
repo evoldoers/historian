@@ -116,12 +116,16 @@ can also estimate rates in an ``alignment-free'' way (i.e. summing over alignmen
 simply by running the Forward-Backward algorithm on this HMM,
 and using the posterior counts to weight the phylo-EM updates.
 
+The principal parameter determining Historian's execution speed is the number of suboptimal alignments
+it retains while building the progressive ancestral reconstruction. Historian provides a command-line option {\tt -fast} which substantially reduces this number of alignments.
+We here report results for both default- and fast-mode operation.
+
 \end{methods}
 
 \section{Results and Discussion}
 
 \begin{figure}
-  \includegraphics[width=\columnwidth]{gp120tree.pdf}
+  \includegraphics[width=.8\columnwidth]{gp120tree.pdf}
   \caption{
     Tree of selected HIV and SIV GP120 domains, used for the simulation benchmark.
   }
@@ -132,8 +136,12 @@ and using the posterior counts to weight the phylo-EM updates.
   \caption{
     Results of the simulation benchmark.
     For each method evaluated, the distribution of the ratio of inferred to true
-    indel rate is shown, along with the mean and root-mean-squared error for this
-    ratio (which, for a perfect rate inference, would be equal to 1).
+    indel rate is shown; for a perfect rate inference, this ratio would be equal to 1.
+    The mean of the ratio is also shown; this represents the the systematic error,
+    so e.g. using Muscle results in a systematic 15\% underestimate of indels
+    in these simulations.
+    The root-mean-squared value of the ratio is also shown,
+    and the median and interquartile range are annotated above each plot.
     Tool versions are as shown in Table~1.
   }
 \end{figure}
@@ -159,9 +167,9 @@ or to Prank (which uses the WAG matrix).
 
 From the simulated sequence data, we estimated indel rates
 (a) using the true evolutionary alignment (supplied to Historian);
-(b) using Historian (in alignment-free mode);
+(b,c) using Historian (alignment-free, default and fast modes);
 and
-(c,d,e) using Prank, ProbCons and Muscle,
+(d,e,f) using Prank, ProbCons and Muscle,
 the best-performing tools from the ProtPal benchmark \citep{Westesson2012-zg}.
 In each case, we estimated insertion and deletion rates $(\hat{\lambda},\hat{\mu})$ and computed relative errors $(\frac{\hat{\lambda}-\lambda}{\lambda},\frac{\hat{\mu}-\mu}{\mu})$
 compared to the simulated indel rates.
@@ -176,7 +184,7 @@ we repeated the simulation, varying the rate parameters
 \sigma=5,\lambda=\mu=0.01$)
 while still using the tree of Figure~1.
 Varying rate parameters did not appear
-significantly to affect the ranking of the programs by accuracy.
+significantly to affect the ranking of the programs.
 
 The results of this experiment are summarized in Figure~2.
 Note that even perfect knowledge of the true evolutionary alignment does not guarantee perfect reconstruction of the underlying indel rate parameters.
@@ -187,6 +195,7 @@ of estimated rates from individual alignments.
 Historian and Prank (which both explicitly aim to provide ancestral reconstructions)
 are the most accurate methods for rate estimation,
 with a slight edge over ProbCons and Muscle.
+Historian's default mode has a slight edge over its fast mode in rate estimation accuracy.
 
 As well as varying the rate parameters,
 we also repeated the benchmark on a symmetric 8-taxon binary tree.
@@ -195,18 +204,20 @@ Historian and Prank are still comparable (with a slight edge to Prank in the
 symmetric tree, {\em versus} Historian in the GP120 tree),
 followed by ProbCons, followed by Muscle.
 As with the tree of Figure~1,
-varying rate parameters did not appear to change the ranking of the programs by accuracy.
+varying simulation parameters did not appear to change the ranking.
 
 \begin{table}
   \begin{tabular}{r|ccc}
     & Mean SPS & Mean TCS & Notes \\
     \hline
-Historian v1.0 & 0.82 & 0.50 & \\
-ClustalW & 0.79 & 0.45 & From {\tt drive5.com} \\
-Prank v.100701 & 0.78 & 0.44 \\
-%MAFFT & 0.87 & 0.61 \\
-ProbCons v1.12 & 0.88 & 0.62 & From {\tt drive5.com} \\
-Muscle v3.8.31 & 0.89 & 0.64 & 
+    Historian v1.0.2 & 0.822 & 0.497 & \\
+    (fast mode) & 0.820 & 0.494 & \\
+ClustalW & 0.787 & 0.447 & From {\tt drive5.com} \\
+Prank v.100701 & 0.784 & 0.441 \\
+%MAFFT & 0.873 & 0.607 \\
+ProbCons v1.12 & 0.883 & 0.619 & From {\tt drive5.com} \\
+Muscle v3.8.31 & 0.843 & 0.532 & \\
+Muscle v4.0 & 0.889 & 0.642 &  From {\tt drive5.com}
   \end{tabular}
   \caption{
     Comparison of Historian to other alignment programs using the BAliBase 3.0 benchmark
@@ -225,12 +236,14 @@ which also performs ancestral reconstruction \citep{LoytynojaGoldman2008}.
 Compared to leading protein aligners that do not attempt ancestral reconstruction,
 Historian outperforms ClustalW \citep{LarkinEtAl2007}, but not Muscle \citep{Edgar2004b}
 or ProbCons \citep{DoEtAl2005}. %, or MAFFT \citep{KatohEtAl2005}.
+No significant difference was found between Historian's default and fast modes.
 
 \begin{table}
   \begin{tabular}{r|c}
-    & Average run time per BAliBase 3.0 alignment \\
+    & Average run time per alignment \\
     \hline
-Historian v1.0 & 55s \\
+Historian v1.0.2 & 233s \\
+ (fast mode) & 55s \\
 Prank v.100701 & 520s \\
 Muscle v3.8.31 & 1.9s \\
 \end{tabular}
