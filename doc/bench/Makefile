@@ -1,6 +1,8 @@
 
-MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-HISTDIR := $(MAKEDIR)/../..
+#MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+MAKEDIR := .
+#HISTDIR := $(MAKEDIR)/../..
+HISTDIR := /Users/yam/indelhistorian
 
 HISTPROG = $(HISTDIR)/bin/historian
 HISTARGS = -v3 -output fasta -noancs
@@ -8,10 +10,10 @@ HISTORIAN = $(HISTPROG) $(HISTARGS)
 
 QSCORE = qscore/qscore
 
-PROT1 = $(HISTDIR)/models/prot1.json
-PROT3 = $(HISTDIR)/models/prot3.json
-PROT4 = $(HISTDIR)/models/prot4.json
-PROT14 = $(HISTDIR)/models/prot1-4.json
+PROT1 = $(HISTDIR)/model/prot1.json
+PROT3 = $(HISTDIR)/model/prot3.json
+PROT4 = $(HISTDIR)/model/prot4.json
+PROT14 = $(HISTDIR)/model/prot1-4.json
 
 ALL_FILES = $(notdir $(wildcard in/*))
 
@@ -48,19 +50,15 @@ historian/$(METHOD)/align historian/$(METHOD)/qscore historian/$(METHOD)/guide h
 historian/$(METHOD)/qscore/%: historian/$(METHOD)/align/% historian/$(METHOD)/qscore
 	$(QSCORE) -seqdiffwarn -ignoremissingseqs -ignoretestcase -test historian/$(METHOD)/align/$* -ref ref/$* -truncname -quiet >$@
 
-# refine
-historian/refine/align/%: in/% historian/refine/align
-	$(HISTORIAN) -fast in/$* -model $(PROT1) -refine >$@
-
 # nj
 historian/nj/align/%: in/% historian/nj/align
 	$(HISTORIAN) -fast in/$* -model $(PROT1) -refine -nj >$@
 
 # fit
 historian/fit/align/%: in/% historian/fit/align historian/fit/guide historian/fit/params
-	$(HISTPROG) -fast in/$* -nj -v3 >historian/fit/guide/$*
-	$(HISTPROG) -fast fit -v3 -model $(PROT1) -fixsubrates -stockholm historian/fit/guide/$* >historian/fit/params/$*
-	$(HISTORIAN) -fast -model historian/fit/params/$* -stockholm historian/fit/guide/$* -norefine >historian/fit/align/$*
+	$(HISTPROG) -fast in/$* -nj -v3 -output fasta -noancs >historian/fit/guide/$*
+	$(HISTPROG) fit -fast -v3 -model $(PROT1) -fixsubrates -guide historian/fit/guide/$* >historian/fit/params/$*
+	$(HISTORIAN) -fast -model historian/fit/params/$* -guide historian/fit/guide/$* -norefine >historian/fit/align/$*
 
 # mcmc
 historian/mcmc/align/%: in/% historian/mcmc/align
@@ -96,6 +94,10 @@ historian/lg/align/%: in/% historian/lg/align
 historian/lgslow/align/%: in/% historian/lgslow/align
 	$(HISTORIAN) in/$* -refine -nj -preset lg >$@
 
+# lg, faster
+historian/lgfaster/align/%: in/% historian/lgfaster/align
+	$(HISTORIAN) -faster in/$* -nj -preset lg >$@
+
 # wag4
 historian/wag4/align/%: in/% historian/wag4/align
 	$(HISTORIAN) -fast in/$* -refine -nj -preset wag -gamma 4 >$@
@@ -103,6 +105,10 @@ historian/wag4/align/%: in/% historian/wag4/align
 # lg4
 historian/lg4/align/%: in/% historian/lg4/align
 	$(HISTORIAN) -fast in/$* -refine -nj -preset lg -gamma 4 >$@
+
+# lg4, slow
+historian/lg4slow/align/%: in/% historian/lg4slow/align
+	$(HISTORIAN) in/$* -refine -nj -preset lg -gamma 4 >$@
 
 # dot
 historian/dot/%: in/% historian/dot
@@ -123,6 +129,9 @@ table.tex:
 	@cat bali3/historian/lg/qscore/* | $(GETMEANS)
 #	@cat prefab4/historian/lg/qscore/* | $(GETMEANS)
 	@echo " \\\\\\\\"
+	@echo "IndelHistorian (LG, slow)"
+	@cat bali3/historian/lgslow/qscore/* | $(GETMEANS)
+	@echo " \\\\\\\\"
 	@echo "CLUSTALW"
 	@cat bali3/qscore/clw | $(GETMEANS)
 #	@cat prefab4/qscore/clw | $(GETMEANS)
@@ -130,6 +139,12 @@ table.tex:
 	@echo "PRANK +F, CLUSTALW tree"
 	@cat bali3/qscore/prankfclwtree | $(GETMEANS)
 #	@cat prefab4/qscore/prankfclwtree | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "PRANK +F"
+	@cat bali3/prank/qscore/* | $(GETMEANS)
+	@echo " \\\\\\\\"
+	@echo "MUSCLE v3.8.31"
+	@cat bali3/muscle/qscore/* | $(GETMEANS)
 	@echo " \\\\\\\\"
 	@echo "MUSCLE v4.0"
 	@cat bali3/qscore/mus4 | $(GETMEANS)
