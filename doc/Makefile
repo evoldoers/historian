@@ -1,6 +1,9 @@
 
+all: main.pdf.open
 
-open: main.pdf
+preprint: preprint.pdf.open
+
+%.open: %
 	open $<
 
 figure1.pdf: gp120tree.pdf
@@ -9,8 +12,8 @@ figure1.pdf: gp120tree.pdf
 figure2.pdf: sim/results.pdf
 	cp $< $@
 
-main.pdf: main.tex references.bib figure1.pdf figure2.pdf
+%.pdf: %.tex references.bib figure1.pdf figure2.pdf
 	pdflatex $<
-	bibtex main
+	bibtex $*
 	pdflatex $<
 	pdflatex $<
