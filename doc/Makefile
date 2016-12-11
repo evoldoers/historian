@@ -12,7 +12,7 @@ figure1.pdf: gp120tree.pdf
 figure2.pdf: sim/results.pdf
 	cp $< $@
 
-%.pdf: %.tex references.bib figure1.pdf figure2.pdf
+%.pdf: %.tex paper.tex references.bib figure1.pdf figure2.pdf
 	pdflatex $<
 	bibtex $*
 	pdflatex $<
