@@ -17,3 +17,5 @@ figure2.pdf: sim/results.pdf
 	bibtex $*
 	pdflatex $<
 	pdflatex $<
+
+.SECONDARY:
