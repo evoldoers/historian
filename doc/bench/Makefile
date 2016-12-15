@@ -2,7 +2,7 @@
 #MAKEDIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 MAKEDIR := .
 #HISTDIR := $(MAKEDIR)/../..
-HISTDIR := /Users/yam/indelhistorian
+HISTDIR := $(HOME)/historian
 
 HISTPROG = $(HISTDIR)/bin/historian
 HISTARGS = -v3 -output fasta -noancs
@@ -117,19 +117,19 @@ historian/dot/%: in/% historian/dot
 # table
 GETMEANS = perl -e 'use List::Util qw(sum);my(@q,@tc);while(<>){if(/Q=([\d\.]+);TC=([\d\.]+)/){push@q,$$1;push@tc,$$2}}print" & ",sum(@q)/@q," & ",sum(@tc)/@tc'
 table.tex:
-	@echo "IndelHistorian"
+	@echo "Historian"
 	@cat bali3/historian/nj/qscore/* | $(GETMEANS)
 #	@cat prefab4/historian/nj/qscore/* | $(GETMEANS)
 	@echo " \\\\\\\\"
-	@echo "IndelHistorian (WAG)"
+	@echo "Historian (WAG)"
 	@cat bali3/historian/wag/qscore/* | $(GETMEANS)
 #	@cat prefab4/historian/wag/qscore/* | $(GETMEANS)
 	@echo " \\\\\\\\"
-	@echo "IndelHistorian (LG)"
+	@echo "Historian (LG)"
 	@cat bali3/historian/lg/qscore/* | $(GETMEANS)
 #	@cat prefab4/historian/lg/qscore/* | $(GETMEANS)
 	@echo " \\\\\\\\"
-	@echo "IndelHistorian (LG, slow)"
+	@echo "Historian (LG, slow)"
 	@cat bali3/historian/lgslow/qscore/* | $(GETMEANS)
 	@echo " \\\\\\\\"
 	@echo "CLUSTALW"

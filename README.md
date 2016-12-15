@@ -22,7 +22,7 @@ At present, Historian requires the following build environment to compile:
 
 If you want to run the tests, type `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
 
-Pre-compiled binaries are also available from the GitHub repository [release page](https://github.com/ihh/indelhistorian/releases).
+Pre-compiled binaries are also available from the GitHub repository [release page](https://github.com/evoldoers/historian/releases).
 
 ## Examples
 
@@ -30,7 +30,7 @@ Pre-compiled binaries are also available from the GitHub repository [release pag
 
 The simplest way to use Historian is just to point it at a FASTA file. It will then estimate a guide alignment, estimate a tree from that (using neighbor-joining), and perform a full ancestral reconstruction.
 
-For example, using a test file of [HIV GP120 sequences](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa) that is included in the repository:
+For example, using a test file of [HIV GP120 sequences](https://github.com/evoldoers/historian/blob/master/data/gp120.fa) that is included in the repository:
 
 	historian data/gp120.fa
 
@@ -87,7 +87,7 @@ As briefly alluded to above, Historian does several performance-optimizing steps
 
 The default settings attempt to navigate this maze of options for you, mostly using the higher-accuracy options until memory becomes a limiting factor and then switching to the more approximate options. However, as a power user, you may want to take control of these options. Command-line arguments allow you to supply guide alignments and/or guide trees, and change the parameters or behavior of the standard workflow.
 
-For example, if you want to supply sequences in FASTA format ([gp120.fa](https://github.com/ihh/indelhistorian/blob/master/data/gp120.fa)) and a guide tree in New Hampshire format ([gp120.tree.nh](https://github.com/ihh/indelhistorian/blob/master/data/gp120.tree.nh))
+For example, if you want to supply sequences in FASTA format ([gp120.fa](https://github.com/evoldoers/historian/blob/master/data/gp120.fa)) and a guide tree in New Hampshire format ([gp120.tree.nh](https://github.com/evoldoers/historian/blob/master/data/gp120.tree.nh))
 
 	historian -seqs data/gp120.fa -tree data/gp120.tree.nh
 
@@ -101,7 +101,7 @@ To save the guide alignment, use the `-saveguide` option:
 
 	historian data/gp120.fa -saveguide gp120.guide.fa
 
-If you already have your sequences aligned, and you want to use [this alignment](https://github.com/ihh/indelhistorian/blob/master/data/gp120.guide.fa) as the guide alignment, you only need to supply that alignment (not the sequences):
+If you already have your sequences aligned, and you want to use [this alignment](https://github.com/evoldoers/historian/blob/master/data/gp120.guide.fa) as the guide alignment, you only need to supply that alignment (not the sequences):
 
 	historian -guide gp120.guide.fa
 
@@ -117,7 +117,7 @@ These arguments are all listed in the help text, available via the `-h` option a
 
 ## Model-fitting
 
-Historian's underlying model is a simple one: there is a substitution rate matrix, an insertion rate, a deletion rate, and insertion/deletion extension probabilities. These are all specified in a JSON file format, several examples of which can be found in the [model](https://github.com/ihh/indelhistorian/blob/master/model) directory.
+Historian's underlying model is a simple one: there is a substitution rate matrix, an insertion rate, a deletion rate, and insertion/deletion extension probabilities. These are all specified in a JSON file format, several examples of which can be found in the [model](https://github.com/evoldoers/historian/blob/master/model) directory.
 
 The default model `lg` is an amino acid substitution matrix estimated by [Le and Gascuel (2008)](https://www.ncbi.nlm.nih.gov/pubmed/18367465) using [XRate](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0036898) on a dataset of [Pfam](http://pfam.xfam.org/) alignments, with indel rates and probabilities that were also estimated from Pfam. However, the `historian` program allows you to load a model from a file using the `-model` option, or to use one of the preset models using the `-preset` option. You can also add discretized-gamma rate categories using the `-gamma` and `-shape` options. For example, to use the [Whelan and Goldman](https://www.ncbi.nlm.nih.gov/pubmed/11319253) model with 4 rate categories and gamma shape parameter 1.5:
 
@@ -128,7 +128,7 @@ To estimate rates from data, use the `fit` command. Model-fitting takes a little
 
 	historian fit data/gp120.fa -fast -vv >gp120.model.json
 
-You can then load this model using the `-model` option, and use it to reconstruct another sequence history. For example, using it to reconstruct the ancestors of the Cas9 bridge helix domain (Pfam family PF16593), included as file [data/PF16593.fa](https://github.com/ihh/indelhistorian/blob/master/data/PF16593.fa) in the repository:
+You can then load this model using the `-model` option, and use it to reconstruct another sequence history. For example, using it to reconstruct the ancestors of the Cas9 bridge helix domain (Pfam family PF16593), included as file [data/PF16593.fa](https://github.com/evoldoers/historian/blob/master/data/PF16593.fa) in the repository:
 
 	historian reconstruct -model gp120.model.json data/PF16593.fa
 
@@ -194,7 +194,7 @@ Very briefly, the idea of this method is as follows. The main recursion of Felse
  * Apple LLVM version 7.3.0 (clang-703.0.31)
  * Boost 1.62.0
  * GSL 2.2.1
-* At present, IndelHistorian requires the Boost C++ library due to inconsistencies in the way different C++ compilers and standard libraries implement regular expressions.
+* At present, Historian requires the Boost C++ library due to inconsistencies in the way different C++ compilers and standard libraries implement regular expressions.
 
 <a name="HelpText"></a>
 ## Command-line help text

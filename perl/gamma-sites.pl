@@ -28,7 +28,7 @@ my ($shape, $scale, $bins) = (1, 1, 2);
 my ($pretty, $verbose) = (0, 0);
 
 my $usage = "";
-$usage .= "$progname -- add discretized-gamma prior to indelhistorian rate matrix\n";
+$usage .= "$progname -- add discretized-gamma prior to historian rate matrix\n";
 $usage .= "\n";
 $usage .= "Usage: $progname [opts] params.json\n";
 $usage .= "\n";
