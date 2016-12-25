@@ -19,6 +19,8 @@ At present, Historian requires the following build environment to compile:
 * Apple LLVM version 7.3.0 or later (clang-703.0.31), or gcc version 4.8.3 or later
  * Boost C++ library version 1.62.0 or later
  * Gnu Scientific Library (GSL) version 2.2.1 or later
+ * zlib version 1.2.5 or later
+ * pkg-config version 0.29.1 or later
 
 If you want to run the tests, type `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
 

@@ -1,5 +1,5 @@
 before_script:
   - sudo apt-get update -q
-  - sudo apt-get install libboost-all-dev libgsl0-dev
+  - sudo apt-get install clang pkg-config zlib1g-dev libboost-all-dev libgsl0-dev
 
 script: make test
