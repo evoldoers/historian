@@ -8,7 +8,7 @@ By contrast, Historian uses an explicit evolutionary model of indel and substitu
 
 The basic method and initial benchmarks of the approach are described in ([_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012). The implementation described in that paper is a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has significantly more features.
 
-The closest method to Historian is PRANK ([_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008). Compared to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
+The closest method to Historian is PRANK ([_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008). Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
 
 ## Installation
 
