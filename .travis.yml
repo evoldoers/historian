@@ -1,0 +1,5 @@
+before_script:
+  - sudo apt-get update -q
+  - sudo apt-get install libboost-all-dev libgsl0-dev
+
+script: make test

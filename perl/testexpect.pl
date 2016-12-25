@@ -19,6 +19,7 @@ if (length $diff) {
     print "`$prog @args` does not match $expected:\n";
     print `diff -y $fname $expected`;
     print "not ok: `$prog @args`\n";
+    die;
 } else {
     print "ok: `$prog @args` matches $expected\n";
 }
