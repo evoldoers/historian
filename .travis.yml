@@ -1,5 +1,24 @@
+language: cpp
+
+matrix:
+  include:
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - clang-3.7
+      env: COMPILER=clang++-3.7
+
+
+# Compiler selection
+compiler:
+  - clang
+
 before_script:
   - sudo apt-get update -q
-  - sudo apt-get install clang pkg-config zlib1g-dev libboost-all-dev libgsl0-dev
+  - sudo apt-get install libboost-all-dev libgsl0-dev
 
 script: make test
