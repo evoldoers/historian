@@ -1,21 +1,14 @@
 language: cpp
 
-matrix:
-  include:
-    - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.7
-          packages:
-            - clang-3.7
-      env: COMPILER=clang++-3.7
-
-
-# Compiler selection
-compiler:
-  - clang
+compiler: clang
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-precise-3.9
+    packages:
+      - clang-3.9
+env: COMPILER=clang++-3.9
 
 before_script:
   - sudo apt-get update -q
