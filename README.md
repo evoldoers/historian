@@ -8,7 +8,7 @@ By contrast, Historian uses an explicit evolutionary model of indel and substitu
 
 The basic method and initial benchmarks of the approach are described in ([_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012). The implementation described in that paper is a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has significantly more features.
 
-The closest method to Historian is PRANK ([_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008). Compared to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
+The closest method to Historian is PRANK ([_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008). Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
 
 ## Installation
 
@@ -19,6 +19,8 @@ At present, Historian requires the following build environment to compile:
 * Apple LLVM version 7.3.0 or later (clang-703.0.31), or gcc version 4.8.3 or later
  * Boost C++ library version 1.62.0 or later
  * Gnu Scientific Library (GSL) version 2.2.1 or later
+ * zlib version 1.2.5 or later
+ * pkg-config version 0.29.1 or later
 
 If you want to run the tests, type `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
 

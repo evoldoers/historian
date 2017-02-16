@@ -1,0 +1,17 @@
+language: cpp
+
+compiler: clang
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-precise-3.8
+    packages:
+      - clang-3.8
+env: CPP=clang++-3.8
+
+before_script:
+  - sudo apt-get update -q
+  - sudo apt-get install libboost-all-dev libgsl0-dev
+
+script: make test

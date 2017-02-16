@@ -1,3 +1,5 @@
+# -*- makefile-gmake -*-
+
 # Common substitution models
 presets: $(addprefix src/,$(addsuffix .h,jc lg dayhoff jones wag ECMrest ECMunrest))
 

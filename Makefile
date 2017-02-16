@@ -1,3 +1,5 @@
+# -*- makefile-gmake -*-
+
 .SECONDARY:
 
 # try to figure out where GSL is
