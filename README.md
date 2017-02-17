@@ -153,6 +153,7 @@ More precisely, it is the general-time irreversible nucleotide model initialized
 If you then fit this model to data using `-fit`, you will get a general irreversible model.
 
 It is also possible (and fairly straightforward) to edit the JSON model file directly, so as to specify any (single-character) alphabet.
+The model file format is probably self-explanatory; for example, [here](https://github.com/evoldoers/historian/blob/master/model/jc.json) is the Jukes-Cantor model file.
 
 ## Event-counting
 
