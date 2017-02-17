@@ -32,7 +32,7 @@ Pre-compiled binaries are also available from the GitHub repository [release pag
 
 The simplest way to use Historian is just to point it at a FASTA file. It will then estimate a guide alignment, estimate a tree from that (using neighbor-joining), and perform a full ancestral reconstruction.
 
-For example, using a test file of [HIV GP120 sequences](https://github.com/evoldoers/historian/blob/master/data/gp120.fa) that is included in the repository:
+For example, using a test file of [HIV GP120 protein sequences](https://github.com/evoldoers/historian/blob/master/data/gp120.fa) that is included in the repository:
 
 	historian data/gp120.fa
 
@@ -143,6 +143,14 @@ If you only want to estimate the indel rates and not the substitution matrix, th
 	historian fit data/gp120.fa -fixsubrates >gp120.model.json
 
 Conversely, you can use `-fixgaprates` to hold the indel rates (and indel extension parameters) constant, while estimating substitution rates. Other aspects of the model-fitting algorithm (for example, the use of [Laplace pseudocounts](https://en.wikipedia.org/wiki/Additive_smoothing), or the EM convergence criteria) can be set via the [command-line options](#HelpText).
+
+## Nucleotide models
+
+The above example used `-preset wag` to use the Whelan-and-Goldman amino acid substitution matrix. Another example showed how to fit the model to data, using `-fit`.
+
+You can also use a nucleotide rate matrix with `-preset jc`, which starts with the Jukes-Cantor 1969 model.
+More precisely, it is the general-time irreversible nucleotide model initialized with rates that are the same as those in the Jukes-Cantor model.
+If you then fit this model to data using `-fit`, you will get a general irreversible model.
 
 ## Event-counting
 
