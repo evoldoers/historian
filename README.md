@@ -169,7 +169,8 @@ One application of the counts is as [pseudocounts](https://en.wikipedia.org/wiki
 
 	historian fit data/PF16593.fa -counts gp120.counts.json -nolaplace >PF16593.model.json
 
-The `-nolaplace` option here indicates that we don't want to add the usual +1 Laplace pseudocounts in this case.
+The `-nolaplace` option here indicates that we don't want to add the usual [+1 Laplace pseudocounts](https://en.wikipedia.org/wiki/Additive_smoothing) in this case.
+Otherwise, these are added by default (to smooth the data), but when we are using explicit pseudocounts there is typically no need for them.
 
 You can also use the `count` command to estimate counts for a bunch of alignments in parallel, then combine the counts using the `sum` command, and finally estimate the maximum-likelihood parameters for these combined counts using `fit`. This amounts to doing a single iteration of the EM algorithm. Probably the only reason you'd want to do this would be if you were implementing some kind of roll-your-own [MapReduce](https://en.wikipedia.org/wiki/MapReduce)-style approach to splitting up the EM algorithm on a large dataset. Which is probably unlikely, but here's roughly what it'd look like:
 
