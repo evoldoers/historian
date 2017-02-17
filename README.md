@@ -146,7 +146,7 @@ Conversely, you can use `-fixgaprates` to hold the indel rates (and indel extens
 
 ## Nucleotide models
 
-The above example used `-preset wag` to use the Whelan-and-Goldman amino acid substitution matrix. Another example showed how to fit the model to data, using `-fit`.
+The above examples used `-preset wag` to use the Whelan-and-Goldman amino acid substitution matrix, and `-fit` to fit the model to data.
 
 You can also use a nucleotide rate matrix with `-preset jc`, which starts with the Jukes-Cantor 1969 model.
 More precisely, it is the general-time irreversible nucleotide model initialized with rates that are the same as those in the Jukes-Cantor model.
