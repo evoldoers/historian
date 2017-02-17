@@ -152,6 +152,8 @@ You can also use a nucleotide rate matrix with `-preset jc`, which starts with t
 More precisely, it is the general-time irreversible nucleotide model initialized with rates that are the same as those in the Jukes-Cantor model.
 If you then fit this model to data using `-fit`, you will get a general irreversible model.
 
+It is also possible (and fairly straightforward) to edit the JSON model file directly, so as to specify any (single-character) alphabet.
+
 ## Event-counting
 
 The model-fitting algorithm described above is an [Expectation-Maximization algorithm](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm) that iteratively estimates the _a posteriori_ expected number of indel and substitution events of each possible type, along with the amount of time spent in each state, and then uses these expected counts and times to update the mutation rates.
