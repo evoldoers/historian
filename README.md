@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
 # Historian
 
 Historian is a multiple aligner that aims at providing accurate historical reconstructions of the evolution of a set of DNA or protein sequences. This stands in contrast to most multiple alignment tools, which instead try to provide protein alignments that correctly identify regions of 3D structural homology. If you are trying to predict the structure of a protein, you should probably use one of those other tools. If you care about the evolutionary history of your sequences, use Historian.
