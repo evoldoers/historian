@@ -40,6 +40,7 @@ public:
   string treeRoot;
   string modelSaveFilename, guideSaveFilename, dotSaveFilename, mcmcTraceFilename;
   size_t profileSamples, profileNodeLimit, maxEMIterations, mcmcSamplesPerSeq;
+  size_t profileMinLen, profileMaxLen;
   int maxDistanceFromGuide, simulatorRootSeqLen, gammaCategories;
   bool tokenizeCodons, guideAlignTryAllPairs, jukesCantorDistanceMatrix, useUPGMA, includeBestTraceInProfile, keepGapsOpen, usePosteriorsForProfile, reconstructRoot, refineReconstruction, predictAncestralSequence, reportAncestralSequenceProbability, accumulateSubstCounts, accumulateIndelCounts, gotPrior, useLaplacePseudocounts, usePosteriorsForDot, useSeparateSubPosteriorsForDot, keepDotGapsOpen, runMCMC, outputTraceMCMC, fixGuideMCMC, fixTreeMCMC, outputLeavesOnly, normalizeModel;
   double minPostProb, maxDPMemoryFraction, minEMImprovement, minDotPostProb, minDotSubPostProb, gammaShape;

@@ -834,7 +834,7 @@ Profile ForwardMatrix::makeProfile (const set<CellCoords>& cells, ProfilingStrat
   return prof;
 }
 
-Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, ProfilingStrategy strategy) {
+Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSamples, size_t maxCells, ProfilingStrategy strategy, size_t minLen, size_t maxLen) {
   map<CellCoords,size_t> cellCount;
 
   Require ((strategy & IncludeBestTrace) || profileSamples > 0, "Must allow at least one sample path in the profile");
@@ -846,7 +846,8 @@ Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSa
       cellCount[c] = 2;  // avoid dropping these cells
     ++nTraces;
   }
-  for (size_t n = 0; n < profileSamples && (maxCells == 0 || cellCount.size() < maxCells); ++n) {
+  size_t nAccepted = 0;
+  for (size_t n = 0; nAccepted < profileSamples && (maxCells == 0 || cellCount.size() < maxCells); ++n) {
     const Path sampled = sampleTrace (generator);
     if (LoggingThisAt(5)) {
       LogThisAt(5,"Trace #" << n+1 << ":");
@@ -854,9 +855,22 @@ Profile ForwardMatrix::sampleProfile (random_engine& generator, size_t profileSa
 	LogThisAt(5," " << cellName(c));
       LogThisAt(5,endl);
     }
+    size_t ancLen = 0;
+    for (auto& c : sampled)
+      switch (c.state) {
+      case PairHMM::IMM:
+      case PairHMM::IDM:
+      case PairHMM::IMD:
+	++ancLen;
+      default:
+	break;
+      }
+    if (ancLen < minLen || ancLen > maxLen)
+      break;
     for (auto& c : sampled)
       ++cellCount[c];
     ++nTraces;
+    ++nAccepted;
   }
   set<CellCoords> profCells;
   const size_t threshold = (nTraces > 1 && maxCells > 0 && cellCount.size() >= maxCells) ? 2 : 1;

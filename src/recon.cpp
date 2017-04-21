@@ -31,6 +31,8 @@ const vguard<string> Reconstructor::fasterAliasArgs = ReconFasterAliasArgs;
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
+    profileMinLen (0),
+    profileMaxLen (numeric_limits<size_t>::max()),
     profileNodeLimit (DefaultProfileMaxStates),
     maxDPMemoryFraction (DefaultMaxDPMemoryFraction),
     rndSeed (ForwardMatrix::random_engine::default_seed),
@@ -360,6 +362,20 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       profileSamples = atoi (argvec[1].c_str());
       usePosteriorsForProfile = false;
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-profminlen") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      profileMinLen = atoi (argvec[1].c_str());
+      argvec.pop_front();
+      argvec.pop_front();
+      return true;
+
+    } else if (arg == "-profmaxlen") {
+      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
+      profileMaxLen = atoi (argvec[1].c_str());
       argvec.pop_front();
       argvec.pop_front();
       return true;
