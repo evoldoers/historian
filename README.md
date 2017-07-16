@@ -59,7 +59,7 @@ Of course, if you are doing reconstruction (as noted above), you can omit the co
 
 #### Logging
 
-By default, the `historian` program runs in classic Unix mode, i.e. printing nothing except the output. This can be a bit boring for long jobs, so run with `-v` for verbose colorized logging output, or `-vv` for more verbose, or `-vvv` (or equivalently `-v3`) for even more logging, and so on. Probably `-v2` is about the right balance between showing some feedback on progress and not drowning you in psychedelic rainbow log messages.
+By default, the `historian` program runs in classic Unix mode, i.e. printing nothing except the output. This can be a bit boring for long jobs, so run with `-v` for verbose logging output, or `-vv` for more verbose, or `-vvv` (or equivalently `-v3`) for even more logging, and so on. Probably `-v2` is about the right balance.
 
 	historian -v2 data/gp120.fa
 
@@ -218,7 +218,7 @@ Very briefly, the idea of this method is as follows. The main recursion of Felse
 The following is the message that appears when you type `historian help`:
 
 <pre><code>
-Usage: historian {recon[struct],count,fit,mcmc,generate,help,version} [options]
+Usage: historian {recon,count,fit,mcmc,generate,help,version} [options]
 
 EXAMPLES
 
@@ -247,7 +247,8 @@ Commands can be abbreviated to single letters, like so:
   historian g tree.nh &gt;sim.stk
 (etc.)
 
-If a command is omitted, 'reconstruct' is assumed.
+If a command is omitted, 'reconstruct' is assumed, e.g.
+  historian data/gp120.fa -v2
 
 OPTIONS
 
@@ -310,6 +311,9 @@ sensitivity vs performance.
   -profmaxstates &lt;S&gt;, -profmaxmem &lt;M&gt;
                   Limit profile to at most S states, or to use at most M% of
                    memory for DP matrix (default is -profmaxstates 12000)
+  -profminlen &lt;L&gt;, -profmaxlen &lt;L&gt;
+                  Constrain permissible range of ancestral sequence lengths
+                   (use with care; extreme/unreachable values may cause program to hang!)
 
 Following alignment, ancestral sequence reconstruction can be performed.
 

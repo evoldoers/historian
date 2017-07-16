@@ -18,7 +18,7 @@ struct ProgUsage : OptParser {
 };
 
 ProgUsage::ProgUsage (int argc, char** argv)
-  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon[struct],count,fit,mcmc,generate,help,version} [options]")
+  : OptParser (argc, argv, HISTORIAN_PROGNAME, "{recon,count,fit,mcmc,generate,help,version} [options]")
 {
   text = briefText
     + "\n"
@@ -49,7 +49,8 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "  " + prog + " g tree.nh >sim.stk\n"
     + "(etc.)\n"
     + "\n"
-    + "If a command is omitted, 'reconstruct' is assumed.\n"
+    + "If a command is omitted, 'reconstruct' is assumed, e.g.\n"
+    + "  " + prog + " data/gp120.fa -v2\n"
     + "\n"
     + "OPTIONS\n"
     + "\n"

@@ -1022,7 +1022,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 }
 
 void Reconstructor::refine (Dataset& dataset) {
-  LogThisAt(1,"Commencing refinement of branchwise parent-child alignments for " << dataset.name << endl);
+  LogThisAt(1,"Refining parent-child alignments (" << dataset.name << ")" << endl);
   vguard<FastSeq>& gappedRecon = dataset.hasAncestralReconstruction() ? dataset.gappedAncestralRecon : dataset.gappedRecon;
   Refiner::History history;
   history.tree = dataset.tree;
@@ -1041,7 +1041,7 @@ void Reconstructor::refineAll() {
 
 void Reconstructor::predictAncestors (Dataset& dataset) {
   if (predictAncestralSequence) {
-    LogThisAt(1,"Predicting ancestral sequences for " << dataset.name << endl);
+    LogThisAt(1,"Predicting ancestral sequences (" << dataset.name << ")" << endl);
     AlignColSumProduct colSumProd (model, dataset.tree, dataset.gappedRecon);
     while (!colSumProd.alignmentDone()) {
       colSumProd.fillUp();
