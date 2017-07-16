@@ -63,7 +63,7 @@ By default, the `historian` program runs in classic Unix mode, i.e. printing not
 
 	historian -v2 data/gp120.fa
 
-This produces output somewhat like this (but more colorful - GitHub-flavored Markdown won't show the colors):
+This produces output somewhat like this:
 
 	Using default amino acid model (lg)
 	Alphabet: arndcqeghilkmfpstwyv
