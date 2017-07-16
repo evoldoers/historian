@@ -8,9 +8,12 @@ Often, multiple alignment tools (notable examples including Clustal, Muscle, Pro
 
 By contrast, Historian uses an explicit evolutionary model of indel and substitution events, derived rigorously from statistical phylogenetics using finite-state transducers as evolutionary operators. In simulation tests (using the third-party evolution simulator [indel-Seq-Gen](https://www.ncbi.nlm.nih.gov/pubmed/17158778)), it introduces significantly fewer biases than other tools. It also performs pretty well on structural alignment benchmarks, though not quite as well as tools like Muscle and ProbCons that are optimized for that.
 
-The basic method and initial benchmarks of the approach are described in ([_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012). The implementation described in that paper is a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has more features for molecular evolutionary modeling.
+The basic method and initial benchmarks of the approach were described in Westesson _et al_, 2012 [1], reporting benchmarks using a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has more features for molecular evolutionary modeling.
 
-The closest method to Historian is PRANK ([_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008). Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
+The closest method to Historian is PRANK [2]. Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
+
+1 [_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012
+2 [_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008
 
 ## Installation
 
