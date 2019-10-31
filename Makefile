@@ -2,6 +2,10 @@
 
 .SECONDARY:
 
+# Pseudotargets that control compilation
+USING_BOOST = $(findstring boost,$(MAKECMDGOALS))
+IS_DEBUG = $(findstring debug,$(MAKECMDGOALS))
+
 # try to figure out where GSL is
 # autoconf would be better but we just need a quick hack for now :)
 # Thanks to Torsten Seemann for gsl-config and pkg-config formulae
@@ -26,6 +30,11 @@ endif
 # figure out whether to use Boost
 # Boost is needed for regexes with some versions of gcc.
 # NB pkg-config support for Boost is lacking; see https://svn.boost.org/trac/boost/ticket/1094
+ifeq (,$(USING_BOOST))
+BOOSTPREFIX =
+BOOSTFLAGS =
+BOOSTLIBS =
+else
 BOOSTPREFIX = /usr
 ifeq (,$(wildcard $(BOOSTPREFIX)/include/boost/regex.h))
 BOOSTPREFIX = /usr/local
@@ -40,12 +49,13 @@ ifneq (,$(BOOSTPREFIX))
 BOOSTFLAGS := -DUSE_BOOST -I$(BOOSTPREFIX)/include
 BOOSTLIBS := -L$(BOOSTPREFIX)/lib -lboost_regex
 endif
+endif
 
 # install dir
 PREFIX = /usr/local
 
 # other flags
-ifneq (,$(findstring debug,$(MAKECMDGOALS)))
+ifneq (,$(IS_DEBUG))
 CPPFLAGS = -std=c++11 -g -DUSE_VECTOR_GUARDS $(GSLFLAGS) $(BOOSTFLAGS)
 else
 CPPFLAGS = -std=c++11 -g -O3 $(GSLFLAGS) $(BOOSTFLAGS)
