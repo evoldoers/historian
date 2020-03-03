@@ -519,6 +519,12 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-fixalign") {
+      fixAlignMCMC = true;
+      runMCMC = true;
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-trace") {
       Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
       mcmcTraceFilename = argvec[1].c_str();
@@ -1235,6 +1241,7 @@ void Reconstructor::HistoryLogger::logHistory (const Sampler::History& history) 
 
 void Reconstructor::sampleAll() {
   Require (datasets.size() > 0, "Please supply some data");
+  Require (!fixAlignMCMC || !fixTreeMCMC, "You can't fix both tree and alignment when doing MCMC - you must sample one of them!");
   if (runMCMC) {
     SimpleTreePrior treePrior;
     vguard<Sampler> samplers;
@@ -1260,6 +1267,8 @@ void Reconstructor::sampleAll() {
       sampler.initialize (history, dataset.name);
       if (fixTreeMCMC)
 	sampler.fixTree();
+      if (fixAlignMCMC)
+	sampler.fixAlignment();
       totalNodes += history.tree.nodes();
     }
 

@@ -1660,6 +1660,11 @@ void Sampler::fixTree() {
   moveRate[Move::Rescale] = 0;
 }
 
+void Sampler::fixAlignment() {
+  moveRate[Move::BranchAlign] = 0;
+  moveRate[Move::NodeAlign] = 0;
+}
+
 void Sampler::sample (random_engine& generator) {
     // propose
     const std::chrono::system_clock::time_point before = std::chrono::system_clock::now();

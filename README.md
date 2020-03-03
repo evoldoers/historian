@@ -333,6 +333,7 @@ MCMC is disabled. (MCMC currently requires an ultrametric tree.)
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
   -trace &lt;file&gt;   Specify MCMC trace filename
   -fixtree        Fix tree during MCMC (sample alignment only)
+  -fixalign       Fix alignment during MCMC (sample tree only)
 
 Guide alignment & tree estimation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

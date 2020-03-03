@@ -391,6 +391,7 @@ struct Sampler : TreeAlignFuncs {
   void addLogger (Logger& logger);
   void initialize (const History& initialHistory, const string& name);
   void fixTree();  // do alignment-sampling moves only
+  void fixAlignment();  // do tree-sampling moves only
   
   // Sampler sampling methods
   inline LogProb logLikelihood (const History& history, const char* prefix = "") const {
