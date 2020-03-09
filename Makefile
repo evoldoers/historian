@@ -114,8 +114,11 @@ obj/%.o: t/%.cpp
 # Tests
 
 TEST = @perl/testexpect.pl
+TEST4 = $(TEST) perl/roundfloats.pl 4
+TEST10 = $(TEST) perl/roundfloats.pl 10
 
-test: testregex testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testupgma testquickalign testspan testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum
+test: testregex testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testupgma testquickalign testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum
+# Skipped due to inconsistent platform-dependent behavior: testspan testhist-rndspan
 
 testregex: bin/testregex
 	$(TEST) bin/testregex /dev/null /dev/null
@@ -136,14 +139,14 @@ teststockholm: bin/teststockholm
 	$(TEST) bin/teststockholm data/Lysine.stock data/Lysine.stock
 
 testmatexp: bin/testmatexp
-	$(TEST) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
-	$(TEST) bin/testmatexp -eigen data/testrates.json 1 data/testrates.probs.json
+	$(TEST10) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
+	$(TEST10) bin/testmatexp -eigen data/testrates.json 1 data/testrates.probs.json
 
 testrateio: bin/testrateio
-	$(TEST) bin/testrateio data/testrates.json data/testrates.out.json
-	$(TEST) bin/testrateio data/testrates.out.json data/testrates.out.json
-	$(TEST) bin/testrateio data/testrates.mix2.json data/testrates.mix2.out.json
-	$(TEST) bin/testrateio data/testrates.mix2.out.json data/testrates.mix2.out.json
+	$(TEST4) bin/testrateio data/testrates.json data/testrates.out.json
+	$(TEST4) bin/testrateio data/testrates.out.json data/testrates.out.json
+	$(TEST4) bin/testrateio data/testrates.mix2.json data/testrates.mix2.out.json
+	$(TEST4) bin/testrateio data/testrates.mix2.out.json data/testrates.mix2.out.json
 
 testmerge: bin/testmerge
 	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa
@@ -224,8 +227,10 @@ testhist: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
 	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
+
+testhist-rndspan:
+	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
 
 testcount: bin/$(MAIN)
 	$(TEST) bin/$(MAIN) count -fast -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
