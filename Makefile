@@ -158,7 +158,7 @@ clean:
 
 # Main build rules
 bin/% wasm/%.js: $(OBJ_FILES) obj/%.o $(GSL_DEPS)
-	@test -e bin || mkdir bin
+	@test -e $(dir $@) || mkdir -p $(dir $@)
 	$(CPP) -o $@ obj/$*.o $(OBJ_FILES) $(LD_FLAGS)
 
 obj/%.o: src/%.cpp $(GSL_DEPS)
