@@ -14,8 +14,7 @@ GSL_SOURCE = $(GSL_PREFIX)/gsl-js
 GSL_LIB = $(GSL_PREFIX)/lib
 GSL_FLAGS = -I$(GSL_SOURCE)
 GSL_LIBS =
-#GSL_SUBDIRS = vector matrix utils linalg blas cblas block err multimin permutation sys poly
-GSL_SUBDIRS = vector matrix utils linalg blas cblas block err
+GSL_SUBDIRS = vector matrix utils linalg blas cblas block err min multimin permutation sys poly cdf complex eigen randist specfunc
 GSL_OBJ_FILES = $(foreach dir,$(GSL_SUBDIRS),$(wildcard $(GSL_SOURCE)/$(dir)/*.o))
 GSL_DEPS = $(GSL_LIB)
 else
@@ -132,10 +131,12 @@ ifneq (,$(USING_EMSCRIPTEN))
 WRAP = node wasm/cmdwrap.js
 MAINTARGET = wasm/historian.js
 WRAPTARGET = $(WRAP) $(MAINTARGET)
+TESTSUFFIX = .js
 else
 WRAP =
 MAINTARGET = bin/$(MAIN)
 WRAPTARGET = $(MAINTARGET)
+TESTSUFFIX =
 endif
 
 all: $(MAIN)
@@ -159,15 +160,17 @@ clean:
 # Main build rules
 bin/% wasm/%.js: $(OBJ_FILES) obj/%.o $(GSL_DEPS)
 	@test -e $(dir $@) || mkdir -p $(dir $@)
-	$(CPP) -o $@ obj/$*.o $(OBJ_FILES) $(LD_FLAGS)
+	$(CPP) $(LD_FLAGS) -o $@ obj/$*.o $(OBJ_FILES) $(GSL_OBJ_FILES)
 
 obj/%.o: src/%.cpp $(GSL_DEPS)
-	@test -e obj || mkdir obj
+	@test -e $(dir $@) || mkdir -p $(dir $@)
 	$(CPP) $(CPP_FLAGS) -c -o $@ $<
 
-obj/%.o: t/%.cpp
-	@test -e obj || mkdir obj
-	$(CPP) $(CPP_FLAGS) -c -o $@ $<
+bin/%: t/%.cpp
+	@test -e $(dir $@) || mkdir -p $(dir $@)
+	$(CPP) $(CPP_FLAGS) -c -o obj/$*.o $<
+	$(CPP) $(LD_FLAGS) -o $@$(TESTSUFFIX) obj/$*.o $(OBJ_FILES) $(GSL_OBJ_FILES)
+	mv $@$(TESTSUFFIX) $@
 
 # emscripten source files
 # gsl-js
@@ -179,137 +182,139 @@ $(GSL_LIB):
 # Tests
 
 TEST = @perl/testexpect.pl
-TEST4 = $(TEST) perl/roundfloats.pl 4
-TEST10 = $(TEST) perl/roundfloats.pl 10
+WRAPTESTMAIN = $(TEST) $(WRAP) $(MAINTARGET)
+WRAPTEST = $(TEST) $(WRAP)
+WRAPTEST4 = $(TEST) perl/roundfloats.pl 4 $(WRAP)
+WRAPTEST10 = $(TEST) perl/roundfloats.pl 10 $(WRAP)
 
 test: testregex testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testupgma testquickalign testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum
 # Skipped due to inconsistent platform-dependent behavior: testspan testhist-rndspan
 
 testregex: bin/testregex
-	$(TEST) bin/testregex /dev/null /dev/null
+	$(WRAPTEST) bin/testregex /dev/null /dev/null
 
 testlogsumexp: bin/testlogsumexp
-	@bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
-	$(TEST) bin/testlogsumexp -fast data/logsumexp.txt 2> /dev/null
+	@$(WRAP) bin/testlogsumexp -slow >data/logsumexp.txt 2> /dev/null
+	$(WRAPTEST) bin/testlogsumexp -fast data/logsumexp.txt 2> /dev/null
 
 testseqio: bin/testseqio
-	$(TEST) bin/testseqio data/testaligncount.fa data/testaligncount.fa
-	$(TEST) bin/testseqio data/gp120.fa data/gp120.fa
+	$(WRAPTEST) bin/testseqio data/testaligncount.fa data/testaligncount.fa
+	$(WRAPTEST) bin/testseqio data/gp120.fa data/gp120.fa
 
 testnexus: bin/testnexus
-	$(TEST) bin/testnexus data/testnexus.nex data/testnexus.nex
+	$(WRAPTEST) bin/testnexus data/testnexus.nex data/testnexus.nex
 
 teststockholm: bin/teststockholm
-	$(TEST) bin/teststockholm data/cbs.stock data/cbs.stock
-	$(TEST) bin/teststockholm data/Lysine.stock data/Lysine.stock
+	$(WRAPTEST) bin/teststockholm data/cbs.stock data/cbs.stock
+	$(WRAPTEST) bin/teststockholm data/Lysine.stock data/Lysine.stock
 
 testmatexp: bin/testmatexp
-	$(TEST10) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
-	$(TEST10) bin/testmatexp -eigen data/testrates.json 1 data/testrates.probs.json
+	$(WRAPTEST10) bin/testmatexp data/testrates.json 1 data/testrates.probs.json
+	$(WRAPTEST10) bin/testmatexp -eigen data/testrates.json 1 data/testrates.probs.json
 
 testrateio: bin/testrateio
-	$(TEST4) bin/testrateio data/testrates.json data/testrates.out.json
-	$(TEST4) bin/testrateio data/testrates.out.json data/testrates.out.json
-	$(TEST4) bin/testrateio data/testrates.mix2.json data/testrates.mix2.out.json
-	$(TEST4) bin/testrateio data/testrates.mix2.out.json data/testrates.mix2.out.json
+	$(WRAPTEST4) bin/testrateio data/testrates.json data/testrates.out.json
+	$(WRAPTEST4) bin/testrateio data/testrates.out.json data/testrates.out.json
+	$(WRAPTEST4) bin/testrateio data/testrates.mix2.json data/testrates.mix2.out.json
+	$(WRAPTEST4) bin/testrateio data/testrates.mix2.out.json data/testrates.mix2.out.json
 
 testmerge: bin/testmerge
-	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa
-	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.ayz.fa data/testmerge1.xyaz.fa
-	$(TEST) bin/testmerge data/testmerge1.xz.fa data/testmerge1.ayz.fa data/testmerge1.xzay.fa
-	$(TEST) bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
-	$(TEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty 2> /dev/null
-	$(TEST) bin/testmerge data/testmerge2.1.fa data/testmerge2.2.fa data/testmerge2.3.fa data/testmerge2.out.fa data/empty 2> /dev/null
+	$(WRAPTEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1.xyz.fa
+	$(WRAPTEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.ayz.fa data/testmerge1.xyaz.fa
+	$(WRAPTEST) bin/testmerge data/testmerge1.xz.fa data/testmerge1.ayz.fa data/testmerge1.xzay.fa
+	$(WRAPTEST) bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
+	$(WRAPTEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty 2> /dev/null
+	$(WRAPTEST) bin/testmerge data/testmerge2.1.fa data/testmerge2.2.fa data/testmerge2.3.fa data/testmerge2.out.fa data/empty 2> /dev/null
 
 testseqprofile: bin/testseqprofile
-	$(TEST) bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.json
+	$(WRAPTEST) bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.json
 
 testforward: bin/testforward
-	$(TEST) bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
+	$(WRAPTEST) bin/testforward -all -matrix data/testforward.id100.len2.fa data/testforward.nosub.json 1 data/testforward.id100.len2.nosub.out
 	@perl/testcumlp.pl data/testforward.id100.len2.nosub.out 51
-	$(TEST) bin/testforward -hubs -best data/testforward.len2.fa data/testforward.nosub.json 1 data/testforward.len2.nosub.best.out
-	$(TEST) bin/testforward -hubs -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
-	$(TEST) bin/testforward -hubs -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out
-	$(TEST) bin/testforward -hubs -best data/testforward.len2-4.fa data/testforward.jukescantor.json .01 1 data/testforward.len2-4.yins.out
-	$(TEST) bin/testforward -all 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.all.out
-	$(TEST) bin/testforward -hubs 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.hubs.out
+	$(WRAPTEST) bin/testforward -hubs -best data/testforward.len2.fa data/testforward.nosub.json 1 data/testforward.len2.nosub.best.out
+	$(WRAPTEST) bin/testforward -hubs -best data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testforward.len2.jc.best.out
+	$(WRAPTEST) bin/testforward -hubs -best data/testforward.len2-4.fa data/testforward.jukescantor.json .1 .01 data/testforward.len2-4.xdel.out
+	$(WRAPTEST) bin/testforward -hubs -best data/testforward.len2-4.fa data/testforward.jukescantor.json .01 1 data/testforward.len2-4.yins.out
+	$(WRAPTEST) bin/testforward -all 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.all.out
+	$(WRAPTEST) bin/testforward -hubs 10 data/testforward.len2-4.fa data/testforward.jukescantor.json .1 data/testforward.len2-4.n10.hubs.out
 
 testnullforward: bin/testnullforward
-	$(TEST) bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
+	$(WRAPTEST) bin/testnullforward data/testforward.nosub.json 1 data/testnullforward.nosub.out
 
 testbackward: bin/testbackward
-	$(TEST) bin/testbackward data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testbackward.len2.out
-	$(TEST) bin/testbackward data/testforward.len2-4.fa data/testforward.jukescantor.json 1 data/testbackward.len2-4.out
+	$(WRAPTEST) bin/testbackward data/testforward.len2.fa data/testforward.jukescantor.json 1 data/testbackward.len2.out
+	$(WRAPTEST) bin/testbackward data/testforward.len2-4.fa data/testforward.jukescantor.json 1 data/testbackward.len2-4.out
 
 testtreeio: bin/testtreeio
-	$(TEST) bin/testtreeio data/PF16593.nhx data/PF16593.nhx
-	$(TEST) bin/testtreeio data/testnj.out.nh data/testnj.out.nh
-	$(TEST) bin/testtreeio data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.nh
-	$(TEST) bin/testtreeio data/testtreedupname.nh data/empty 2> /dev/null
-	$(TEST) bin/testtreeio data/testtreenobranchlen.nh data/testtreenobranchlen.nh 2> /dev/null
-	$(TEST) bin/testtreeio data/testreroot.nh C data/testreroot.c.nh
+	$(WRAPTEST) bin/testtreeio data/PF16593.nhx data/PF16593.nhx
+	$(WRAPTEST) bin/testtreeio data/testnj.out.nh data/testnj.out.nh
+	$(WRAPTEST) bin/testtreeio data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.nh
+	$(WRAPTEST) bin/testtreeio data/testtreedupname.nh data/empty 2> /dev/null
+	$(WRAPTEST) bin/testtreeio data/testtreenobranchlen.nh data/testtreenobranchlen.nh 2> /dev/null
+	$(WRAPTEST) bin/testtreeio data/testreroot.nh C data/testreroot.c.nh
 
 testspan: bin/testspan
-	$(TEST) bin/testspan data/PF16593.fa data/testamino.json 1 data/PF16593.testspan.fa
+	$(WRAPTEST) bin/testspan data/PF16593.fa data/testamino.json 1 data/PF16593.testspan.fa
 
 testnj: bin/testnj
-	$(TEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
-	$(TEST) bin/testnj data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testnj.nh
+	$(WRAPTEST) bin/testnj data/testnj.jukescantor.json data/testnj.fa data/testnj.out.nh
+	$(WRAPTEST) bin/testnj data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testnj.nh
 
 testupgma: bin/testupgma
-	$(TEST) bin/testupgma data/testnj.jukescantor.json data/testnj.fa data/testupgma.out.nh
-	$(TEST) bin/testupgma data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testupgma.nh
+	$(WRAPTEST) bin/testupgma data/testnj.jukescantor.json data/testnj.fa data/testupgma.out.nh
+	$(WRAPTEST) bin/testupgma data/testamino.json data/PF16593.testspan.fa data/PF16593.testspan.testupgma.nh
 
 testquickalign: bin/testquickalign
-	$(TEST) bin/testquickalign data/PF16593.pair.fa data/testamino.json 1 data/testquickalign.out.fa
+	$(WRAPTEST) bin/testquickalign data/PF16593.pair.fa data/testamino.json 1 data/testquickalign.out.fa
 
 testsubcount: bin/testsubcount
-	$(TEST) bin/testsubcount data/testrates.json A T 1 data/testsubcount1.json
-	$(TEST) bin/testsubcount data/testforward.jukescantor.json A T 1 data/testsubcount2.json
-	$(TEST) bin/testsubcount data/testforward.jukescantor.json A T 1 data/testsubcount3.json
-	$(TEST) bin/testsubcount data/testrates.mix2.json A T 1 data/testsubcount.mix2.json
+	$(WRAPTEST) bin/testsubcount data/testrates.json A T 1 data/testsubcount1.json
+	$(WRAPTEST) bin/testsubcount data/testforward.jukescantor.json A T 1 data/testsubcount2.json
+	$(WRAPTEST) bin/testsubcount data/testforward.jukescantor.json A T 1 data/testsubcount3.json
+	$(WRAPTEST) bin/testsubcount data/testrates.mix2.json A T 1 data/testsubcount.mix2.json
 
 testnumsubcount: bin/testnumsubcount
-	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T A T .01 4 data/testnumsubcount1.out
-	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T A T 1 4 data/testnumsubcount2.out
-	$(TEST) bin/testnumsubcount data/testforward.jukescantor.json A T C G 1 4 data/testnumsubcount3.out
-	$(TEST) bin/testnumsubcount data/testrates.json A T A T 1 data/testnumsubcount4.out
+	$(WRAPTEST) bin/testnumsubcount data/testforward.jukescantor.json A T A T .01 4 data/testnumsubcount1.out
+	$(WRAPTEST) bin/testnumsubcount data/testforward.jukescantor.json A T A T 1 4 data/testnumsubcount2.out
+	$(WRAPTEST) bin/testnumsubcount data/testforward.jukescantor.json A T C G 1 4 data/testnumsubcount3.out
+	$(WRAPTEST) bin/testnumsubcount data/testrates.json A T A T 1 data/testnumsubcount4.out
 
 testaligncount: bin/testaligncount
-	$(TEST) bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testaligncount.out
-	$(TEST) bin/testaligncount -eigen data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testaligncount.out
-	$(TEST) bin/testaligncount -sub data/testcount.jukescantor.json data/testaligncount2.fa data/testcount.nh data/testaligncount2.out.json
+	$(WRAPTEST) bin/testaligncount -sub data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testaligncount.out
+	$(WRAPTEST) bin/testaligncount -eigen data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testaligncount.out
+	$(WRAPTEST) bin/testaligncount -sub data/testcount.jukescantor.json data/testaligncount2.fa data/testcount.nh data/testaligncount2.out.json
 
 testsumprod: bin/testsumprod
-	$(TEST) bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testsumprod.out
+	$(WRAPTEST) bin/testsumprod data/testnj.jukescantor.json data/testaligncount.fa data/testaligncount.nh data/testsumprod.out
 
 testcountio: bin/testcountio
-	$(TEST) bin/testcountio data/testcount.count.json data/testcount.count.json
+	$(WRAPTEST) bin/testcountio data/testcount.count.json data/testcount.count.json
 
-testhist: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
+testhist: $(MAINTARGET)
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
 
 testhist-rndspan:
-	$(TEST) bin/$(MAIN) recon -fast -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
 
-testcount: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) count -fast -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
-	$(TEST) bin/$(MAIN) count -fast -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
-	$(TEST) bin/$(MAIN) count -fast -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
+testcount: $(MAINTARGET)
+	$(WRAPTESTMAIN) count -fast -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
+	$(WRAPTESTMAIN) count -fast -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
+	$(WRAPTESTMAIN) count -fast -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
 
-testsum: bin/$(MAIN)
-	$(TEST) bin/$(MAIN) sum data/testcount.out.json data/testcount.out.json data/testcount.sum.json
+testsum: $(MAINTARGET)
+	$(WRAPTESTMAIN) sum data/testcount.out.json data/testcount.out.json data/testcount.sum.json
 
 testgp120:
-	bin/$(MAIN) recon -fast -norefine -guide data/gp120.guide.fa -tree data/gp120.tree.nh
+	$(MAINTARGET) recon -fast -norefine -guide data/gp120.guide.fa -tree data/gp120.tree.nh
 
 testpost:
-	bin/$(MAIN) post -fast -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
+	$(MAINTARGET) post -fast -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
 
 # Rules for building files in the repository
 # For updating README.md
