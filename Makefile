@@ -5,70 +5,110 @@
 # Pseudotargets that control compilation
 USING_BOOST = $(findstring boost,$(MAKECMDGOALS))
 IS_DEBUG = $(findstring debug,$(MAKECMDGOALS))
+USING_EMSCRIPTEN = $(findstring emscripten,$(MAKECMDGOALS))
 
-# try to figure out where GSL is
+# If using emscripten, we need to compile gsl-js ourselves
+ifneq (,$(USING_EMSCRIPTEN))
+GSL_PREFIX = gsl-js
+GSL_SOURCE = $(GSL_PREFIX)/gsl-js
+GSL_LIB = $(GSL_PREFIX)/lib
+GSL_FLAGS = -I$(GSL_SOURCE)
+GSL_LIBS =
+#GSL_SUBDIRS = vector matrix utils linalg blas cblas block err multimin permutation sys poly
+GSL_SUBDIRS = vector matrix utils linalg blas cblas block err
+GSL_OBJ_FILES = $(foreach dir,$(GSL_SUBDIRS),$(wildcard $(GSL_SOURCE)/$(dir)/*.o))
+GSL_DEPS = $(GSL_LIB)
+else
+GSL_LIB =
+GSL_DEPS =
+GSL_OBJ_FILES =
+# Try to figure out where GSL is
 # autoconf would be better but we just need a quick hack for now :)
 # Thanks to Torsten Seemann for gsl-config and pkg-config formulae
-GSLPREFIX = $(shell gsl-config --prefix)
-ifeq (,$(wildcard $(GSLPREFIX)/include/gsl/gsl_sf.h))
-GSLPREFIX = /usr
-ifeq (,$(wildcard $(GSLPREFIX)/include/gsl/gsl_sf.h))
-GSLPREFIX = /usr/local
+GSL_PREFIX = $(shell gsl-config --prefix)
+ifeq (,$(wildcard $(GSL_PREFIX)/include/gsl/gsl_sf.h))
+GSL_PREFIX = /usr
+ifeq (,$(wildcard $(GSL_PREFIX)/include/gsl/gsl_sf.h))
+GSL_PREFIX = /usr/local
 endif
 endif
 
-GSLFLAGS = $(shell pkg-config --cflags gsl)
-ifeq (, $(GSLFLAGS))
-GSLFLAGS = -I$(GSLPREFIX)/include
+GSL_FLAGS = $(shell pkg-config --cflags gsl)
+ifeq (, $(GSL_FLAGS))
+GSL_FLAGS = -I$(GSL_PREFIX)/include
 endif
 
-GSLLIBS = $(shell pkg-config --libs gsl)
-ifeq (, $(GSLLIBS))
-GSLLIBS = -L$(GSLPREFIX)/lib -lgsl -lgslcblas -lm
+GSL_LIBS = $(shell pkg-config --libs gsl)
+ifeq (, $(GSL_LIBS))
+GSL_LIBS = -L$(GSL_PREFIX)/lib -lgsl -lgslcblas
+endif
 endif
 
 # figure out whether to use Boost
 # Boost is needed for regexes with some versions of gcc.
 # NB pkg-config support for Boost is lacking; see https://svn.boost.org/trac/boost/ticket/1094
 ifeq (,$(USING_BOOST))
-BOOSTPREFIX =
-BOOSTFLAGS =
-BOOSTLIBS =
+BOOST_PREFIX =
+BOOST_FLAGS =
+BOOST_LIBS =
 else
-BOOSTPREFIX = /usr
-ifeq (,$(wildcard $(BOOSTPREFIX)/include/boost/regex.h))
-BOOSTPREFIX = /usr/local
-ifeq (,$(wildcard $(BOOSTPREFIX)/include/boost/regex.h))
-BOOSTPREFIX =
+BOOST_PREFIX = /usr
+ifeq (,$(wildcard $(BOOST_PREFIX)/include/boost/regex.h))
+BOOST_PREFIX = /usr/local
+ifeq (,$(wildcard $(BOOST_PREFIX)/include/boost/regex.h))
+BOOST_PREFIX =
 endif
 endif
 
-BOOSTFLAGS =
-BOOSTLIBS =
-ifneq (,$(BOOSTPREFIX))
-BOOSTFLAGS := -DUSE_BOOST -I$(BOOSTPREFIX)/include
-BOOSTLIBS := -L$(BOOSTPREFIX)/lib -lboost_regex
+BOOST_FLAGS =
+BOOST_LIBS =
+ifneq (,$(BOOST_PREFIX))
+BOOST_FLAGS := -DUSE_BOOST -I$(BOOST_PREFIX)/include
+BOOST_LIBS := -L$(BOOST_PREFIX)/lib -lboost_regex
 endif
 endif
 
 # install dir
 PREFIX = /usr/local
+INSTALL_BIN = $(PREFIX)/bin
 
 # other flags
+ALL_FLAGS = $(GSL_FLAGS) $(BOOST_FLAGS)
+ALL_LIBS = $(GSL_LIBS) $(BOOST_LIBS)
+
 ifneq (,$(IS_DEBUG))
-CPPFLAGS = -std=c++11 -g -DUSE_VECTOR_GUARDS $(GSLFLAGS) $(BOOSTFLAGS)
+CPP_FLAGS = -std=c++11 -g -DUSE_VECTOR_GUARDS -DDEBUG
 else
-CPPFLAGS = -std=c++11 -g -O3 $(GSLFLAGS) $(BOOSTFLAGS)
+ifneq (,$(IS_UNOPTIMIZED))
+CPP_FLAGS = -std=c++11 -g
+else
+CPP_FLAGS = -std=c++11 -g -O3
 endif
-LIBFLAGS = -lstdc++ -lz $(GSLLIBS) $(BOOSTLIBS)
+endif
+CPP_FLAGS += $(ALL_FLAGS) -Isrc
+LD_FLAGS = -lstdc++ -lm $(ALL_LIBS)
 
-CPPFILES = $(wildcard src/*.cpp)
-OBJFILES = $(subst src/,obj/,$(subst .cpp,.o,$(CPPFILES)))
+ifneq (,$(USING_EMSCRIPTEN))
+EMCC_FLAGS = -s USE_ZLIB=1 -s EXTRA_EXPORTED_RUNTIME_METHODS="['FS', 'callMain']" -s ALLOW_MEMORY_GROWTH=1 -s EXIT_RUNTIME=1 --pre-js emcc/pre.js
+CPP_FLAGS += $(EMCC_FLAGS)
+LD_FLAGS += $(EMCC_FLAGS)
+else
+LD_FLAGS += -lz
+endif
 
+# files
+CPP_FILES = $(wildcard src/*.cpp)
+OBJ_FILES = $(subst src/,obj/,$(subst .cpp,.o,$(CPP_FILES)))
+
+# C++ compiler: Emscripten, Clang, or GCC?
+ifneq (,$(USING_EMSCRIPTEN))
+CPP = emcc
+else
 # try clang++, fall back to g++
 CPP = clang++
 ifeq (, $(shell which $(CPP)))
 CPP = g++
+endif
 endif
 
 # pwd
@@ -81,6 +121,16 @@ SH = /bin/sh
 
 MAIN = historian
 
+ifneq (,$(USING_EMSCRIPTEN))
+WRAP = node wasm/cmdwrap.js
+MAINTARGET = wasm/historian.js
+WRAPTARGET = $(WRAP) $(MAINTARGET)
+else
+WRAP =
+MAINTARGET = bin/$(MAIN)
+WRAPTARGET = $(MAINTARGET)
+endif
+
 all: $(MAIN)
 
 debug: $(MAIN)
@@ -88,28 +138,36 @@ debug: $(MAIN)
 $(MAIN): bin/$(MAIN)
 
 install: bin/$(MAIN)
-	cp $< $(PREFIX)/bin
-	chmod a+x $(PREFIX)/bin/$(MAIN)
+	cp $< $(INSTALL_BIN)
+	chmod a+x $(INSTALL_BIN)/$(MAIN)
 
 uninstall:
 	rm $(PREFIX)/bin/$(MAIN)
+
+emscripten: $(MAINTARGET)
 
 clean:
 	rm -rf bin/* obj/*
 
 # Main build rules
-bin/%: $(OBJFILES) obj/%.o
+bin/% wasm/%.js: $(OBJ_FILES) obj/%.o $(GSL_DEPS)
 	@test -e bin || mkdir bin
-	$(CPP) -o $@ obj/$*.o $(OBJFILES) $(LIBFLAGS)
+	$(CPP) -o $@ obj/$*.o $(OBJ_FILES) $(LD_FLAGS)
 
-obj/%.o: src/%.cpp
+obj/%.o: src/%.cpp $(GSL_DEPS)
 	@test -e obj || mkdir obj
-	$(CPP) $(CPPFLAGS) -c -o $@ $<
+	$(CPP) $(CPP_FLAGS) -c -o $@ $<
 
 obj/%.o: t/%.cpp
 	@test -e obj || mkdir obj
-	$(CPP) $(CPPFLAGS) -c -o $@ $<
+	$(CPP) $(CPP_FLAGS) -c -o $@ $<
 
+# emscripten source files
+# gsl-js
+$(GSL_LIB):
+	mkdir $(GSL_PREFIX)
+	cd $(GSL_PREFIX); git clone https://github.com/GSL-for-JS/gsl-js.git
+	cd $(GSL_SOURCE); emconfigure ./configure --prefix=$(abspath $(CURDIR)/$(GSL_PREFIX)); emmake make -k install
 
 # Tests
 
