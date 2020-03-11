@@ -10,12 +10,10 @@
 #include "diagenv.h"
 #include "sampler.h"
 
-#define DefaultProfileSamples 100
-#define DefaultProfilePostProb .001
-#define DefaultProfileMaxStates 12000
+#define DefaultProfileSamples 10
 #define DefaultMaxDPMemoryFraction .05
 
-#define DefaultMaxDistanceFromGuide 40
+#define DefaultMaxDistanceFromGuide 20
 #define DefaultMaxEMIterations 100
 #define DefaultMinEMImprovement .001
 
@@ -23,8 +21,8 @@
 
 #define AncestralSequencePostProbTag "PP"
 
-#define ReconFastAliasArgs {"-profminpost",".01","-profmaxstates","5000"}
-#define ReconFasterAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc","-norefine"}
+#define ReconCarefulAliasArgs {"-allspan","-kmatchoff","-band","40","-profminpost",".001","-profmaxmem",to_string(100*DefaultMaxDPMemoryFraction),"-refine"}
+#define ReconFastAliasArgs {"-rndspan","-kmatchn","3","-band","10","-profmaxstates","1","-jc","-norefine"}
 
 #define DefaultSimulatorRootSeqLen 100
 
@@ -33,7 +31,7 @@ public:
   typedef AlignColSumProduct::ReconPostProbMap ReconPostProbMap;
 
   static const vguard<string> fastAliasArgs;
-  static const vguard<string> fasterAliasArgs;
+  static const vguard<string> carefulAliasArgs;
   
   string fastaReconFilename, treeFilename, modelFilename, presetModelName;
   list<string> seqFilenames, fastaGuideFilenames, nexusGuideFilenames, stockholmGuideFilenames, nexusReconFilenames, stockholmReconFilenames, countFilenames, simulatorTreeFilenames;

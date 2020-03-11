@@ -296,20 +296,20 @@ testcountio: bin/testcountio
 	$(WRAPTEST) bin/testcountio data/testcount.count.json data/testcount.count.json
 
 testhist: $(MAINTARGET)
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh data/testcount.historian.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -model data/testnj.jukescantor.json -nexus data/testnexus.nex data/testnexus.hist.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -tree data/PF16593.testspan.testnj.nh -band 10 data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -tree data/PF16593.testspan.testnj.nh -model data/testamino.json data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -profsamples 100 -guide data/PF16593.testspan.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -profsamples 100 -seqs data/PF16593.fa -tree data/PF16593.nhx -model data/testamino.json -nj data/PF16593.historian.fa
 
 testhist-rndspan:
-	$(WRAPTESTMAIN) recon -fast -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
+	$(WRAPTESTMAIN) recon -careful -norefine -output fasta -profsamples 100 -rndspan data/PF16593.fa -model data/testamino.json -nj data/PF16593.testspan.testnj.historian.fa
 
 testcount: $(MAINTARGET)
-	$(WRAPTESTMAIN) count -fast -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
-	$(WRAPTESTMAIN) count -fast -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
-	$(WRAPTESTMAIN) count -fast -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
+	$(WRAPTESTMAIN) count -careful -model data/testcount.jukescantor.json -recon data/testcount.fa -tree data/testcount.nh data/testcount.out.json
+	$(WRAPTESTMAIN) count -careful -model data/testcount.jukescantor.json -tree data/testcount.nh -recon data/testcount.historian.fa data/testcount.count.json
+	$(WRAPTESTMAIN) count -careful -model data/testrates.mix2.json -recon data/testcount.mix2.fa -tree data/testcount.mix2.nh data/testcount.mix2.count.json
 
 testsum: $(MAINTARGET)
 	$(WRAPTESTMAIN) sum data/testcount.out.json data/testcount.out.json data/testcount.sum.json

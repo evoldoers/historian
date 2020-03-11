@@ -27,23 +27,23 @@ const regex newick_re (RE_WHITE_OR_EMPTY "\\(" RE_DOT_STAR);  // '('
 const regex json_re (RE_WHITE_OR_EMPTY "\\{" RE_DOT_STAR);    // '{'
 
 const vguard<string> Reconstructor::fastAliasArgs = ReconFastAliasArgs;
-const vguard<string> Reconstructor::fasterAliasArgs = ReconFasterAliasArgs;
+const vguard<string> Reconstructor::carefulAliasArgs = ReconCarefulAliasArgs;
 
 Reconstructor::Reconstructor()
   : profileSamples (DefaultProfileSamples),
     profileMinLen (0),
     profileMaxLen (numeric_limits<size_t>::max()),
-    profileNodeLimit (DefaultProfileMaxStates),
+    profileNodeLimit (0),
     maxDPMemoryFraction (DefaultMaxDPMemoryFraction),
     rndSeed (ForwardMatrix::random_engine::default_seed),
     maxDistanceFromGuide (DefaultMaxDistanceFromGuide),
     tokenizeCodons (false),
-    guideAlignTryAllPairs (true),
-    useUPGMA (false),
+    guideAlignTryAllPairs (false),
+    useUPGMA (true),
     jukesCantorDistanceMatrix (false),
     includeBestTraceInProfile (true),
     keepGapsOpen (false),
-    usePosteriorsForProfile (true),
+    usePosteriorsForProfile (false),
     reconstructRoot (true),
     refineReconstruction (true),
     accumulateSubstCounts (false),
@@ -55,7 +55,7 @@ Reconstructor::Reconstructor()
     usePosteriorsForDot (false),
     useSeparateSubPosteriorsForDot (false),
     keepDotGapsOpen (false),
-    minPostProb (DefaultProfilePostProb),
+    minPostProb (0),
     maxEMIterations (DefaultMaxEMIterations),
     minEMImprovement (DefaultMinEMImprovement),
     runMCMC (false),
@@ -419,10 +419,10 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
 	argvec.push_front (*fastArgIter);
       return true;
 
-    } else if (arg == "-faster") {
+    } else if (arg == "-careful") {
       argvec.pop_front();
-      for (auto fasterArgIter = fasterAliasArgs.rbegin(); fasterArgIter != fasterAliasArgs.rend(); ++fasterArgIter)
-	argvec.push_front (*fasterArgIter);
+      for (auto carefulArgIter = carefulAliasArgs.rbegin(); carefulArgIter != carefulAliasArgs.rend(); ++carefulArgIter)
+	argvec.push_front (*carefulArgIter);
       return true;
 
     } else if (arg == "-rndspan") {
@@ -548,11 +548,6 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       refineReconstruction = true;
       argvec.pop_front();
       return true;
-
-    } else if (arg == "-refine") {
-      refineReconstruction = true;
-      argvec.pop_front();
-      return true;
     }
   }
 
@@ -593,6 +588,9 @@ bool Reconstructor::parseCountArgs (deque<string>& argvec) {
     const string& arg = argvec[0];
     if (arg == "-nolaplace") {
       useLaplacePseudocounts = false;
+      argvec.pop_front();
+      return true;
+    } else if (arg == "-refine" || arg == "-norefine") {
       argvec.pop_front();
       return true;
     }

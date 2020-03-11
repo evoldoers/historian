@@ -259,7 +259,7 @@ Model specification options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   -model &lt;file&gt;   Load substitution & indel model from file (JSON)
   -preset &lt;name&gt;  Select preset model by name
-                   (jc, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+                   (jc, jcrna dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
 
   -normalize      Normalize expected substitution rate
   -insrate &lt;R&gt;, -delrate &lt;R&gt;, -insextprob &lt;P&gt;, -delextprob &lt;P&gt;
@@ -299,24 +299,21 @@ The reconstruction algorithm iterates through the guide tree in postorder,
 aligning each sibling pair and reconstructing a profile of their parent.
 The dynamic programming is constrained to a band around a guide alignment.
 
-  -band &lt;n&gt;       Size of band around guide alignment (default 40)
+  -band &lt;n&gt;       Size of band around guide alignment (default 20)
   -noband         Unlimit band, removing dependence on guide alignment
 
 The reconstructed parent profile is a weighted finite-state transducer
 sampled from the posterior distribution implied by the children. The
 posterior probability threshold for inclusion in the parent profile and
-max number of states in the parent profile can both be tweaked to trade off
+max number of states in the parent profile can both be specified to trade
 sensitivity vs performance.
 
   -profminpost &lt;P&gt;, -profsamples &lt;N&gt;
                   Specify minimum posterior prob. (P) for retaining DP states
-                   in profile (default .001), or sample N traces randomly
+                   in profile, or sample N traces randomly (default is -profsamples 10
   -profmaxstates &lt;S&gt;, -profmaxmem &lt;M&gt;
                   Limit profile to at most S states, or to use at most M% of
-                   memory for DP matrix (default is -profmaxstates 12000)
-  -profminlen &lt;L&gt;, -profmaxlen &lt;L&gt;
-                  Constrain permissible range of ancestral sequence lengths
-                   (use with care; extreme/unreachable values may cause program to hang!)
+                   memory for DP matrix (default is -profmaxmem 0.050000)
 
 Following alignment, ancestral sequence reconstruction can be performed.
 
@@ -327,7 +324,7 @@ For additional accuracy in historical reconstruction, the alignment can be
 iteratively refined, or MCMC-sampled. By default, refinement is enabled and
 MCMC is disabled. (MCMC currently requires an ultrametric tree.)
 
-  -norefine       Disable iterative refinement after initial reconstruction
+  -norefine, -refine                  Disable/enable iterative refinement after initial reconstruction
 
   -mcmc           Run MCMC sampler after reconstruction
   -samples &lt;N&gt;    Number of MCMC iterations per sequence (default 100)
@@ -339,9 +336,10 @@ Guide alignment & tree estimation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The guide aligner builds a maximal spanning tree of pairwise alignments.
 It can be accelerated in two ways. The first is by using a sparse random
-forest instead of a fully connected all-vs-all pairwise comparison.
+graph instead of a fully connected all-vs-all pairwise comparison.
 
-  -rndspan        Use a sparse random spanning graph, not all-vs-all pairs
+  -rndspan        Use a sparse random spanning graph (default)
+  -allspan        Use a dense random spanning graph, i.e. all-vs-all pairs
 
 The second way to optimize construction of the guide alignment is by
 confining the pairwise DP matrix to cells around a subset of diagonals
@@ -356,22 +354,22 @@ memory threshold can be set with -kmatchmb). It can be disabled with
   -kmatch &lt;k&gt;     Length of kmers for pre-filtering heuristic (default 6)
   -kmatchband &lt;n&gt; Size of DP band around kmer-matching diagonals (default 64)
   -kmatchmb &lt;M&gt;   Set kmer threshold to use M megabytes of memory
+  -kmatchmax      Set kmer threshold to use all available memory
   -kmatchoff      No kmer threshold, do full DP
 
 Following construction of the guide alignment, a tree is estimated using a
-distance matrix method. By default this is neighbor-joining.
+distance matrix method. By default this is UPGMA.
 
   -upgma          Use UPGMA to estimate tree (default for MCMC)
   -nj             Use neighbor-joining, not UPGMA, to estimate tree
   -jc             Use Jukes-Cantor-like estimates for distance matrix
 
-If you are confident the guide alignment & tree should be reasonably obvious,
-and just want to get on to reconstruction as quickly as possible:
+Some common settings (the default is somewhere in between these extremes):
 
-  -fast           Run fast. Shorthand for the following:
-                   -profminpost .01 -profmaxstates 5000
+  -careful        Run in careful mode. Shorthand for the following:
+                   -allspan -kmatchoff -band 40 -profminpost .001 -profmaxmem 5.000000 -refine
 
-  -faster         Run even faster. Shorthand for the following:
+  -fast           Run in fast mode. Shorthand for the following:
                    -rndspan -kmatchn 3 -band 10 -profmaxstates 1 -jc -norefine
 
 Model-fitting and event-counting options
