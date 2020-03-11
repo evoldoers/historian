@@ -430,6 +430,11 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       argvec.pop_front();
       return true;
 
+    } else if (arg == "-allspan") {
+      guideAlignTryAllPairs = true;
+      argvec.pop_front();
+      return true;
+
     } else if (arg == "-upgma") {
       useUPGMA = true;
       argvec.pop_front();
