@@ -548,6 +548,11 @@ bool Reconstructor::parseSamplerArgs (deque<string>& argvec) {
       refineReconstruction = true;
       argvec.pop_front();
       return true;
+
+    } else if (arg == "-refine") {
+      refineReconstruction = true;
+      argvec.pop_front();
+      return true;
     }
   }
 
