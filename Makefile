@@ -130,12 +130,14 @@ MAIN = historian
 ifneq (,$(USING_EMSCRIPTEN))
 WRAP = node wasm/cmdwrap.js
 MAINTARGET = wasm/historian.js
+HTMLTARGET = $(subst .js,.html,$(MAINTARGET))
 WRAPTARGET = $(WRAP) $(MAINTARGET)
 TESTSUFFIX = .js
 else
 WRAP =
 MAINTARGET = bin/$(MAIN)
 WRAPTARGET = $(MAINTARGET)
+HTMLTARGET =
 TESTSUFFIX =
 endif
 
@@ -152,13 +154,13 @@ install: bin/$(MAIN)
 uninstall:
 	rm $(PREFIX)/bin/$(MAIN)
 
-emscripten: $(MAINTARGET)
+emscripten: $(HTMLTARGET)
 
 clean:
 	rm -rf bin/* obj/*
 
 # Main build rules
-bin/% wasm/%.js: $(OBJ_FILES) obj/%.o $(GSL_DEPS)
+bin/% wasm/%.js wasm/%.html: $(OBJ_FILES) obj/%.o $(GSL_DEPS)
 	@test -e $(dir $@) || mkdir -p $(dir $@)
 	$(CPP) $(LD_FLAGS) -o $@ obj/$*.o $(OBJ_FILES) $(GSL_OBJ_FILES)
 
