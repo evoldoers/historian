@@ -166,7 +166,11 @@ obj/%.o: src/%.cpp $(GSL_DEPS)
 	@test -e $(dir $@) || mkdir -p $(dir $@)
 	$(CPP) $(CPP_FLAGS) -c -o $@ $<
 
-bin/%: t/%.cpp
+obj/%.o: target/%.cpp $(GSL_DEPS)
+	@test -e $(dir $@) || mkdir -p $(dir $@)
+	$(CPP) $(CPP_FLAGS) -c -o $@ $<
+
+bin/%: t/%.cpp $(OBJ_FILES)
 	@test -e $(dir $@) || mkdir -p $(dir $@)
 	$(CPP) $(CPP_FLAGS) -c -o obj/$*.o $<
 	$(CPP) $(LD_FLAGS) -o $@$(TESTSUFFIX) obj/$*.o $(OBJ_FILES) $(GSL_OBJ_FILES)

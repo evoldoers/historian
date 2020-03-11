@@ -4,6 +4,7 @@
 #include "ECMrest.h"
 #include "ECMunrest.h"
 #include "jc.h"
+#include "jcrna.h"
 #include "lg.h"
 #include "wag.h"
 #include "jones.h"
@@ -17,6 +18,8 @@ RateModel namedModel (const string& n) {
     return ECMunrestModel();
   else if (name == "jc")
     return jcModel();
+  else if (name == "jcrna")
+    return jcrnaModel();
   else if (name == "lg")
     return lgModel();
   else if (name == "wag")
