@@ -6,12 +6,15 @@
     <title>Emscripten-Generated Code</title>
   </head>
   <body>
-
+    <div id="result"></div>
+    
     <script>
       var worker = new Worker('historian.js');
       worker.postMessage(['-h'])
       worker.onmessage = (e) => {
         console.log('Message received from worker', e.data);
+        var resultDiv = document.getElementById('result')
+        e.data.stdout.forEach ((x) => { div = document.createElement('div'); div.innerText = x; resultDiv.appendChild(div) })
       }
     </script>
   </body>

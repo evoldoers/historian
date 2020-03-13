@@ -1,6 +1,5 @@
 // This code goes at the start of the generated historian JS
 Module.noInitialRun = true;
-Module.noExitRuntime = true;
 
 Module.print = function (x) {
   if (Module.stdout)
@@ -13,7 +12,7 @@ Module.printErr = function (x) {
   if (Module.stderr)
     Module.stderr.push (x)
   else
-    console.log (x)
+    console.warn (x)
 }
 
 Module.runtimeInitPromise = new Promise ((resolve, reject) => {
@@ -46,8 +45,8 @@ Module.runWithFiles = (args) => {
       Module.stdout = []
       Module.stderr = []
       Module.callMain (wrappedArgs)
-      const stdout = Module.stdout.join('')
-      const stderr = Module.stderr.join('')
+      const stdout = Module.stdout
+      const stderr = Module.stderr
       Module.stdout = oldStdout
       Module.stderr = oldStderr
 

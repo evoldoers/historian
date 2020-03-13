@@ -8,6 +8,7 @@
 
 #define StockholmNewHampshireTag "NH"
 #define StockholmIDTag "ID"
+#define StockholmLogProbTag "LP"
 
 #define MinStockholmCharsPerRow 10
 #define DefaultStockholmRowLength 80

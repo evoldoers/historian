@@ -1113,6 +1113,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 		stock.gs[AncestralSequencePostProbTag][stock.gapped[row_colcharprob.first].name].push_back (string() + to_string(col_charprob.first + 1) + " " + char_prob.first + " " + to_string(char_prob.second));
       }
       stock.gf[StockholmIDTag].push_back (name);
+      stock.gf[StockholmLogProbTag].push_back (to_string (TreeAlignFuncs::logLikelihood (model, t, gapped)));
       stock.write (out, 0);
     }
     break;

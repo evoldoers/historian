@@ -52,6 +52,9 @@ struct Tree {
   bool isBinary() const;
   void assertBinary() const;
 
+  bool hasChildren() const;
+  bool hasGrandchildren() const;
+  
   bool isUltrametric (double epsilon = 1e-4) const;
   void assertUltrametric (double epsilon = 1e-4) const;
 

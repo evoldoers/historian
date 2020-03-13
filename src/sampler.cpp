@@ -55,17 +55,17 @@ TreeNodeIndex Sampler::randomInternalNode (const Tree& tree, random_engine& gene
 }
 
 TreeNodeIndex Sampler::randomChildNode (const Tree& tree, random_engine& generator) {
-  Assert (tree.nodes() > 1, "No child nodes in tree");
+  Assert (tree.hasChildren(), "No child nodes in tree");
   std::uniform_int_distribution<TreeNodeIndex> distribution (0, tree.nodes() - 2);
   return distribution (generator);
 }
 
 TreeNodeIndex Sampler::randomGrandchildNode (const Tree& tree, random_engine& generator) {
+  Assert (tree.hasGrandchildren(), "No grandchild nodes found");
   vguard<TreeNodeIndex> grandkids;
   for (TreeNodeIndex n = 0; n < tree.root(); ++n)
     if (tree.parentNode(n) != tree.root())
       grandkids.push_back (n);
-  Assert (grandkids.size() > 0, "No grandchild nodes found");
   return random_element (grandkids, generator);
 }
 
@@ -424,6 +424,16 @@ LogProb TreeAlignFuncs::logLikelihood (const RateModel& model, const History& hi
   const LogProb lp = lpRoot + lpGaps + lpSub;
   LogThisAt(6,"log(L" << suffix << ") = " << setw(10) << lpRoot << " (root) + " << setw(10) << lpGaps << " (indels) + " << setw(10) << lpSub << " (substitutions) = " << lp << endl);
   return lp;
+}
+
+LogProb TreeAlignFuncs::logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const char* suffix) {
+  const History history (gapped, tree);
+  return logLikelihood (treePrior, model, history, suffix);
+}
+
+LogProb TreeAlignFuncs::logLikelihood (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const char* suffix) {
+  const History history (gapped, tree);
+  return logLikelihood (model, history, suffix);
 }
 
 LogProb TreeAlignFuncs::logBranchPathLikelihood (const ProbModel& probModel, const AlignPath& path, TreeNodeIndex parent, TreeNodeIndex child) {
@@ -1647,9 +1657,9 @@ void Sampler::initialize (const History& initialHistory, const string& samplerNa
   currentLogLikelihood = bestLogLikelihood = logLikelihood (currentHistory, "initial");
 
   // set move rates more-or-less arbitrarily
-  moveRate[Move::BranchAlign] = 1;
+  moveRate[Move::BranchAlign] = initialHistory.tree.hasChildren() ? 1 : 0;
   moveRate[Move::NodeAlign] = 1;
-  moveRate[Move::PruneAndRegraft] = 1;
+  moveRate[Move::PruneAndRegraft] = initialHistory.tree.hasGrandchildren() ? 1 : 0;
   moveRate[Move::NodeHeight] = 2;
   moveRate[Move::Rescale] = 2;
 }

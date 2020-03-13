@@ -22,6 +22,8 @@ struct TreeAlignFuncs {
   struct History {
     vguard<FastSeq> gapped;
     Tree tree;
+    History() { }
+    History (const vguard<FastSeq>& g, const Tree& t) : gapped(g), tree(t) { }
     History reorder (const vguard<TreeNodeIndex>& newOrder) const;
     void assertNamesMatch() const;
   };
@@ -56,6 +58,8 @@ struct TreeAlignFuncs {
 
   static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const History& history, const char* suffix = "");
   static LogProb logLikelihood (const RateModel& model, const History& history, const char* suffix = "");
+  static LogProb logLikelihood (const SimpleTreePrior& treePrior, const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const char* suffix = "");
+  static LogProb logLikelihood (const RateModel& model, const Tree& tree, const vguard<FastSeq>& gapped, const char* suffix = "");
 
   // TreeAlignFuncs::SparseDPMatrix
   template <size_t CellStates>

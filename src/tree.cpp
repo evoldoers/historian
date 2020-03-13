@@ -711,3 +711,14 @@ void Tree::setParent (TreeNodeIndex n, TreeNodeIndex p, TreeBranchLength d) {
   if (p >= 0)
     node[p].child.push_back (n);
 }
+
+bool Tree::hasChildren() const {
+  return nodes() > 1;
+}
+
+bool Tree::hasGrandchildren() const {
+  for (TreeNodeIndex n = 0; n < root(); ++n)
+    if (parentNode(n) != root())
+      return true;
+  return false;
+}
