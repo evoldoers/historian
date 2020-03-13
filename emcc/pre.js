@@ -2,15 +2,15 @@
 Module.noInitialRun = true;
 
 Module.print = function (x) {
-  if (Module.stdout)
-    Module.stdout.push (x)
+  if (Module.stdout && typeof(Module.stdout) === 'function')
+    Module.stdout (x)
   else
     console.log (x)
 }
 
 Module.printErr = function (x) {
-  if (Module.stderr)
-    Module.stderr.push (x)
+  if (Module.stderr && typeof(Module.stderr) === 'function')
+    Module.stderr (x)
   else
     console.warn (x)
 }
@@ -19,7 +19,8 @@ Module.runtimeInitPromise = new Promise ((resolve, reject) => {
   Module.onRuntimeInitialized = resolve
 })
 
-Module.runWithFiles = (args) => {
+Module.runWithFiles = (args, config) => {
+  config = config || {}
   return Module.runtimeInitPromise
     .then (() => {
       args = args || [];
@@ -29,8 +30,9 @@ Module.runWithFiles = (args) => {
 	if (typeof(opt) !== 'string') {
 	  const filename = opt.filename || (filePrefix + (++nFiles))
           if (opt.input || opt.data) {
-            const fileBuffer = Buffer.from (opt.data || '', 'utf-8')
-	    Module.FS.writeFile (filename, new Uint8Array(fileBuffer))
+            const data = opt.data || ''
+            const fileBuffer = new Uint8Array (data.split('').map((c)=>c.charCodeAt(0)))
+	    Module.FS.writeFile (filename, fileBuffer)
           }
           if (opt.output)
             outputs.push (filename)
@@ -39,14 +41,17 @@ Module.runWithFiles = (args) => {
 	  return opt
       })
 
+      let stdout = config.stdout ? null : [];
+      let stderr = config.stderr ? null : [];
+
       const oldStdout = Module.stdout
       const oldStderr = Module.stderr
       
-      Module.stdout = []
-      Module.stderr = []
+      Module.stdout = config.stdout || ((x) => stdout.push(x));
+      Module.stderr = config.stderr || ((x) => stderr.push(x));
+
       Module.callMain (wrappedArgs)
-      const stdout = Module.stdout
-      const stderr = Module.stderr
+
       Module.stdout = oldStdout
       Module.stderr = oldStderr
 
@@ -60,7 +65,8 @@ Module.runWithFiles = (args) => {
 
 // Web worker
 onmessage = function(e) {
-  Module.runWithFiles(e.data).then ((result) => {
-    postMessage (result);
-  })
+  Module.runWithFiles (e.data, { stderr: (progress) => postMessage ({ progress }) })
+    .then ((result) => {
+      postMessage ({ result });
+    })
 }

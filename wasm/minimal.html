@@ -6,15 +6,25 @@
     <title>Emscripten-Generated Code</title>
   </head>
   <body>
+    <div id="progress"></div>
     <div id="result"></div>
-    
+
+    <script type="text/javascript" src="ansi2html.js"></script>
     <script>
       var worker = new Worker('historian.js');
-      worker.postMessage(['-h'])
+      var progressDiv = document.getElementById('progress')
+      var resultDiv = document.getElementById('result')
+      worker.postMessage([{data:">seq1\nARN\n>seq2\nSRG\n"},"-v3"])
       worker.onmessage = (e) => {
         console.log('Message received from worker', e.data);
-        var resultDiv = document.getElementById('result')
-        e.data.stdout.forEach ((x) => { div = document.createElement('div'); div.innerText = x; resultDiv.appendChild(div) })
+        if (e.data.progress) {
+          div = document.createElement('div')
+          div.innerHTML = ansi.ansi2html (e.data.progress)
+          progressDiv.appendChild (div)
+          console.warn (e.data.progress)
+        } else if (e.data.result) {
+          e.data.result.stdout.forEach ((x) => { div = document.createElement('div'); div.innerText = x; resultDiv.appendChild(div) })
+        }
       }
     </script>
   </body>
