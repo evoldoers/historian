@@ -1137,7 +1137,7 @@ void Reconstructor::writeJson (const Tree& tree, const vguard<FastSeq>& gapped, 
     if (n != tree.root())
       out << (n ? "," : "") << "\n  [\"" << tree.node[tree.parentNode(n)].name << "\",\"" << tree.node[n].name << "\"," << tree.node[n].d << "]";
   out << "],\n";
-  out << " \"seqdata\": {";
+  out << " \"rowData\": {";
   for (int s = 0; s < gapped.size(); ++s) {
     const TreeNodeIndex n = outputLeavesOnly ? tree.findNode (gapped[s].name) : s;
     if (!(!tree.isLeaf(n) && outputLeavesOnly)) {
