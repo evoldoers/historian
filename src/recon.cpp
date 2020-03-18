@@ -953,6 +953,9 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	if (maxDist*2 > alignPathColumns(dataset.guide)) {
 	  LogThisAt(2,"Zero forward likelihood with guide alignment band " << maxDist << "; removing guide alignment constraint" << endl);
 	  maxDist = -1;
+	} else if (maxDist == 0) {
+	  LogThisAt(2,"Zero forward likelihood; increasing guide alignment band from 0 to 1" << endl);
+	  maxDist = 1;
 	} else {
 	  LogThisAt(2,"Zero forward likelihood; doubling guide alignment band from " << maxDist << " to " << (maxDist*2) << endl);
 	  maxDist *= 2;
