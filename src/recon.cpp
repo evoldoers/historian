@@ -1131,7 +1131,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
 }
 
 void Reconstructor::writeJson (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, const ReconPostProbMap* postProb) const {
-  out << "{\"root\":\"" << tree.node[tree.root()].name << "\"," << endl;
+  out << "{\"root\": \"" << tree.node[tree.root()].name << "\"," << endl;
   out << " \"branches\": [";
   for (TreeNodeIndex n = 0; n < tree.nodes(); ++n)
     if (n != tree.root())
