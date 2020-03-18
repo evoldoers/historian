@@ -48,6 +48,7 @@ struct Tree {
   TreeNodeIndex mostRecentCommonAncestor (TreeNodeIndex node1, TreeNodeIndex node2) const;
   
   TreeNodeIndex findNode (const string& name) const;
+  bool hasNode (const string& name) const;
 
   bool isBinary() const;
   void assertBinary() const;

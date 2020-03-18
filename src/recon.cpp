@@ -179,6 +179,8 @@ bool Reconstructor::parseModelArgs (deque<string>& argvec) {
 	outputFormat = FastaFormat;
       else if (format == "STOCKHOLM")
 	outputFormat = StockholmFormat;
+      else if (format == "JSON")
+	outputFormat = JsonFormat;
       else
 	Fail ("Unrecognized format: %s", argvec[1].c_str());
       argvec.pop_front();
@@ -1085,23 +1087,28 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
   }
   if (tokenizeCodons)
     g = codonTokenizer.detokenize (g);
+  if (isReconstruction && (outputFormat == NexusFormat || outputFormat == JsonFormat || outputFormat == StockholmFormat)) {
+    if (!outputLeavesOnly)
+      t.assignInternalNodeNames (g);
+    else
+      t.assignInternalNodeNames();
+  }
   switch (outputFormat) {
   case FastaFormat:
     writeFastaSeqs (out, g);
     break;
   case NexusFormat:
     {
-      if (isReconstruction)
-	t.assignInternalNodeNames (g);
       NexusData nexus (g, t);
       nexus.convertAlignmentToNexus();
       nexus.write (out);
     }
     break;
+  case JsonFormat:
+    writeJson (t, g, out, postProb);
+    break;
   case StockholmFormat:
     {
-      if (isReconstruction)
-	t.assignInternalNodeNames (g);
       Stockholm stock (g, t);
       if (postProb) {
 	if (outputLeavesOnly)
@@ -1121,6 +1128,40 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
     Fail ("Unknown output format");
     break;
   }
+}
+
+void Reconstructor::writeJson (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, const ReconPostProbMap* postProb) const {
+  out << "{\"root\":\"" << tree.node[tree.root()].name << "\"," << endl;
+  out << " \"branches\": [";
+  for (TreeNodeIndex n = 0; n < tree.nodes(); ++n)
+    if (n != tree.root())
+      out << (n ? "," : "") << "\n  [\"" << tree.node[tree.parentNode(n)].name << "\",\"" << tree.node[n].name << "\"," << tree.node[n].d << "]";
+  out << "],\n";
+  out << " \"seqdata\": {";
+  for (int s = 0; s < gapped.size(); ++s) {
+    const TreeNodeIndex n = outputLeavesOnly ? tree.findNode (gapped[s].name) : s;
+    if (!(!tree.isLeaf(n) && outputLeavesOnly)) {
+      out << (s ? "," : "") << "\n  \"" << gapped[s].name << "\": ";
+      if (tree.isLeaf(n) || !postProb || !postProb->count(s))
+	out << "\"" << gapped[s].seq << "\"";
+      else {
+	out << "[";
+	int cols = 0;
+	for (auto& col_charprob: postProb->at(s)) {
+	  for (; cols < col_charprob.first; ++cols)
+	    out << (cols ? "," : "") << "[]";
+	  if (cols)
+	    out << ",";
+	  out << "[";
+	  int chars = 0;
+	  for (auto& char_prob: col_charprob.second)
+	    out << (chars++ ? "," : "") << "[\"" << char_prob.first << "\"," << to_string(char_prob.second) << "]";
+	}
+	out << "]";
+      }
+    }
+  }
+  out << endl << "}}" << endl;
 }
 
 void Reconstructor::writeRecon (const Dataset& dataset, ostream& out) const {

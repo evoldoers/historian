@@ -228,6 +228,13 @@ TreeNodeIndex Tree::findNode (const string& name) const {
   return 0;
 }
 
+bool Tree::hasNode (const string& name) const {
+  for (TreeNodeIndex n = 0; n < nodes(); ++n)
+    if (nodeName(n) == name)
+      return true;
+  return false;
+}
+
 void Tree::buildByNeighborJoining (const vguard<string>& nodeName, const vguard<vguard<TreeBranchLength> >& distanceMatrix) {
   // check that there are more than 2 nodes
   Assert (nodeName.size() >= 2, "Fewer than 2 nodes; can't make a binary tree");

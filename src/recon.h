@@ -142,6 +142,8 @@ public:
   void writeCounts (ostream& out) const;
   void writeModel (ostream& out) const;
 
+  void writeJson (const Tree& tree, const vguard<FastSeq>& gapped, ostream& out, const ReconPostProbMap* postProb = NULL) const;
+  
   static FileFormat detectFormat (const string& filename);
 
   int maxProfileStates() const;
