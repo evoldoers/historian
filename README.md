@@ -287,7 +287,7 @@ Reconstruction file I/O options
 
   -saveguide &lt;f&gt;  Save guide alignment to file
                    (guide tree too, if output format allows)
-  -output (nexus|fasta|stockholm)
+  -output (nexus|fasta|stockholm|json)
                   Specify output format (default is Stockholm)
   -noancs         Do not display ancestral sequences
 
@@ -321,8 +321,8 @@ Following alignment, ancestral sequence reconstruction can be performed.
   -ancprob        Report posterior probabilities for ancestral residues
 
 For additional accuracy in historical reconstruction, the alignment can be
-iteratively refined, or MCMC-sampled. By default, refinement is enabled and
-MCMC is disabled. (MCMC currently requires an ultrametric tree.)
+iteratively refined, or MCMC-sampled. By default, refinement and MCMC are
+both disabled. (MCMC currently requires an ultrametric tree.)
 
   -norefine, -refine                  Disable/enable iterative refinement after initial reconstruction
 
