@@ -20,17 +20,22 @@ Module.runtimeInitPromise = new Promise ((resolve, reject) => {
 })
 
 Module.runWithFiles = (args, config) => {
-  config = config || {}
+  args = args || [];
+  config = config || {};
+  if (typeof(args) === 'string')
+    args = args.split(' ')
   return Module.runtimeInitPromise
     .then (() => {
-      args = args || [];
-
       let nFiles = 0, filePrefix = 'FILE', outputs = []
       const wrappedArgs = args.map ((opt) => {
 	if (typeof(opt) !== 'string') {
 	  const filename = opt.filename || (filePrefix + (++nFiles))
-          if (opt.input || opt.data) {
-            const data = opt.data || ''
+          if (opt.input || opt.data || opt.json) {
+            let data = ''
+            if (opt.json)
+              data = JSON.stringify (opt.json)
+            else if (opt.data)
+              data = opt.data
             const fileBuffer = new Uint8Array (data.split('').map((c)=>c.charCodeAt(0)))
 	    Module.FS.writeFile (filename, fileBuffer)
           }

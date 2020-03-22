@@ -1,0 +1,25 @@
+{
+  "name": "evol-historian",
+  "version": "1.0.0",
+  "description": "Phylogenetic reconstruction of indel histories",
+  "main": "historian.js",
+  "files": [
+    "README.md",
+    "historian.html",
+    "historian.wasm",
+    "historian.js"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evoldoers/historian.git"
+  },
+  "author": "Ian Holmes",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/evoldoers/historian/issues"
+  },
+  "homepage": "https://github.com/evoldoers/historian#readme"
+}
