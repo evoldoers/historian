@@ -95,7 +95,7 @@ public:
   void nextColumn();
 
   void appendAncestralReconstructedColumn (vguard<FastSeq>& out) const;
-  void appendAncestralPostProbColumn (ReconPostProbMap& out, double minProb = .01, double maxProb = .999) const;
+  void appendAncestralPostProbColumn (ReconPostProbMap& out, double minProb = .01, double maxProb = 1.) const;
   
 private:
   void initAlignColumn();  // populates ungappedRows
