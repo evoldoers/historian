@@ -201,7 +201,6 @@ bool Tree::isUltrametric (double epsilon) const {
 void Tree::assertUltrametric (double epsilon) const {
   if (!isUltrametric(epsilon)) {
     const auto dist = distanceFromRoot();
-    TreeBranchLength minDist = numeric_limits<double>::infinity();
     for (TreeNodeIndex node = 0; node < nodes(); ++node)
       if (isLeaf(node))
 	Warn ("Node #%d (%s) distance from root is %g", node, nodeName(node).c_str(), dist[node]);
