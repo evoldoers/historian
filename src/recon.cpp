@@ -1159,6 +1159,7 @@ void Reconstructor::writeJson (const Tree& tree, const vguard<FastSeq>& gapped, 
 	  int chars = 0;
 	  for (auto& char_prob: col_charprob.second)
 	    out << (chars++ ? "," : "") << "[\"" << char_prob.first << "\"," << to_string(char_prob.second) << "]";
+	  out << "]";
 	}
 	out << "]";
       }
