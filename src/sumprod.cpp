@@ -208,9 +208,11 @@ LogProb SumProduct::computeColumnLogLikelihoodAt (AlignRowIndex node) const {
 vguard<LogProb> SumProduct::logNodePostProb (AlignRowIndex node) const {
   assertSingleRoot();
   vguard<LogProb> lpp (model.alphabetSize(), -numeric_limits<double>::infinity());
-  for (AlphTok i = 0; i < model.alphabetSize(); ++i)
+  for (AlphTok i = 0; i < model.alphabetSize(); ++i) {
     for (int cpt = 0; cpt < components(); ++cpt)
       log_accum_exp (lpp[i], logCptWeight[cpt] + logF[cpt][node] + log(F[cpt][node][i]) + logG[cpt][node] + log(G[cpt][node][i]) - colLogLike);
+    lpp[i] = min (lpp[i], 0.);  // guard against overflow probability > 1
+  }
   return lpp;
 }
 
