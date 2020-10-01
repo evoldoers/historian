@@ -21,7 +21,7 @@ private:
   set<string> logTags;
   bool useAnsiColor;
   vguard<string> logAnsiColor;
-  string threadAnsiColor, ansiColorOff;
+  string ansiColorOff;
   
 public:
   Logger();
