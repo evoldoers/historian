@@ -21,10 +21,7 @@ Logger::Logger()
 {
   for (int col : { 7, 2, 3, 5, 6, 1, 2, 3, 5, 6 })  // no blue, it's invisible
     logAnsiColor.push_back (ansiEscape(30 + col) + ansiEscape(40));
-  threadAnsiColor = ansiEscape(37) + ansiEscape(41);  // white on red
   ansiColorOff = ansiEscape(0);
-
-  setThreadName (this_thread::get_id(), "main thread");
 }
 
 void Logger::addTag (const char* tag) {
@@ -89,56 +86,6 @@ string Logger::args() const {
   return a;
 }
 
-void Logger::lock (int color, const char* file, int line, bool banner) {
-  thread::id myId = this_thread::get_id();
-  if (mx.try_lock_for (std::chrono::milliseconds(1000))) {
-    if (lastMxOwner != myId && banner && threadName.size() > 1)
-      clog << (useAnsiColor ? threadAnsiColor.c_str() : "")
-	   << '(' << getThreadName(myId) << ')'
-	   << (useAnsiColor ? ansiColorOff.c_str() : "") << ' ';
-    lastMxOwner = myId;
-    mxOwnerFile = file;
-    mxOwnerLine = line;
-  } else if (banner)
-    clog << (useAnsiColor ? threadAnsiColor.c_str() : "")
-	 << '(' << getThreadName(myId) << ", ignoring lock by " << getThreadName(lastMxOwner) << " at " << mxOwnerFile << " line " << mxOwnerLine << ')'
-	 << (useAnsiColor ? ansiColorOff.c_str() : "") << ' ';
-  if (banner && useAnsiColor)
-    clog << (color < 0
-	     ? logAnsiColor.front()
-	     : (color >= (int) logAnsiColor.size()
-		? logAnsiColor.back()
-		: logAnsiColor[color]));
-}
-
-void Logger::unlock (bool banner) {
-  if (banner && useAnsiColor)
-    clog << ansiColorOff;
-  mx.unlock();
-}
-
-string Logger::getThreadName (thread::id id) {
-  const auto& iter = threadName.find(id);
-  if (iter == threadName.end()) {
-    ostringstream o;
-    o << "thread " << id;
-    return o.str();
-  }
-  return iter->second;
-}
-
-void Logger::setThreadName (thread::id id, const string& name) {
-  threadName[id] = name;
-}
-
-void Logger::nameLastThread (const list<thread>& threads, const char* prefix) {
-  setThreadName (threads.back().get_id(),
-		 string(prefix) + " thread #" + to_string(threads.size()));
-}
-
-void Logger::eraseThreadName (const thread& thr) {
-  threadName.erase (thr.get_id());
-}
 
 ProgressLogger::ProgressLogger (int verbosity, const char* function, const char* file, int line)
   : msg(NULL), verbosity(verbosity), function(function), file(file), line(line)

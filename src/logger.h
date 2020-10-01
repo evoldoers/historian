@@ -6,8 +6,6 @@
 #include <map>
 #include <string>
 #include <deque>
-#include <mutex>
-#include <thread>
 #include <ratio>
 #include <chrono>
 #include <iostream>
@@ -25,12 +23,6 @@ private:
   vguard<string> logAnsiColor;
   string threadAnsiColor, ansiColorOff;
   
-  recursive_timed_mutex mx;
-  thread::id lastMxOwner;
-  const char* mxOwnerFile;
-  int mxOwnerLine;
-  map<thread::id,string> threadName;
-
 public:
   Logger();
   // configuration
@@ -53,21 +45,9 @@ public:
     return verbosity >= v || testLogTag(tag1) || testLogTag(tag2);
   }
 
-  string getThreadName (thread::id id);
-  void setThreadName (thread::id id, const string& name);
-  void nameLastThread (const list<thread>& threads, const char* prefix);
-  void eraseThreadName (const thread& thr);
-
-  void lock (int color = 0, const char* file = "", const int line = 0, bool banner = true);
-  void unlock (bool endBanner = true);
-  void lockSilently() { lock(0,"",0,false); }
-  void unlockSilently() { unlock(false); }
-
   template<class T>
   void print (const T& t, const char* file, int line, int v) {
-    lock(v,file,line,true);
     clog << t;
-    unlock(true);
   }
 };
 
