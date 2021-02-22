@@ -27,6 +27,12 @@ At present, Historian requires the following build environment to compile:
  * zlib version 1.2.5 or later
  * pkg-config version 0.29.1 or later
 
+To install all these on a Mac, you can type
+
+~~~~
+brew install boost gsl pkg-config zlib
+~~~~
+
 If you want to run the tests, type `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
 
 Pre-compiled binaries are also available from the GitHub repository [release page](https://github.com/evoldoers/historian/releases).
