@@ -49,9 +49,10 @@ struct Profile {
   vguard<ProfileTransition> trans;
   map<AlignRowIndex,string> seq;
   map<ProfileStateIndex,ProfileStateIndex> equivAbsorbState;
+  AlignRowIndex rootRowIndex;
   Profile() { }
-  Profile (size_t components, AlphTok alphSize)
-    : components(components), alphSize(alphSize) { }
+  Profile (size_t components, AlphTok alphSize, AlignRowIndex rowIndex)
+    : components(components), alphSize(alphSize), rootRowIndex(rowIndex) { }
   Profile (size_t components, const string& alphabet, const FastSeq& seq, AlignRowIndex rowIndex);
   ProfileStateIndex size() const { return state.size(); }
   Profile leftMultiply (const vguard<gsl_matrix*>& sub) const;
@@ -69,7 +70,8 @@ struct Profile {
   void assertAllStatesWaitOrReady() const;
   void assertPathToEndExists() const;
   Profile addReadyStates() const;
-
+  bool isEmpty() const;
+  
   vguard<ProfileStateIndex> examplePathToEnd() const;  // proof-of-concept path to end
 };
 

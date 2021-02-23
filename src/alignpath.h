@@ -22,6 +22,8 @@ AlignPath alignPathConcat (const AlignPath& a1, const AlignPath& a2, const Align
 
 AlignPath alignPathRemoveEmptyColumns (const AlignPath& a);
 
+void ensureAlignPathHasRow (AlignPath&, AlignRowIndex);   // adds an empty row if necessary
+
 string alignPathString (const AlignPath& a);
 
 struct Alignment {

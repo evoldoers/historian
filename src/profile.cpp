@@ -24,7 +24,8 @@ Profile::Profile (size_t components, const string& alphabet, const FastSeq& seq,
   : components (components),
     alphSize ((AlphTok) alphabet.size()),
     state (seq.length() + 2, ProfileState (components, (AlphTok) alphabet.size())),
-    trans (seq.length() + 1)
+    trans (seq.length() + 1),
+    rootRowIndex (rowIndex)
 {
   name = seq.name;
   state.front() = state.back() = ProfileState();  // start and end are null states
@@ -273,6 +274,7 @@ Profile Profile::addReadyStates() const {
   prof.meta = meta;
   prof.seq = seq;
   prof.trans = trans;
+  prof.rootRowIndex = rootRowIndex;
   vguard<ProfileState> profState (state);
   for (ProfileStateIndex s = 0, n = 0; s < size(); ++s) {
     old2newStateIndex[s] = n++;
@@ -356,4 +358,11 @@ vguard<ProfileStateIndex> Profile::examplePathToEnd() const {
     revPath.push_back (j);
   revPath.push_back (0);
   return vguard<ProfileStateIndex> (revPath.rbegin(), revPath.rend());
+}
+
+bool Profile::isEmpty() const {
+  for (auto s: state)
+    if (!s.isNull())
+      return false;
+  return true;
 }

@@ -2,18 +2,19 @@
 
 # Historian
 
-Historian is a multiple aligner that aims at providing accurate historical reconstructions of the evolution of a set of DNA or protein sequences. Many multiple alignment tools instead optimize for structure: that is, they try to provide protein alignments that correctly identify regions of 3D structural homology. If you are trying to predict the structure of a protein, you should probably use one of those other tools. If you care about the evolutionary history of your sequences, consider using Historian.
+Historian is a multiple aligner that aims at providing accurate historical reconstructions of the evolution of a set of DNA or protein sequences. Many multiple alignment tools instead optimize for structure: that is, they try to provide protein alignments that correctly identify regions of 3D structural homology. If you are trying to predict the structure of a protein, you should probably use one of those other tools (or the latest CASP winner). If you care about the evolutionary history of your sequences, consider using Historian.
 
 Often, multiple alignment tools (notable examples including Clustal, Muscle, ProbCons) are optimized for homology-based structure prediction, and tested on structural alignment benchmarks (e.g. BAliBase, Oxbench, Prefab, Sabmark). That's a good empirical approach as far as it goes, because structurally-informed protein alignments make a good "gold standard" for benchmarking alignment tools. Often, these tools have scoring schemes that are optimized for reproducing common signatures of protein selection, such as reduced indel rates in hydrophobic regions. However, optimizing for structure has the unfortunate drawback of introducing biases into the estimates of indel (and possibly substitution) rates (as a rule of thumb, all methods tend to underestimate mutation rates, but with standard multiple aligners the biases can be unpredictable and can vary widely at different indel rates). Consequently, this approach yields a less-than-accurate picture of evolutionary history.
 
 By contrast, Historian uses an explicit evolutionary model of indel and substitution events, derived rigorously from statistical phylogenetics using finite-state transducers as evolutionary operators. In simulation tests (using the third-party evolution simulator [indel-Seq-Gen](https://www.ncbi.nlm.nih.gov/pubmed/17158778)), it introduces significantly fewer biases than other tools. It also performs pretty well on structural alignment benchmarks, though not quite as well as tools like Muscle and ProbCons that are optimized for that.
 
-The basic method and initial benchmarks of the approach were described in Westesson _et al_, 2012 [1], reporting benchmarks using a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has more features for molecular evolutionary modeling.
+The basic method and initial benchmarks of the approach were described in Westesson _et al_, 2012 [1], reporting benchmarks using a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has more features for molecular evolutionary modeling [2].
 
-The closest method to Historian is PRANK [2]. Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
+The closest method to Historian is PRANK [3]. Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
 
 1. [_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012
-2. [_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008
+2. [_Historian: accurate reconstruction of ancestral sequences and evolutionary rates_](https://academic.oup.com/bioinformatics/article/33/8/1227/2926463); Holmes, Bioinformatics, 2017
+3. [_Phylogeny-Aware Gap Placement Prevents Errors in Sequence Alignment and Evolutionary Analysis_](https://www.ncbi.nlm.nih.gov/pubmed/18566285); Löytynoja and Goldman, Science, 2008
 
 ## Installation
 
@@ -405,13 +406,19 @@ General options
 
 REFERENCES
 
-The initial reconstruction uses phylogenetic transducers, as described in:
+The primary reference for this software is the following:
+  Holmes (2017). Historian: Accurate Reconstruction of
+  Ancestral Sequences and Evolutionary Rates.
+  Bioinformatics, DOI: 10.1093/bioinformatics/btw791
+  https://academic.oup.com/bioinformatics/article/33/8/1227/2926463
+
+The reconstruction algorithm uses phylogenetic transducers, as described in:
   Westesson, Lunter, Paten & Holmes (2012). Accurate Reconstruction of
   Insertion-Deletion Histories by Statistical Phylogenetics.
   PLoS One, DOI: 10.1371/journal.pone.0034572
   http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572
 
-A longer, tutorial-style introduction is available here:
+A longer, tutorial-style introduction to transducers is available here:
   Westesson, Lunter, Paten & Holmes (2012).
   Phylogenetic Automata, Pruning, and Multiple Alignment.
   http://arxiv.org/abs/1103.4347

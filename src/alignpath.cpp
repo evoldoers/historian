@@ -298,5 +298,12 @@ GuideAlignmentEnvelope::GuideAlignmentEnvelope (const AlignPath& guide, AlignRow
 
     cumulativeMatches.push_back (matches);
   }
+}
 
+void ensureAlignPathHasRow (AlignPath& a, AlignRowIndex r) {
+  const AlignColIndex cols = alignPathColumns (a);  // this will also test if alignment is flush
+  if (!a.count (r)) {
+    a[r] = AlignRowPath (cols, false);
+    LogThisAt(2,"Adding " << cols << " empty columns for alignment row " << r << endl);
+  }
 }

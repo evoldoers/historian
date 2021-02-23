@@ -938,7 +938,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
       ProbModel rProbs (model, dataset.tree.branchLength(rChildNode));
       PairHMM hmm (lProbs, rProbs, rootProb);
 
-      LogThisAt(2,"Aligning " << lProf.name << " (" << plural(lProf.state.size(),"state") << ", " << plural(lProf.trans.size(),"transition") << ") and " << rProf.name << " (" << plural(rProf.state.size(),"state") << ", " << plural(rProf.trans.size(),"transition") << ")" << endl);
+      LogThisAt(2,"Aligning node #" << lProf.rootRowIndex << " " << lProf.name << " (" << plural(lProf.state.size(),"state") << ", " << plural(lProf.trans.size(),"transition") << ") and node #" << rProf.rootRowIndex << " " << rProf.name << " (" << plural(rProf.state.size(),"state") << ", " << plural(rProf.trans.size(),"transition") << ") to build profile for node #" << node << endl);
 
       ForwardMatrix* forward = NULL;
       int maxDist = maxDistanceFromGuide;
@@ -970,8 +970,9 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 
       BackwardMatrix *backward = NULL;
       if (((accumulateSubstCounts || accumulateIndelCounts || !dotSaveFilename.empty()) && node == dataset.tree.root())
-	  || (usePosteriorsForProfile && node != dataset.tree.root()))
+	  || (usePosteriorsForProfile && node != dataset.tree.root())) {
 	backward = new BackwardMatrix (*forward);
+      }
 
       Profile& nodeProf = prof[node];
       if (node == dataset.tree.root()) {

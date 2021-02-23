@@ -193,7 +193,7 @@ WRAPTEST = $(TEST) $(WRAP)
 WRAPTEST4 = $(TEST) perl/roundfloats.pl 4 $(WRAP)
 WRAPTEST10 = $(TEST) perl/roundfloats.pl 10 $(WRAP)
 
-test: testregex testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testupgma testquickalign testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum
+test: testregex testlogsumexp testseqio testnexus teststockholm testrateio testmatexp testmerge testseqprofile testforward testnullforward testbackward testnj testupgma testquickalign testtreeio testsubcount testnumsubcount testaligncount testsumprod testcountio testhist testcount testsum testzerolen
 # Skipped due to inconsistent platform-dependent behavior: testspan testhist-rndspan
 
 testregex: bin/testregex
@@ -321,6 +321,10 @@ testgp120:
 
 testpost:
 	$(MAINTARGET) post -fast -model data/testcount.jukescantor.json -guide data/testcount.fa -tree data/testcount.nh -v8
+
+testzerolen:
+	$(WRAPTESTMAIN) data/zerolen.fa -output fasta data/zerolen.aligned.fa
+	$(WRAPTESTMAIN) data/zerolen2.fa -output fasta data/zerolen2.aligned.fa
 
 # Rules for building files in the repository
 # For updating README.md

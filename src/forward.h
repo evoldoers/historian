@@ -50,6 +50,7 @@ public:
   static const char* random_engine_name() { return "mt19937"; }
   
   const Profile& x, y;
+  const bool xEmpty, yEmpty;
   const Profile subx, suby;
   const PairHMM& hmm;
   const AlphTok alphSize;
