@@ -948,6 +948,7 @@ void Reconstructor::reconstruct (Dataset& dataset) {
 	  break;
 	if (maxDist < 0) {
 	  LogThisAt(1,"Sample x-path: (" << to_string_join(forward->x.examplePathToEnd()) << ")\n" << "Sample y-path: (" << to_string_join(forward->y.examplePathToEnd()) << ")\n" << forward->toString(true));
+	  hmm.write (clog);
 	  Abort ("Zero forward likelihood even in the absence of guide alignment constraints - this is not good");
 	}
 	if (maxDist*2 > alignPathColumns(dataset.guide)) {

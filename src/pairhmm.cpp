@@ -152,3 +152,9 @@ const char* PairHMM::stateName (State s, bool xAtStart, bool yAtStart) {
   Abort ("Don't know name of state %u", s);
   return "?";
 }
+
+void PairHMM::write (ostream& out) const {
+  for (int src = 0; src < (int) TotalStates; ++src)
+    for (int dest = 0; dest <= (int) TotalStates; ++dest)
+      out << "log P(" << stateName((State)src,false,false) << "->" << stateName((State)dest,false,false) << ") = " << lpTrans((State)src,(State)dest) << endl;
+}

@@ -60,6 +60,8 @@ struct PairHMM : AlphabetOwner {
   static vguard<State> states();  // excludes EEE
   static vguard<State> sources (State dest);
   LogProb lpTrans (State src, State dest) const;
+
+  void write (ostream& out) const;
 };
 
 #endif /* PAIRHMM_INCLUDED */
