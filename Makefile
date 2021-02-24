@@ -229,8 +229,8 @@ testmerge: bin/testmerge
 	$(WRAPTEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.ayz.fa data/testmerge1.xyaz.fa
 	$(WRAPTEST) bin/testmerge data/testmerge1.xz.fa data/testmerge1.ayz.fa data/testmerge1.xzay.fa
 	$(WRAPTEST) bin/testmerge data/testmerge1.axyz.fa data/testmerge1.xz.fa data/testmerge1.axyz.fa
-	$(WRAPTEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty 2> /dev/null
-	$(WRAPTEST) bin/testmerge data/testmerge2.1.fa data/testmerge2.2.fa data/testmerge2.3.fa data/testmerge2.out.fa data/empty 2> /dev/null
+	$(WRAPTEST) bin/testmerge data/testmerge1.xy.fa data/testmerge1.xz.fa data/testmerge1-fail.ayz.fa data/empty -fail 2> /dev/null
+	$(WRAPTEST) bin/testmerge data/testmerge2.1.fa data/testmerge2.2.fa data/testmerge2.3.fa data/testmerge2.out.fa data/empty -fail 2> /dev/null
 
 testseqprofile: bin/testseqprofile
 	$(WRAPTEST) bin/testseqprofile ACGT AAGCT data/testseqprofile.aagct.json
@@ -256,7 +256,7 @@ testtreeio: bin/testtreeio
 	$(WRAPTEST) bin/testtreeio data/PF16593.nhx data/PF16593.nhx
 	$(WRAPTEST) bin/testtreeio data/testnj.out.nh data/testnj.out.nh
 	$(WRAPTEST) bin/testtreeio data/PF16593.testspan.testnj.nh data/PF16593.testspan.testnj.nh
-	$(WRAPTEST) bin/testtreeio data/testtreedupname.nh data/empty 2> /dev/null
+	$(WRAPTEST) bin/testtreeio data/testtreedupname.nh data/empty -fail 2> /dev/null
 	$(WRAPTEST) bin/testtreeio data/testtreenobranchlen.nh data/testtreenobranchlen.nh 2> /dev/null
 	$(WRAPTEST) bin/testtreeio data/testreroot.nh C data/testreroot.c.nh
 
