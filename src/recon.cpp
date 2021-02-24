@@ -1092,11 +1092,12 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
   }
   if (tokenizeCodons)
     g = codonTokenizer.detokenize (g);
+  g = model.convertWildcards (g);
   if (isReconstruction && (outputFormat == NexusFormat || outputFormat == JsonFormat || outputFormat == StockholmFormat)) {
-    if (!outputLeavesOnly)
-      t.assignInternalNodeNames (g);
-    else
+    if (outputLeavesOnly)
       t.assignInternalNodeNames();
+    else
+      t.assignInternalNodeNames(g);
   }
   switch (outputFormat) {
   case FastaFormat:
@@ -1149,7 +1150,7 @@ void Reconstructor::writeJson (const Tree& tree, const vguard<FastSeq>& gapped, 
     if (!(!tree.isLeaf(n) && outputLeavesOnly)) {
       out << (s ? "," : "") << "\n  \"" << gapped[s].name << "\": ";
       if (tree.isLeaf(n) || !postProb || !postProb->count(s))
-	out << "\"" << gapped[s].seq << "\"";
+	out << quoted_escaped(gapped[s].seq);
       else {
 	out << "[";
 	int cols = 0;
@@ -1161,7 +1162,7 @@ void Reconstructor::writeJson (const Tree& tree, const vguard<FastSeq>& gapped, 
 	  out << "[";
 	  int chars = 0;
 	  for (auto& char_prob: col_charprob.second)
-	    out << (chars++ ? "," : "") << "[\"" << char_prob.first << "\"," << to_string(char_prob.second) << "]";
+	    out << (chars++ ? "," : "") << "[" << quoted_escaped(string(1,char_prob.first)) << "," << to_string(char_prob.second) << "]";
 	  out << "]";
 	  ++cols;
 	}

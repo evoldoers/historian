@@ -4,6 +4,7 @@
   "insextprob": 0.66,
   "delextprob": 0.66,
   "alphabet": "arndcqeghilkmfpstwyv",
+  "wildcard": "x",
   "rootprob": {
     "a": 0.076748,
     "r": 0.051691,

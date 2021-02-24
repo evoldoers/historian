@@ -15,6 +15,7 @@ const char* wagModelText =
 "  \"insextprob\": 0.66,\n"
 "  \"delextprob\": 0.66,\n"
 "  \"alphabet\": \"arndcqeghilkmfpstwyv\",\n"
+"  \"wildcard\": \"x\",\n"
 "  \"rootprob\": {\n"
 "    \"a\": 0.0866279,\n"
 "    \"r\": 0.043972,\n"

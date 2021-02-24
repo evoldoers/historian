@@ -15,6 +15,7 @@ const char* lgModelText =
 "  \"insextprob\": 0.66,\n"
 "  \"delextprob\": 0.66,\n"
 "  \"alphabet\": \"arndcqeghilkmfpstwyv\",\n"
+"  \"wildcard\": \"x\",\n"
 "  \"rootprob\": {\n"
 "    \"a\": 0.079066,\n"
 "    \"r\": 0.055941,\n"

@@ -133,6 +133,8 @@ OutIter write_quoted_escaped(std::string const& s, OutIter out) {
   return out;
 }
 
+std::string quoted_escaped (std::string const& s);
+
 /* random_double */
 template<class Generator>
 double random_double (Generator& generator) {

@@ -20,10 +20,11 @@ using namespace std;
 
 struct AlphabetOwner {
   string alphabet;
+  char wildcard;  // internally, wildcards are always represented as Alignment::wildcardChar; they are converted to this character for output
   AlphabetOwner() { }
-  AlphabetOwner (const string& a) { initAlphabet(a); }
-  AlphabetOwner (const AlphabetOwner& ao) { initAlphabet(ao.alphabet); }
-  void initAlphabet (const string& a);
+  AlphabetOwner (const string& a, char wild = Alignment::wildcardChar) { initAlphabet(a,wild); }
+  AlphabetOwner (const AlphabetOwner& ao) { initAlphabet(ao.alphabet,ao.wildcard); }
+  void initAlphabet (const string& a, char wild = Alignment::wildcardChar);
   inline size_t alphabetSize() const { return alphabet.size(); }
   void readAlphabet (const JsonValue& json);
   UnvalidatedAlphTok tokenize (char c) const;
@@ -35,6 +36,8 @@ struct AlphabetOwner {
 
   void writeSubCounts (ostream& out, const vguard<vguard<double> >& rootCounts, const vguard<vguard<vguard<double> > >& subCountsAndWaitTimes, size_t indent = 0) const;
   void writeSubCountsComponent (ostream& out, const vguard<double>& rootCounts, const vguard<vguard<double> >& subCountsAndWaitTimes, size_t indent = 0) const;
+
+  vguard<FastSeq> convertWildcards (const vguard<FastSeq>&) const;
 };
 
 struct RateModel : AlphabetOwner {
@@ -45,7 +48,7 @@ struct RateModel : AlphabetOwner {
 
   RateModel();
   RateModel(const RateModel& model);
-  RateModel(const string& alphabet, int components);
+  RateModel(const string& alphabet, int components, char wild = Alignment::wildcardChar);
   ~RateModel();
 
   RateModel& operator= (const RateModel& model);
@@ -54,7 +57,7 @@ struct RateModel : AlphabetOwner {
   inline int components() const { return cptWeight.size(); }
 
   void clear();
-  void init (const string& alphabet);
+  void init (const string& alphabet, char wildcard = Alignment::wildcardChar);
   void read (const JsonValue& json);
   void write (ostream& out) const;
   void readComponent (const JsonMap& jm);

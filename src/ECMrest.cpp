@@ -15,6 +15,7 @@ const char* ECMrestModelText =
 "  \"insextprob\": 0.66,\n"
 "  \"delextprob\": 0.66,\n"
 "  \"alphabet\": \"FfLlSs5$YyCcW<[{/Pp,8HhQqRr=}Ii|MTt~`NnKk%#3]Vv^7Aa4&DdEeGg96\",\n"
+"  \"wildcard\": \"x\",\n"
 "  \"rootprob\": {\n"
 "    \"3\": 0.010372,\n"
 "    \"4\": 0.015908,\n"

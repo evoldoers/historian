@@ -100,3 +100,9 @@ std::string tolower (const std::string& s) {
     r[n] = tolower (r[n]);
   return r;
 }
+
+std::string quoted_escaped (std::string const& s) {
+  std::string q;
+  write_quoted_escaped (s, back_inserter(q));
+  return q;
+}

@@ -8,10 +8,12 @@ var defaults = { insrate: .01,
                  delrate: .01,
                  insextprob: .66,
                  delextprob: .66,
-                 alphabet: "arndcqeghilkmfpstwyv" }
+                 alphabet: "arndcqeghilkmfpstwyv",
+                 wildcard: "x" }
 
 var opt = getopt.create([
     ['a' , 'alphabet=STRING'  , 'alphabet (default='+defaults.alphabet+')'],
+    ['w' , 'wildcard=CHAR'    , 'wildcard (default='+defaults.wildcard+')'],
     ['i' , 'insrate=N'        , 'insertion rate (default='+defaults.insrate+')'],
     ['d' , 'delrate=N'        , 'insertion rate (default='+defaults.delrate+')'],
     ['x' , 'insextprob=N'     , 'insertion extension probability (default='+defaults.insextprob+')'],

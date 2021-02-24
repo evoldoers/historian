@@ -15,6 +15,7 @@ const char* jonesModelText =
 "  \"insextprob\": 0.66,\n"
 "  \"delextprob\": 0.66,\n"
 "  \"alphabet\": \"arndcqeghilkmfpstwyv\",\n"
+"  \"wildcard\": \"x\",\n"
 "  \"rootprob\": {\n"
 "    \"a\": 0.076748,\n"
 "    \"r\": 0.051691,\n"

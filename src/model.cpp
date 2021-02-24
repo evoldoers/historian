@@ -39,16 +39,23 @@ struct DistanceMatrixParams {
 void AlphabetOwner::readAlphabet (const JsonValue& json) {
   const JsonMap jm (json);
   Assert (jm.containsType("alphabet",JSON_STRING), "No alphabet");
-  initAlphabet (jm["alphabet"].toString());
+  initAlphabet (jm["alphabet"].toString(),
+		jm.containsType("wildcard",JSON_STRING) ? jm["wildcard"].toString()[0] : Alignment::wildcardChar);
 }
 
-void AlphabetOwner::initAlphabet (const string& a) {
+void AlphabetOwner::initAlphabet (const string& a, char wild) {
   alphabet = a;
+  wildcard = wild;
   set<char> s;
   for (auto c : alphabet) {
     Assert (s.find(c) == s.end(), "Duplicate character %c in alphabet %s", c, alphabet.c_str());
+    Assert (c != Alignment::wildcardChar, "Character %c is reserved for internal use as a wildcard, and cannot be used as a character in alphabet %s", c, alphabet.c_str());
+    Assert (c != Alignment::gapChar, "Character %c is reserved for internal use as a gap, and cannot be used as a character in alphabet %s", c, alphabet.c_str());
+    Assert (c != '>', "Character > is reserved by FASTA format as a delimiter, and cannot be used as a character in alphabet %s", alphabet.c_str());
+    Assert (c != ' ' && c != '\t' && c != '\n', "Whitespace characters are reserved for internal use as delimiters, and cannot be used as alphabet characters");
     s.insert (c);
   }
+  Assert (s.find(wild) == s.end(), "Wildcard character %c is also a character in alphabet %s", wild, alphabet.c_str());
 }
 
 UnvalidatedAlphTok AlphabetOwner::tokenize (char c) const {
@@ -79,6 +86,15 @@ gsl_vector* AlphabetOwner::newAlphabetVector() const {
   return gsl_vector_alloc (alphabetSize());
 }
 
+vguard<FastSeq> AlphabetOwner::convertWildcards (const vguard<FastSeq>& seqs) const {
+  vguard<FastSeq> result (seqs);
+  for (auto& seq: result)
+    for (size_t n = 0; n < seq.seq.size(); ++n)
+      if (seq.seq[n] == Alignment::wildcardChar)
+	seq.seq[n] = wildcard;
+  return result;
+}
+
 RateModel::RateModel()
 { }
 
@@ -87,8 +103,8 @@ RateModel::RateModel (const RateModel& model)
   *this = model;
 }
 
-RateModel::RateModel (const string& alph, int components) {
-  initAlphabet (alph);
+RateModel::RateModel (const string& alph, int components, char wildcard) {
+  initAlphabet (alph, wildcard);
   cptWeight = vguard<double> (components, 1. / (double) components);
   for (int c = 0; c < components; ++c) {
     auto ip = newAlphabetVector();
@@ -106,7 +122,7 @@ RateModel::~RateModel()
 RateModel& RateModel::operator= (const RateModel& model) {
   clear();
 
-  initAlphabet (model.alphabet);
+  initAlphabet (model.alphabet, model.wildcard);
   copyIndelParams (model);
   cptWeight = model.cptWeight;
   for (int c = 0; c < model.components(); ++c) {
@@ -142,9 +158,9 @@ void RateModel::clear() {
   cptWeight.clear();
 }
 
-void RateModel::init (const string& alph) {
+void RateModel::init (const string& alph, char wild) {
   clear();
-  initAlphabet (alph);
+  initAlphabet (alph, wild);
 
   for (int c = 0; c < components(); ++c) {
     insProb.push_back (newAlphabetVector());
@@ -221,7 +237,9 @@ void RateModel::readComponent (const JsonMap& jm) {
 
 void RateModel::write (ostream& out) const {
   out << "{" << endl;
-  out << " \"alphabet\": \"" << alphabet << "\"," << endl;
+  out << " \"alphabet\": " << quoted_escaped(alphabet) << "," << endl;
+  if (wildcard != Alignment::wildcardChar)
+    out << " \"wildcard\": " << quoted_escaped(string(1,wildcard)) << "," << endl;
   out << " \"insrate\": " << insRate << "," << endl;
   out << " \"insextprob\": " << insExtProb << "," << endl;
   out << " \"delrate\": " << delRate << "," << endl;

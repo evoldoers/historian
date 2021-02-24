@@ -15,6 +15,7 @@ const char* dayhoffModelText =
 "  \"insextprob\": 0.66,\n"
 "  \"delextprob\": 0.66,\n"
 "  \"alphabet\": \"arndcqeghilkmfpstwyv\",\n"
+"  \"wildcard\": \"x\",\n"
 "  \"rootprob\": {\n"
 "    \"a\": 0.087127,\n"
 "    \"r\": 0.040904,\n"

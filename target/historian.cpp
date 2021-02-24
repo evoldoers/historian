@@ -58,7 +58,7 @@ ProgUsage::ProgUsage (int argc, char** argv)
     + "~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     + "  -model <file>   Load substitution & indel model from file (JSON)\n"
     + "  -preset <name>  Select preset model by name\n"
-    + "                   (jc, jcrna dayhoff, jtt, wag, lg, ECMrest, ECMunrest)\n"
+    + "                   (jc, jcrna, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)\n"
     + "\n"
     + "  -normalize      Normalize expected substitution rate\n"
     + "  -insrate <R>, -delrate <R>, -insextprob <P>, -delextprob <P>\n"
