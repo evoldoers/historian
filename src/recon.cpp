@@ -61,6 +61,8 @@ Reconstructor::Reconstructor()
     runMCMC (false),
     outputTraceMCMC (false),
     fixGuideMCMC (false),
+    fixTreeMCMC (false),
+    fixAlignMCMC (false),
     mcmcSamplesPerSeq (DefaultMCMCSamplesPerSeq),
     mcmcTraceFiles (0),
     outputFormat (StockholmFormat),
