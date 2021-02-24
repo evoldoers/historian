@@ -7,6 +7,18 @@ USING_BOOST = $(findstring boost,$(MAKECMDGOALS))
 IS_DEBUG = $(findstring debug,$(MAKECMDGOALS))
 USING_EMSCRIPTEN = $(findstring emscripten,$(MAKECMDGOALS))
 
+# C++ compiler: Emscripten, Clang, or GCC?
+ifneq (,$(USING_EMSCRIPTEN))
+CPP = emcc
+else
+# try clang++, fall back to g++
+CPP = clang++
+ifeq (, $(shell which $(CPP)))
+CPP = g++
+USING_BOOST = true
+endif
+endif
+
 # If using emscripten, we need to compile gsl-js ourselves
 ifneq (,$(USING_EMSCRIPTEN))
 GSL_PREFIX = gsl-js
@@ -106,17 +118,6 @@ endif
 CPP_FILES = $(wildcard src/*.cpp)
 OBJ_FILES = $(subst src/,obj/,$(subst .cpp,.o,$(CPP_FILES)))
 
-# C++ compiler: Emscripten, Clang, or GCC?
-ifneq (,$(USING_EMSCRIPTEN))
-CPP = emcc
-else
-# try clang++, fall back to g++
-CPP = clang++
-ifeq (, $(shell which $(CPP)))
-CPP = g++
-endif
-endif
-
 # pwd
 PWD = $(shell pwd)
 
@@ -158,6 +159,9 @@ emscripten: $(HTMLTARGET)
 
 clean:
 	rm -rf bin/* obj/*
+
+# Pseudotarget for using Boost (autodetection would be better...)
+boost:
 
 # Main build rules
 bin/% wasm/%.js wasm/%.html: $(OBJ_FILES) obj/%.o $(GSL_DEPS)
