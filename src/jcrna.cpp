@@ -11,6 +11,7 @@ RateModel jcrnaModel() {
 const char* jcrnaModelText =
 "{\n"
 "    \"alphabet\": \"acgu\",\n"
+"    \"wildcard\": \"n\",\n"
 "    \"subrate\" : {\n"
 "	\"a\" : { \"c\": 0.3333, \"g\": 0.3333, \"u\": 0.3333 },\n"
 "	\"c\" : { \"a\": 0.3333, \"g\": 0.3333, \"u\": 0.3333 },\n"

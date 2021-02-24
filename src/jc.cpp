@@ -11,6 +11,7 @@ RateModel jcModel() {
 const char* jcModelText =
 "{\n"
 "    \"alphabet\": \"acgt\",\n"
+"    \"wildcard\": \"n\",\n"
 "    \"subrate\" : {\n"
 "	\"a\" : { \"c\": 0.3333, \"g\": 0.3333, \"t\": 0.3333 },\n"
 "	\"c\" : { \"a\": 0.3333, \"g\": 0.3333, \"t\": 0.3333 },\n"
