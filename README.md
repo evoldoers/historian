@@ -10,7 +10,7 @@ By contrast, Historian uses an explicit evolutionary model of indel and substitu
 
 The basic method and initial benchmarks of the approach were described in Westesson _et al_, 2012 [1], reporting benchmarks using a program called ProtPal. Historian is a clean reimplementation of ProtPal that also runs a lot faster, is more user-friendly, and has more features for molecular evolutionary modeling [2].
 
-The closest method to Historian is PRANK [3]. Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features, and runs faster.
+The closest method to Historian is PRANK [3]. Relative to PRANK, Historian is of comparable accuracy (on simulation benchmarks) or slightly more accurate (on structural alignment benchmarks), has more features (such as the ability to estimate substitution rate matrices), and runs faster.
 
 1. [_Accurate Reconstruction of Insertion-Deletion Histories by Statistical Phylogenetics_](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0034572); Westesson, Lunter, Paten and Holmes, PLoS One, 2012
 2. [_Historian: Accurate Reconstruction of Ancestral Sequences and Evolutionary Rates_](https://academic.oup.com/bioinformatics/article/33/8/1227/2926463); Holmes, Bioinformatics, 2017
