@@ -34,6 +34,12 @@ To install all these on a Mac, you can type
 brew install boost gsl pkg-config zlib
 ~~~~
 
+On Ubuntu Linux, the following should work
+
+~~~~
+sudo yum -y install boost-devel gsl-devel zlib
+~~~~
+
 If you want to run the tests, type `make test`. (The tests are oriented to a Mac OSX build environment; numerical precision errors may cause slight differences in output on different machines, which may lead to some tests failing.)
 
 Pre-compiled binaries are also available from the GitHub repository [release page](https://github.com/evoldoers/historian/releases).

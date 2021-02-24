@@ -1,5 +1,6 @@
 #include <cmath>
 #include <gsl/gsl_math.h>
+#include <ios>
 
 #include "tree.h"
 #include "knhx.h"
@@ -54,8 +55,10 @@ vguard<TreeNodeIndex> Tree::rerootedChildren (TreeNodeIndex node, TreeNodeIndex 
 
 string Tree::branchLengthString (TreeBranchLength d) {
   ostringstream ds;
-  if (d >= 0)
-    ds << ':' << defaultfloat << d;
+  if (d >= 0) {
+    ds.unsetf(std::ios_base::floatfield);
+    ds << ':' << d;
+  }
   return ds.str();
 }
 
@@ -464,7 +467,8 @@ string Tree::seqName (TreeNodeIndex n) const {
     vguard<string> cs;
     for (auto c : node[n].child) {
       ostringstream o;
-      o << seqName(c) << ':' << defaultfloat << branchLength(c);
+      o.unsetf(std::ios_base::floatfield);
+      o << seqName(c) << ':' << branchLength(c);
       cs.push_back (o.str());
     }
     s = "(" + join(cs,",") + ")";
@@ -474,7 +478,8 @@ string Tree::seqName (TreeNodeIndex n) const {
 
 string Tree::pairParentName (const string& lChildName, double lTime, const string& rChildName, double rTime) {
   ostringstream o;
-  o << "(" << lChildName << ":" << defaultfloat << lTime << "," << rChildName << ":" << defaultfloat << rTime << ")";
+  o.unsetf(std::ios_base::floatfield);
+  o << "(" << lChildName << ":" << lTime << "," << rChildName << ":" << rTime << ")";
   return o.str();
 }
 
