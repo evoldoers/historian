@@ -7,6 +7,8 @@
 #include <string.h>
 #include "knhx.h"
 
+#define BUFSIZE 128
+
 static inline char *add_node(const char *s, ktree_t *aux, int x)
 {
   char *p, *nbeg, *nend = 0;
@@ -126,14 +128,14 @@ static void format_node_recur(const knode_t *node, const knode_t *p, kstring_t *
     kputc(')', s);
     if (p->name) kputsn(p->name, (int)strlen(p->name), s);
     if (p->d >= 0) {
-      sprintf(numbuf, ":%g", p->d);
+      snprintf(numbuf, BUFSIZE, ":%g", p->d);
       kputsn(numbuf, (int)strlen(numbuf), s);
     }
   } else {
     kputsn(p->name, (int)strlen(p->name), s);
     // code to show branch length for leaf branches added by IH, 6/26/2015
     if (p->d >= 0) {
-      sprintf(numbuf, ":%g", p->d);
+      snprintf(numbuf, BUFSIZE, ":%g", p->d);
       kputsn(numbuf, (int)strlen(numbuf), s);
     }
   }
@@ -141,7 +143,7 @@ static void format_node_recur(const knode_t *node, const knode_t *p, kstring_t *
 
 void kn_format(const knode_t *node, int root, kstring_t *s) // TODO: get rid of recursion
 {
-  char numbuf[128];
+  char numbuf[BUFSIZE];
   format_node_recur(node, &node[root], s, numbuf);
   kputc(';',s);
 }

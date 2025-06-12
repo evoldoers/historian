@@ -823,8 +823,9 @@ void Reconstructor::loadSeqs (const string& seqFilename, const string& guideFile
 	dataset.name = guideFilename;
 	const auto guide = readFastSeqs (guideFilename.c_str());
 	dataset.initGuide (tokenizeCodons ? codonTokenizer.tokenize(guide) : guide);
-      }
-
+  if (!alignPathHasGaps (dataset.guide))
+      Warn ("FASTA-format guide alignment %s has no gaps; please check this is indeed an alignment", guideFilename.c_str());
+  }
       if (treeFilename.size())
 	loadTree (dataset);
       else

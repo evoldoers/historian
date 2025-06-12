@@ -19,8 +19,8 @@ string ansiEscape (int code) {
 Logger::Logger()
   : verbosity(0), useAnsiColor(true)
 {
-  for (int col : { 7, 2, 3, 5, 6, 1, 2, 3, 5, 6 })  // no blue, it's invisible
-    logAnsiColor.push_back (ansiEscape(30 + col) + ansiEscape(40));
+  for (int col : { 7, 2, 3, 5, 6, 1, 42, 43, 45, 46 })  // no blue, it's invisible
+    logAnsiColor.push_back (ansiEscape(90 + (col % 10)) + ansiEscape(40 + (col / 10)));
   ansiColorOff = ansiEscape(0);
 }
 
@@ -67,7 +67,7 @@ bool Logger::parseLogArgs (deque<string>& argvec) {
       return true;
 
     } else if (arg == "-nocolor") {
-      useAnsiColor = false;
+      colorOff();
       argvec.pop_front();
       return true;
     }

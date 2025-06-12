@@ -26,6 +26,8 @@ void ensureAlignPathHasRow (AlignPath&, AlignRowIndex);   // adds an empty row i
 
 string alignPathString (const AlignPath& a);
 
+bool alignPathHasGaps (const AlignPath& a);  // returns true if any row has a gap in it
+
 struct Alignment {
   static const char gapChar, wildcardChar;
   vguard<FastSeq> ungapped;

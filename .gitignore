@@ -1,0 +1,20 @@
+
+# C++ build artifacts
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.out
+*.a
+*.lib
+*.lo
+*.d
+
+# C++ debugging files
+*.dSYM/
+*.pdb
+*.idb
+
+# Visual Studio Code settings
+.vscode/

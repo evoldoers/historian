@@ -221,9 +221,18 @@ AlignPath alignPathRemoveEmptyColumns (const AlignPath& a) {
   return trimmed;
 }
 
+bool alignPathHasGaps (const AlignPath& a) {
+  for (const auto& row_path : a)
+    for (bool b : row_path.second)
+      if (!b)
+        return true;
+  return false;
+}
+
 Alignment::Alignment (const vguard<FastSeq>& gapped)
   : ungapped (gapped.size())
  {
+  (void) gappedSeqColumns (gapped);  // has the effect of checking that the alignment is flush
   for (AlignRowIndex row = 0; row < gapped.size(); ++row) {
     ungapped[row].name = gapped[row].name;
     ungapped[row].comment = gapped[row].comment;

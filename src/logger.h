@@ -47,7 +47,15 @@ public:
 
   template<class T>
   void print (const T& t, const char* file, int line, int v) {
+    if (useAnsiColor) {
+      if (v >= 0 && v < logAnsiColor.size())
+        clog << logAnsiColor[v];
+      else
+        clog << logAnsiColor[logAnsiColor.size() - 1];
+    }
     clog << t;
+    if (useAnsiColor)
+      clog << ansiColorOff;
   }
 };
 
