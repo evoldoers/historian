@@ -20,8 +20,8 @@ Logger::Logger()
   : verbosity(0), useAnsiColor(true)
 {
   for (int col : { 7, 2, 3, 5, 6, 1, 42, 43, 45, 46 })  // no blue, it's invisible
-    logAnsiColor.push_back (ansiEscape(90 + (col % 10)) + ansiEscape(40 + (col / 10)));
-  ansiColorOff = ansiEscape(0);
+    logAnsiColor.push_back (ansiEscape(90 + (col % 10)) + ansiEscape(40 + ((col / 10) ? (col / 10) : 9)));
+  ansiColorOff = ansiEscape(39) + ansiEscape(49);  // reset foreground and background colors
 }
 
 void Logger::addTag (const char* tag) {
