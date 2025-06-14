@@ -53,11 +53,11 @@ The simplest way to use Historian is just to point it at a FASTA file. It will t
 
 For example, using a test file of [HIV GP120 protein sequences](https://github.com/evoldoers/historian/blob/master/data/gp120.fa) that is included in the repository:
 
-	historian data/gp120.fa
+	historian -seqs data/gp120.fa
 
 This will generally be pretty fast, but you can make it faster (at a slight cost in accuracy) using the `-fast` option:
 
-	historian data/gp120.fa -fast
+	historian -seqs data/gp120.fa -fast
 
 The `-fast` option is an alias for several reconstruction options, as described in the [help message](#HelpText).
 
@@ -246,10 +246,16 @@ Usage: historian {recon,count,fit,mcmc,generate,help,version} [options]
 EXAMPLES
 
 Reconstruction:
-  historian recon seqs.fa [-tree tree.nh] -output fasta &gt;reconstruction.fa
+  historian recon -seqs seqs.fa [-tree tree.nh] -output fasta &gt;reconstruction.fa
   historian recon -guide guide.fa [-tree tree.nh] &gt;reconstruction.stk
-  historian recon guide.stk &gt;reconstruction.stk
-  historian recon data.nex -output nexus &gt;reconstruction.nex
+  historian recon -stockholm guide.stk &gt;reconstruction.stk
+  historian recon -nexus data.nex -output nexus &gt;reconstruction.nex
+
+(If you use '-auto' instead of '-seqs', '-guide', '-stockholm', or '-nexus',
+ Historian will try to autodetect the file format and guess your intentions.
+ If a filename is specified with no command-line option, '-auto' is assumed.
+ This may be risky: e.g. an ungapped FASTA file will always be interpreted
+ as unaligned sequences, even if it is in fact an ungapped alignment.)
 
 Event counting:
   historian count seqs.fa [-tree tree.nh] [-model model.json] &gt;counts.json
@@ -279,7 +285,7 @@ Model specification options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   -model &lt;file&gt;   Load substitution & indel model from file (JSON)
   -preset &lt;name&gt;  Select preset model by name
-                   (jc, jcrna dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
+                   (jc, jcrna, dayhoff, jtt, wag, lg, ECMrest, ECMunrest)
 
   -normalize      Normalize expected substitution rate
   -insrate &lt;R&gt;, -delrate &lt;R&gt;, -insextprob &lt;P&gt;, -delextprob &lt;P&gt;
