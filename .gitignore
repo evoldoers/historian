@@ -19,3 +19,9 @@ bin/
 
 # Visual Studio Code settings
 .vscode/
+
+# Emacs
+*~
+
+# Node
+node_modules/

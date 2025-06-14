@@ -270,9 +270,11 @@ bool Reconstructor::parseProfileArgs (deque<string>& argvec, bool allowReconstru
       argvec.pop_front();
       switch (detectFormat (filename)) {
       case FastaFormat:
+      Warn("Detected ungapped FASTA format for %s (using -auto); treating it as a file of unaligned sequences. If you meant it to be a guide alignment, use -guide. To guarantee it is interpreted as a FASTA file, use -seqs", filename.c_str());
 	seqFilenames.push_back (filename);
 	break;
       case GappedFastaFormat:
+      Warn("Detected gapped FASTA format for %s (using -auto); treating it as a guide alignment. To guarantee this interpretation, use -guide. If it is in fact a file of unaligned sequences, use -seqs", filename.c_str());
 	fastaGuideFilenames.push_back (filename);
 	break;
       case NexusFormat:
@@ -870,6 +872,7 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
   tree.assertBinary();
 
   AlignPath reorderedGuide;
+  vguard<FastSeq> reorderedGappedGuide (tree.nodes());
   for (TreeNodeIndex node = 0; node < tree.nodes(); ++node)
     if (tree.isLeaf(node)) {
       Assert (tree.nodeName(node).length() > 0, "Leaf node %d is unnamed", node);
@@ -879,6 +882,9 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
 
       if (!guide.empty())
 	reorderedGuide[node] = guide.at(seqidx);
+
+      if (!gappedGuide.empty())
+	reorderedGappedGuide[node] = gappedGuide.at(seqidx);
 
       closestLeaf.push_back (node);
       closestLeafDistance.push_back (0);
@@ -905,7 +911,7 @@ void Reconstructor::Dataset::prepareRecon (Reconstructor& recon) {
   swap (guide, reorderedGuide);
 
   if (recon.guideFile && !gappedGuide.empty())
-    recon.writeTreeAlignment (tree, gappedGuide, name, *recon.guideFile, false, NULL);
+    recon.writeTreeAlignment (tree, reorderedGappedGuide, name, *recon.guideFile, false, NULL);
 }
 
 void Reconstructor::reconstruct (Dataset& dataset) {
@@ -1096,7 +1102,7 @@ void Reconstructor::writeTreeAlignment (const Tree& tree, const vguard<FastSeq>&
   if (tokenizeCodons)
     g = codonTokenizer.detokenize (g);
   g = model.convertWildcards (g);
-  if (isReconstruction && (outputFormat == NexusFormat || outputFormat == JsonFormat || outputFormat == StockholmFormat)) {
+  if (outputFormat == JsonFormat || (isReconstruction && (outputFormat == NexusFormat || outputFormat == StockholmFormat))) {
     if (outputLeavesOnly)
       t.assignInternalNodeNames();
     else

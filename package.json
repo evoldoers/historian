@@ -1,0 +1,26 @@
+{
+  "name": "historian",
+  "version": "1.0.0",
+  "description": "[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evoldoers/historian.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/evoldoers/historian/issues"
+  },
+  "homepage": "https://github.com/evoldoers/historian#readme",
+  "dependencies": {
+    "extend": "^3.0.2",
+    "node-getopt": "^0.3.2"
+  }
+}

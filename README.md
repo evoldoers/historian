@@ -65,14 +65,20 @@ The `-fast` option is an alias for several reconstruction options, as described 
 
 Historian is one of these toolbox programs where the first argument can be a command, specifying what action is to be performed. If you omit this first command-argument, Historian assumes you want to reconstruct something. You can make this explicit as follows:
 
-	historian reconstruct data/gp120.fa
+	historian reconstruct -seqs data/gp120.fa
 
 You can also abbreviate `reconstruct` to `recon` or just `r`:
 
-	historian r data/gp120.fa
+	historian r -seqs data/gp120.fa
 
 All commands can be abbreviated to single letters.
 Of course, if you are doing reconstruction (as noted above), you can omit the command entirely, but the examples [further below](#ModelFitting) will use different commands.
+
+Historian will also allow you to leave out the `-seqs` and just write
+
+	historian reconstruct data/gp120.fa
+
+However, **this is risky**: Historian implicitly prepends the `-auto` argument in such cases, and that argument will look for gaps in the file, and (if gaps are present) it will treat the file as a guide alignment, _not_ a file of unaligned sequences. This may affect the reconstruction.
 
 #### Logging
 
